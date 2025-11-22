@@ -1,122 +1,2239 @@
-import 'package:flutter/material.dart';
+//REMINDER: Path (Medium Phone API 36.0):
+// Full path: /data/data/com.example.daily_pill_counter
+// Pastable piece: com.example.daily_pill_counter
 
-void main() {
-  runApp(const MyApp());
+// <editor-fold desc="Imports, consts, main, etc.">
+import 'dart:async';
+import 'dart:collection';
+import 'dart:convert';
+import 'dart:ffi' as ffi;
+import 'dart:io';
+import 'package:ffi/ffi.dart' as ffi_helpers;
+import 'package:flutter/material.dart';
+import 'package:sqflite/sqflite.dart';
+import 'package:path/path.dart' as p;
+import 'package:media_store_plus/media_store_plus.dart';
+import 'package:flutter/services.dart'; // for FilteringTextInputFormatter
+import 'package:timezone/timezone.dart' as tz;
+import 'package:timezone/data/latest_all.dart' as tzdata;
+
+// --- time/SQL helpers (single source of truth) ---
+String fmtUtcForSql(DateTime dt) {
+  // 'YYYY-MM-DD HH:MM:SS' in UTC, no milliseconds.
+  final s = dt.toUtc().toIso8601String();        // 2025-10-18T23:19:41.123Z
+  final noMs = s.split('.').first;               // 2025-10-18T23:19:41
+  return noMs.replaceFirst('T', ' ');            // 2025-10-18 23:19:41
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+/// Filenames / view names must match your existing DB.
+const String kDbFileName = 'daily-pill-tracking.db';
+const String kViewName = 'daily_avg_by_pill_UTC';
 
-  // This widget is the root of your application.
+/// Column names expected from the daily-avg view.
+const List<String> kShowColumns = ['pill_name', 'daily_avg'];
+
+// --- Transaction viewer types (top-level) ---
+enum _TxMode { today, lastNDays, range, all }
+
+// </editor-fold>
+
+// <editor-fold desc="Some fn; the _TxRow, PillApp and _DB classes">
+
+Future<DateTime?> _pickLocalDateTime(
+    BuildContext context, {
+      required tz.Location loc,
+      DateTime? initialLocal,
+    }) async {
+  final nowL = tz.TZDateTime.now(loc);
+  final initial = initialLocal ?? nowL;
+
+  final d = await showDatePicker(
+    context: context,
+    initialDate: DateTime(initial.year, initial.month, initial.day),
+    firstDate: DateTime(2000),
+    lastDate: DateTime(2100),
+  );
+  if (d == null) return null;
+
+  final t = await showTimePicker(
+    context: context,
+    initialTime: TimeOfDay.fromDateTime(initial),
+  );
+
+  if (t == null) return null;
+
+  return tz.TZDateTime(loc, d.year, d.month, d.day, t.hour, t.minute);
+}
+
+class _TxRow {
+  final DateTime utc;   // stored in UTC
+  final String pill;
+  final int qty;
+  const _TxRow(this.utc, this.pill, this.qty);
+}
+
+class PillApp extends StatelessWidget {
+  const PillApp({super.key});
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-      ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      title: 'Pill tracker',
+      home: const _ViewScreen(),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
+// ───────────────────────── Rust FFI bridge ─────────────────────────
 
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
+// Native typedefs
+typedef _IcbOpenNative = ffi.Pointer<ffi.Void> Function(
+    ffi.Pointer<ffi_helpers.Utf8>,
+    );
+typedef _IcbOpenDart = ffi.Pointer<ffi.Void> Function(
+    ffi.Pointer<ffi_helpers.Utf8>,
+    );
+typedef _IcbCloseNative = ffi.Void Function(ffi.Pointer<ffi.Void>);
+typedef _IcbCloseDart = void Function(ffi.Pointer<ffi.Void>);
+typedef _IcbReadDailyAveragesNative = ffi.Pointer<ffi_helpers.Utf8> Function(
+    ffi.Pointer<ffi.Void>,
+    );
+typedef _IcbReadDailyAveragesDart = ffi.Pointer<ffi_helpers.Utf8> Function(
+    ffi.Pointer<ffi.Void>,
+    );
+typedef _IcbReadWindowDaysNative = ffi.Pointer<ffi_helpers.Utf8> Function(
+    ffi.Pointer<ffi.Void>,
+    );
+typedef _IcbReadWindowDaysDart = ffi.Pointer<ffi_helpers.Utf8> Function(
+    ffi.Pointer<ffi.Void>,
+    );
+typedef _IcbSetWindowDaysNative = ffi.Int32 Function(
+    ffi.Pointer<ffi.Void>,
+    ffi.Int64,
+    );
+typedef _IcbSetWindowDaysDart = int Function(
+    ffi.Pointer<ffi.Void>,
+    int,
+    );
+typedef _IcbFreeStringNative = ffi.Void Function(
+    ffi.Pointer<ffi_helpers.Utf8>,
+    );
+typedef _IcbFreeStringDart = void Function(
+    ffi.Pointer<ffi_helpers.Utf8>,
+    );
 
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
+/// Thin wrapper over the Rust item-counter-ffi library.
+///
+/// Only covers the functions you actually exposed on the Rust side:
+///   - icb_open
+///   - icb_close
+///   - icb_read_daily_averages_json
+///   - icb_read_averaging_window_days_json
+///   - icb_set_averaging_window_days
+///   - icb_free_string
+///
+/// Everything else still goes through sqflite for now.
+class _FfiBackend {
+  _FfiBackend._internal();
+  static final _FfiBackend instance = _FfiBackend._internal();
 
-  final String title;
+  bool _initialized = false;
+  late final ffi.DynamicLibrary _lib;
+  late final _IcbOpenDart _icbOpen;
+  late final _IcbCloseDart _icbClose;
+  late final _IcbReadDailyAveragesDart _icbReadDailyAveragesJson;
+  late final _IcbReadWindowDaysDart _icbReadWindowDaysJson;
+  late final _IcbSetWindowDaysDart _icbSetWindowDays;
+  late final _IcbFreeStringDart _icbFreeString;
 
-  @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  ffi.Pointer<ffi.Void>? _handle;
+
+  bool get isInitialized => _initialized;
+
+  Future<void> init(String dbPath) async {
+    if (_initialized) return;
+
+    _lib = _openLibrary();
+
+    _icbOpen = _lib.lookupFunction<_IcbOpenNative, _IcbOpenDart>('icb_open');
+    _icbClose = _lib.lookupFunction<_IcbCloseNative, _IcbCloseDart>('icb_close');
+    _icbReadDailyAveragesJson = _lib.lookupFunction<
+        _IcbReadDailyAveragesNative,
+        _IcbReadDailyAveragesDart>('icb_read_daily_averages_json');
+    _icbReadWindowDaysJson = _lib.lookupFunction<
+        _IcbReadWindowDaysNative,
+        _IcbReadWindowDaysDart>('icb_read_averaging_window_days_json');
+    _icbSetWindowDays = _lib.lookupFunction<
+        _IcbSetWindowDaysNative,
+        _IcbSetWindowDaysDart>('icb_set_averaging_window_days');
+    _icbFreeString = _lib.lookupFunction<
+        _IcbFreeStringNative,
+        _IcbFreeStringDart>('icb_free_string');
+
+    final cPath = dbPath.toNativeUtf8();
+    try {
+      final h = _icbOpen(cPath);
+      if (h == ffi.Pointer<ffi.Void>.fromAddress(0)) {
+        throw StateError('icb_open returned null (failed to open Rust backend)');
+      }
+      _handle = h;
+    } finally {
+      ffi_helpers.malloc.free(cPath);
+    }
+
+    _initialized = true;
+  }
+
+  ffi.DynamicLibrary _openLibrary() {
+    if (Platform.isAndroid || Platform.isLinux) {
+      return ffi.DynamicLibrary.open('libitem_counter_ffi.so');
+    } else if (Platform.isWindows) {
+      return ffi.DynamicLibrary.open('item_counter_ffi.dll');
+    } else if (Platform.isMacOS || Platform.isIOS) {
+      return ffi.DynamicLibrary.open('libitem_counter_ffi.dylib');
+    } else {
+      throw UnsupportedError('Unsupported platform for Rust FFI backend');
+    }
+  }
+
+  void dispose() {
+    final h = _handle;
+    if (h != null && h != ffi.Pointer<ffi.Void>.fromAddress(0)) {
+      _icbClose(h);
+    }
+    _handle = null;
+    _initialized = false;
+  }
+
+  String _callJsonString(
+      ffi.Pointer<ffi_helpers.Utf8> Function(ffi.Pointer<ffi.Void>) f,
+      ) {
+    final h = _handle;
+    if (h == null || h == ffi.Pointer<ffi.Void>.fromAddress(0)) {
+      throw StateError('Rust backend handle not initialized');
+    }
+    final ptr = f(h);
+    if (ptr == ffi.Pointer<ffi_helpers.Utf8>.fromAddress(0)) {
+      throw StateError('Rust FFI returned null JSON pointer');
+    }
+    try {
+      return ptr.toDartString();
+    } finally {
+      _icbFreeString(ptr);
+    }
+  }
+
+  Future<int> readAveragingWindowDays() async {
+    final jsonStr = _callJsonString(_icbReadWindowDaysJson);
+    final decoded = jsonDecode(jsonStr) as Map<String, dynamic>;
+    if (decoded['ok'] != true) {
+      final msg = decoded['error']?.toString() ?? 'unknown error';
+      throw StateError('Rust readAveragingWindowDays failed: $msg');
+    }
+    final data = decoded['data'] as Map<String, dynamic>? ?? const {};
+    final v = data['days'];
+    if (v is int) return v;
+    if (v is num) return v.toInt();
+    return int.tryParse(v?.toString() ?? '0') ?? 0;
+  }
+
+  Future<void> setAveragingWindowDays(int days) async {
+    if (days <= 0) {
+      throw ArgumentError('days must be > 0');
+    }
+    final h = _handle;
+    if (h == null || h == ffi.Pointer<ffi.Void>.fromAddress(0)) {
+      throw StateError('Rust backend handle not initialized');
+    }
+    final rc = _icbSetWindowDays(h, days);
+    if (rc != 0) {
+      throw StateError('Rust setAveragingWindowDays returned error code $rc');
+    }
+  }
+
+  Future<List<_AvgRow>> readDailyAverages() async {
+    final jsonStr = _callJsonString(_icbReadDailyAveragesJson);
+    final decoded = jsonDecode(jsonStr) as Map<String, dynamic>;
+    if (decoded['ok'] != true) {
+      final msg = decoded['error']?.toString() ?? 'unknown error';
+      throw StateError('Rust readDailyAverages failed: $msg');
+    }
+    final data = decoded['data'] as List<dynamic>? ?? const [];
+    return data.map((e) {
+      final m = e as Map<String, dynamic>;
+      final name = m['pill_name']?.toString() ?? '';
+      final rawAvg = m['daily_avg'];
+      final avg = (rawAvg is num)
+          ? rawAvg.toDouble()
+          : double.tryParse(rawAvg?.toString() ?? '0') ?? 0.0;
+      return _AvgRow(name, avg);
+    }).toList();
+  }
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+// ───────────────────────── DB wrapper (sqflite + Rust FFI) ─────────────────────────
 
-  void _incrementCounter() {
+class _Db {
+  Database? _db;
+
+  Future<Database> open() async {
+    if (_db != null) return _db!;
+    final dbDir = await getDatabasesPath();
+    final full = p.join(dbDir, kDbFileName);
+
+    // Ensure Rust backend is also opened on the same DB file.
+    await _FfiBackend.instance.init(full);
+
+    _db = await openDatabase(full);
+    return _db!;
+  }
+
+  Future<List<_Pill>> listPillsOrdered() async {
+    final db = await open();
+    final rows = await db.rawQuery('''
+      SELECT id, name
+      FROM pills
+      ORDER BY CAST(display_order AS INTEGER), id
+    ''');
+    return rows.map((r) => _Pill(r['id'] as int, r['name'] as String)).toList();
+  }
+
+  /// Returns number_of_days from logged_days view (int >= 0).
+  /// Now delegated to the Rust backend via FFI.
+  Future<int> readAveragingWindowDays() async {
+    await open(); // ensures Rust backend is initialized
+    return _FfiBackend.instance.readAveragingWindowDays();
+  }
+
+  /// Update settings('averaging_window_days') with the given positive integer.
+  /// All logic now lives in Rust; this is a thin wrapper over FFI.
+  Future<void> setAveragingWindowDays(int days) async {
+    await open(); // ensures Rust backend is initialized
+    await _FfiBackend.instance.setAveragingWindowDays(days);
+  }
+
+  /// Read the 'skip second confirmation' flag from settings.
+  Future<bool> readSkipDeleteSecondConfirm() async {
+    final db = await open();
+    final rows = await db.rawQuery('''
+      SELECT value FROM settings
+      WHERE key = 'skip_delete_transactions_second_dialog_confirmation'
+      LIMIT 1
+    ''');
+    if (rows.isEmpty) return false;
+    final v = (rows.first['value'] ?? '0').toString().trim();
+    return v == '1' || v.toLowerCase() == 'true';
+  }
+
+  /// Set the 'skip second confirmation' flag in settings.
+  Future<void> setSkipDeleteSecondConfirm(bool skip) async {
+    final db = await open();
+    final val = skip ? '1' : '0';
+    final updated = await db.update(
+      'settings',
+      {'value': val},
+      where: 'key = ?',
+      whereArgs: ['skip_delete_transactions_second_dialog_confirmation'],
+      conflictAlgorithm: ConflictAlgorithm.ignore,
+    );
+    if (updated == 0) {
+      await db.insert(
+        'settings',
+        {
+          'key': 'skip_delete_transactions_second_dialog_confirmation',
+          'value': val,
+        },
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+  }
+
+  /// Delete transactions strictly older than [days] days from now (UTC).
+  /// Returns the number of rows deleted.
+  Future<int> deleteTransactionsOlderThanDays(int days) async {
+    if (days <= 0) return 0;
+    final db = await open();
+    final cutoffUtc = DateTime.now().toUtc().subtract(Duration(days: days));
+    final cutoffStr = fmtUtcForSql(cutoffUtc);
+    final deleted = await db.rawDelete(
+      'DELETE FROM pill_transactions WHERE timestamp_utc < ?',
+      [cutoffStr],
+    );
+    return deleted;
+  }
+
+  Future<int> countTransactionsOlderThanDays(int days) async {
+    if (days <= 0) return 0;
+    final db = await open();
+    final cutoffUtc = DateTime.now().toUtc().subtract(Duration(days: days));
+    final cutoffStr = fmtUtcForSql(cutoffUtc);
+    final rows = await db.rawQuery('''
+      SELECT COUNT(*) AS cnt
+      FROM pill_transactions
+      WHERE timestamp_utc < ?
+    ''', [cutoffStr]);
+    final v = rows.isEmpty ? 0 : rows.first['cnt'];
+    return (v is int) ? v : int.tryParse(v.toString()) ?? 0;
+  }
+
+  /// Returns (pill_name, avg) pairs for the current window.
+  /// Now delegated to Rust backend via FFI.
+  Future<List<_AvgRow>> readDailyAverages() async {
+    await open(); // ensures Rust backend is initialized
+    return _FfiBackend.instance.readDailyAverages();
+  }
+
+  /// Returns display strings like "MT/MST/MDT" grouped by tz_name (alias order is stable).
+  Future<List<String>> listTzAliasStrings() async {
+    final db = await open();
+    final rows = await db.rawQuery('SELECT alias, tz_name FROM time_zones ORDER BY tz_name, alias;');
+
+    // Group aliases by tz_name.
+    final Map<String, List<String>> byName = {};
+    for (final r in rows) {
+      final alias = (r['alias'] ?? '').toString();
+      final name  = (r['tz_name'] ?? '').toString();
+      byName.putIfAbsent(name, () => []).add(alias);
+    }
+
+    // Build "A/B/C" display strings.
+    final out = <String>[];
+    byName.forEach((_, aliases) {
+      out.add(aliases.join('/'));
+    });
+    return out;
+  }
+
+  /// Set active time zone by any alias (case-insensitive).
+  /// Looks up tz.id via alias, then upserts settings('time_zone_id') = id.
+  Future<void> setActiveTzByAlias(String alias) async {
+    final db = await open();
+
+    final row = await db.rawQuery(
+      'SELECT id FROM time_zones WHERE UPPER(alias) = ? LIMIT 1',
+      [alias.toUpperCase()],
+    );
+    if (row.isEmpty) {
+      throw ArgumentError('Unknown time zone alias: $alias');
+    }
+    final id = (row.first['id'] as num).toInt();
+
+    final updated = await db.update(
+      'settings',
+      {'value': id.toString()},
+      where: 'key = ?',
+      whereArgs: ['time_zone_id'],
+      conflictAlgorithm: ConflictAlgorithm.ignore,
+    );
+
+    if (updated == 0) {
+      await db.insert('settings', {'key': 'time_zone_id', 'value': id.toString()});
+    }
+  }
+
+  /// Insert many transactions at one timestamp (UTC ISO "YYYY-MM-DD HH:MM:SS")
+  Future<int> insertManyAtUtc(List<_Entry> entries, String? utcIso) async {
+    final db = await open();
+    final batch = db.batch();
+    final ts = utcIso ?? _Clock.nowUtcIsoSeconds();
+    for (final e in entries) {
+      batch.rawInsert(
+        'INSERT INTO pill_transactions (pill_id, quantity, timestamp_utc) VALUES (?, ?, ?)',
+        [e.pillId, e.qty, ts],
+      );
+    }
+    final res = await batch.commit(noResult: false);
+    return res.length;
+  }
+
+  /// Settings: active time zone id → (alias, tz_name)
+  Future<_Tz?> readActiveTz() async {
+    final db = await open();
+    final row = await db.rawQuery('''
+      SELECT tz.alias, tz.tz_name
+      FROM settings s
+      JOIN time_zones tz ON tz.id = CAST(s.value AS INTEGER)
+      WHERE s.key = 'time_zone_id'
+      LIMIT 1
+    ''');
+    if (row.isEmpty) return _Tz('UTC', 'UTC');
+    final m = row.first;
+    return _Tz((m['alias'] ?? 'UTC').toString(), (m['tz_name'] ?? 'UTC').toString());
+  }
+
+  /// Resolve alias (case-insensitive) → tz_name
+  Future<String?> resolveAlias(String alias) async {
+    final db = await open();
+    final row = await db.rawQuery(
+      'SELECT tz_name FROM time_zones WHERE UPPER(alias) = ? LIMIT 1',
+      [alias.toUpperCase()],
+    );
+    if (row.isEmpty) return null;
+    return row.first['tz_name']?.toString();
+  }
+
+  /// Insert entries (now) and return their new row IDs.
+  Future<List<int>> insertManyAtUtcReturningIds(List<_Entry> entries, String? utcIso) async {
+    final db = await open();
+    final ts = utcIso ?? _Clock.nowUtcIsoSeconds();
+    final ids = <int>[];
+    for (final e in entries) {
+      final id = await db.rawInsert(
+        'INSERT INTO pill_transactions (pill_id, quantity, timestamp_utc) VALUES (?, ?, ?)',
+        [e.pillId, e.qty, ts],
+      );
+      ids.add(id);
+    }
+    return ids;
+  }
+
+  /// Return a snapshot of a transaction (for redo), or null if not found.
+  Future<_TxnSnapshot?> readTransactionById(int id) async {
+    final db = await open();
+    final rows = await db.rawQuery(
+      'SELECT pill_id, quantity, timestamp_utc FROM pill_transactions WHERE id = ? LIMIT 1',
+      [id],
+    );
+    if (rows.isEmpty) return null;
+    final r = rows.first;
+    final pillId = (r['pill_id'] as num).toInt();
+    final qty = (r['quantity'] as num).toInt();
+    final utcIso = (r['timestamp_utc'] ?? '').toString();
+    if (utcIso.isEmpty) return null;
+    return _TxnSnapshot(pillId, qty, utcIso);
+  }
+
+  /// Delete a single transaction by its primary key.
+  Future<void> deleteTransactionById(int id) async {
+    final db = await open();
+    await db.delete('pill_transactions', where: 'id = ?', whereArgs: [id]);
+  }
+
+  /// Returns the full alias string (e.g., "MT/MST/MDT") for the active time zone.
+  /// Falls back to "UTC" if not configured.
+  Future<String> readActiveTzAliasString() async {
+    final db = await open();
+    final tzRow = await db.rawQuery('''
+      SELECT tz.tz_name
+      FROM settings s
+      JOIN time_zones tz ON tz.id = CAST(s.value AS INTEGER)
+      WHERE s.key = 'time_zone_id'
+      LIMIT 1
+    ''');
+    final tzName = tzRow.isEmpty ? 'UTC' : (tzRow.first['tz_name'] ?? 'UTC').toString();
+
+    final rows = await db.rawQuery('''
+      SELECT alias
+      FROM time_zones
+      WHERE tz_name = ?
+      ORDER BY alias
+    ''', [tzName]);
+
+    if (rows.isEmpty) return 'UTC';
+    final aliases = rows
+        .map((r) => (r['alias'] ?? '').toString())
+        .where((s) => s.isNotEmpty)
+        .toList();
+    return aliases.isEmpty ? 'UTC' : aliases.join('/');
+  }
+
+  // Pass-through to the underlying sqflite Database
+  Future<List<Map<String, Object?>>> rawQuery(
+      String sql, [
+        List<Object?>? arguments,
+      ]) async {
+    final db = await open();
+    return db.rawQuery(sql, arguments);
+  }
+} // class _Db
+
+// </editor-fold>
+
+// <editor-fold desc="Data-related classes/fns">
+class _Pill {
+  final int id;
+  final String name;
+  _Pill(this.id, this.name);
+}
+
+class _AvgRow {
+  final String pillName;
+  final double avg;
+  _AvgRow(this.pillName, this.avg);
+}
+
+class _Entry {
+  final int pillId;
+  final int qty;
+  _Entry(this.pillId, this.qty);
+}
+
+class _TxnSnapshot {
+  final int pillId;
+  final int qty;
+  final String utcIso; // "YYYY-MM-DD HH:MM:SS" UTC
+  _TxnSnapshot(this.pillId, this.qty, this.utcIso);
+}
+
+class _Tz {
+  final String alias;
+  final String tzName; // IANA tz database name, e.g., "America/Denver"
+  _Tz(this.alias, this.tzName);
+}
+
+DateTime parseDbUtc(String s) {
+  final base = s.replaceFirst(' ', 'T');
+  final iso = base.endsWith('+00:00') ? base.replaceFirst('+00:00', 'Z') : '${base}Z';
+  return DateTime.parse(iso).toUtc();
+}
+
+// </editor-fold>
+
+// <editor-fold desc="Time-related helper fns/classes">
+class _Clock {
+  /// "YYYY-MM-DD HH:MM:SS" in UTC
+  static String nowUtcIsoSeconds() {
+    final now = DateTime.now().toUtc();
+    return _fmtIso(now);
+  }
+
+  static String _fmtIso(DateTime dt) {
+    String two(int x) => x.toString().padLeft(2, '0');
+    return '${dt.year}-${two(dt.month)}-${two(dt.day)} ${two(dt.hour)}:${two(dt.minute)}:${two(dt.second)}';
+  }
+}
+
+// </editor-fold>
+
+// <editor-fold desc="_Store? *shrug*">
+class _Store extends ChangeNotifier {
+  _Store(this._db);
+  final _Db _db;
+  final List<_AvgRow> _rows = [];
+  UnmodifiableListView<_AvgRow> get rows => UnmodifiableListView(_rows);
+  int _days = 0;
+  int get days => _days;
+  List<_Pill> _pills = const [];
+  UnmodifiableListView<_Pill> get pills => UnmodifiableListView(_pills);
+  _Tz? _activeTz;
+  _Tz get activeTz => _activeTz ?? _Tz('UTC', 'UTC');
+  final List<List<int>> _undoStack = [];
+  bool get canUndo => _undoStack.isNotEmpty;
+  final List<List<_TxnSnapshot>> _redoStack = [];
+  bool get canRedo => _redoStack.isNotEmpty;
+
+  void _breakRedoChain() {
+    if (_redoStack.isNotEmpty) {
+      _redoStack.clear();
+    }
+  }
+
+  Future<void> undoLast() async {
+    if (_undoStack.isEmpty) return;
+    final ids = _undoStack.removeLast();
+
+    final snaps = <_TxnSnapshot>[];
+    for (final id in ids) {
+      final snap = await _db.readTransactionById(id);
+      await _db.deleteTransactionById(id);
+      if (snap != null) snaps.add(snap);
+    }
+    if (snaps.isNotEmpty) _redoStack.add(snaps);
+
+    await load();
+    notifyListeners();
+  }
+
+  Future<void> redoLast() async {
+    if (_redoStack.isEmpty) return;
+    final snaps = _redoStack.removeLast();
+
+    final entries = snaps.map((s) => _Entry(s.pillId, s.qty)).toList();
+    final ts = snaps.isNotEmpty ? snaps.first.utcIso : null;
+    final ids = await _db.insertManyAtUtcReturningIds(entries, ts);
+    _breakRedoChain();
+    _undoStack.add(ids);
+
+    await load();
+  }
+
+  Future<List<_TxRow>> _queryTransactions({
+    required tz.Location loc,
+    DateTime? startLocal,
+    DateTime? endLocal,
+  }) async {
+    final where = <String>[];
+    final args = <Object?>[];
+
+    String toUtcSql(DateTime local) {
+      final asUtc = tz.TZDateTime.from(local, loc).toUtc();
+      return fmtUtcForSql(asUtc);
+    }
+
+    if (startLocal != null) {
+      where.add('timestamp_utc >= ?');
+      args.add(toUtcSql(startLocal));
+    }
+    if (endLocal != null) {
+      where.add('timestamp_utc < ?');
+      args.add(toUtcSql(endLocal));
+    }
+
+    final whereSql = where.isEmpty ? '' : 'WHERE ${where.join(' AND ')}';
+
+    final rows = await _db.rawQuery('''
+      SELECT t.timestamp_utc, p.name AS pill_name, t.quantity
+      FROM pill_transactions t
+      JOIN pills p ON p.id = t.pill_id
+      $whereSql
+      ORDER BY t.timestamp_utc DESC
+    ''', args);
+
+    return rows.map((r) {
+      final ts = parseDbUtc((r['timestamp_utc'] ?? '') as String);
+      final nm = (r['pill_name'] ?? '').toString();
+      final q = int.tryParse((r['quantity'] ?? '0').toString()) ?? 0;
+      return _TxRow(ts, nm, q);
+    }).toList();
+  }
+
+  Future<void> load() async {
+    _activeTz = await _db.readActiveTz() ?? _Tz('UTC', 'UTC');
+    _days = await _db.readAveragingWindowDays();
+    _pills = await _db.listPillsOrdered();
+
+    final list = await _db.readDailyAverages();
+    _rows
+      ..clear()
+      ..addAll(list);
+    notifyListeners();
+  }
+
+  Future<void> addBatch(Map<int, int> quantities) async {
+    final entries = <_Entry>[];
+    quantities.forEach((pillId, qty) {
+      if (qty > 0) entries.add(_Entry(pillId, qty));
+    });
+    if (entries.isEmpty) return;
+
+    final ids = await _db.insertManyAtUtcReturningIds(entries, null);
+    _breakRedoChain();
+    _undoStack.add(ids);
+    _redoStack.clear();
+
+    await load();
+  }
+}
+
+// </editor-fold>
+
+// <editor-fold desc="The UI">
+class _SkipSecondConfirmSetting extends StatefulWidget {
+  const _SkipSecondConfirmSetting();
+
+  @override
+  State<_SkipSecondConfirmSetting> createState() => _SkipSecondConfirmSettingState();
+}
+
+class _SkipSecondConfirmSettingState extends State<_SkipSecondConfirmSetting> {
+  final _db = _Db();
+  bool? _initial;
+  bool _current = false;
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final v = await _db.readSkipDeleteSecondConfirm();
+    if (!mounted) return;
     setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
+      _initial = v;
+      _current = v;
+    });
+  }
+
+  Future<void> _save() async {
+    setState(() => _saving = true);
+    try {
+      await _db.setSkipDeleteSecondConfirm(_current);
+      if (!mounted) return;
+      setState(() => _initial = _current);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Preference saved.')),
+      );
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_initial == null) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
+        child: SizedBox(height: 56),
+      );
+    }
+
+    final changed = _initial != _current;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8.0),
+      child: Column(
+        children: [
+          CheckboxListTile(
+            value: _current,
+            onChanged: (v) => setState(() => _current = v ?? false),
+            controlAffinity: ListTileControlAffinity.leading,
+            title: const Text('Skip second confirmation when deleting transactions'),
+          ),
+          Align(
+            alignment: Alignment.centerRight,
+            child: ElevatedButton(
+              onPressed: (!changed || _saving) ? null : _save,
+              child: _saving
+                  ? const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+                  : const Text('Save'),
+            ),
+          ),
+          const SizedBox(height: 8),
+        ],
+      ),
+    );
+  }
+}
+
+class SettingsScreen extends StatelessWidget {
+  const SettingsScreen({super.key});
+
+  Future<void> _exportDatabase(BuildContext context) async {
+    try {
+      final s = _ViewScreenState._lastMounted;
+      final active = s?._store.activeTz;
+      final tzName = active?.tzName ?? 'Etc/UTC';
+      final alias = active?.alias ?? DateTime.now().timeZoneName;
+
+      var loc = tz.getLocation('Etc/UTC');
+      try {
+        loc = tz.getLocation(tzName);
+      } catch (_) {}
+      final now = tz.TZDateTime.now(loc);
+
+      String two(int n) => n.toString().padLeft(2, '0');
+      final ts = '${now.year}-${two(now.month)}-${two(now.day)}_'
+          '${two(now.hour)}-${two(now.minute)}-${two(now.second)}';
+
+      final fileName = 'daily-pill-tracking-DB-${ts}_($alias).db';
+
+      final dbDir = await getDatabasesPath();
+      final liveDb = File(p.join(dbDir, kDbFileName));
+      if (!await liveDb.exists()) {
+        throw FileSystemException('Database not found', liveDb.path);
+      }
+
+      final tmpDir = p.normalize(p.join(dbDir, '..', 'files'));
+      await Directory(tmpDir).create(recursive: true);
+      final tmpPath = p.join(tmpDir, fileName);
+
+      final tmpFile = File(tmpPath);
+      if (await tmpFile.exists()) {
+        try {
+          if (tmpFile.path != liveDb.path) {
+            try {
+              await tmpFile.delete();
+            } catch (_) {}
+          }
+        } catch (_) {}
+      }
+      await liveDb.copy(tmpPath);
+
+      final mediaStore = MediaStore();
+      await mediaStore.saveFile(
+        tempFilePath: tmpFile.path,
+        dirType: DirType.download,
+        dirName: DirName.download,
+        relativePath: '',
+      );
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Database exported to: Downloads/$fileName'),
+            duration: const Duration(seconds: 6),
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        debugPrint('Export failed: $e');
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Export failed: $e'),
+            duration: const Duration(seconds: 8),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _showDeleteOldTxDialog(BuildContext context) async {
+    final db = _Db();
+
+    final days = await db.readAveragingWindowDays();
+    final count = await db.countTransactionsOlderThanDays(days);
+
+    if (!context.mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete older transactions?'),
+        content: Text(
+          'This will permanently delete $count transactions older than $days days. '
+              'This cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () async {
+              Navigator.of(ctx).pop();
+              await _handleDeleteOldTx(context, days);
+            },
+            child: const Text('Proceed'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _handleDeleteOldTx(BuildContext context, int days) async {
+    final db = _Db();
+    final skip = await db.readSkipDeleteSecondConfirm();
+
+    if (skip) {
+      final deleted = await db.deleteTransactionsOlderThanDays(days);
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Deleted $deleted transactions older than $days days.')),
+      );
+      return;
+    }
+
+    bool skipNext = false;
+
+    if (!context.mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setState) => AlertDialog(
+            backgroundColor: Colors.red,
+            title: const Text(
+              'Really delete transactions?',
+              style: TextStyle(color: Colors.white),
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Colors.white),
+                          foregroundColor: Colors.white,
+                        ),
+                        onPressed: () => Navigator.of(ctx).pop(),
+                        child: const Text('Abort!'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Colors.white),
+                          foregroundColor: Colors.white,
+                          backgroundColor: Colors.transparent,
+                        ),
+                        onPressed: () async {
+                          if (skipNext) {
+                            await db.setSkipDeleteSecondConfirm(true);
+                          }
+                          final deleted = await db.deleteTransactionsOlderThanDays(days);
+                          if (!context.mounted) return;
+                          Navigator.of(ctx).pop();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Deleted $deleted transactions older than $days days.')),
+                          );
+                        },
+                        child: const Text('Proceed'),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                CheckboxListTile(
+                  value: skipNext,
+                  onChanged: (v) => setState(() => skipNext = v ?? false),
+                  controlAffinity: ListTileControlAffinity.leading,
+                  activeColor: Colors.white,
+                  checkColor: Colors.red,
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text(
+                    'Skip this step next time.\n(This can be undone in Settings.)',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Settings')),
+      body: ListView(
+        children: [
+          const _TzRow(),
+          const Divider(),
+          const _WindowRow(),
+          const Divider(),
+          const SizedBox(height: 0),
+          SizedBox(
+            child: Align(
+              alignment: Alignment.center,
+              child: OutlinedButton.icon(
+                icon: const Icon(Icons.list_alt),
+                label: const Text('View transactions'),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    final s = _ViewScreenState._lastMounted;
+                    if (s != null) {
+                      s._openTransactionViewer(s.context);
+                    }
+                  });
+                },
+              ),
+            ),
+          ),
+          const Divider(),
+          SizedBox(
+            child: Align(
+              alignment: Alignment.center,
+              child: OutlinedButton.icon(
+                icon: const Icon(Icons.download),
+                label: const Text('Export database'),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    _exportDatabase(context);
+                  });
+                },
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Divider(),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
+            child: Text(
+              'Danger Zone',
+              style: TextStyle(
+                color: Colors.red,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12.0),
+              ),
+              onPressed: () => _showDeleteOldTxDialog(context),
+              child: const Text('Delete outdated transactions'),
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Divider(),
+          const _SkipSecondConfirmSetting(),
+          const Divider(),
+        ],
+      ),
+    );
+  }
+}
+
+class _WindowRow extends StatefulWidget {
+  const _WindowRow();
+  @override
+  State<_WindowRow> createState() => _WindowRowState();
+}
+
+class _WindowRowState extends State<_WindowRow> {
+  final _db = _Db();
+  final TextEditingController _ctrl = TextEditingController();
+  bool _canSubmit = false;
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickDate() async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: now,
+      firstDate: DateTime(2000, 1, 1),
+      lastDate: DateTime(2100, 12, 31),
+      helpText: 'Choose the initial date of transaction',
+    );
+    if (picked == null) return;
+
+    final today = DateTime(now.year, now.month, now.day);
+    final date = DateTime(picked.year, picked.month, picked.day);
+    final rawDays = today.difference(date).inDays;
+
+    final days = (rawDays <= 0) ? 1 : rawDays;
+
+    setState(() {
+      _ctrl.text = days.toString();
+      _canSubmit = true;
+    });
+  }
+
+  Future<void> _submit() async {
+    final raw = _ctrl.text.trim();
+    final days = int.tryParse(raw);
+    if (days == null || days <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a positive number of days.')),
+      );
+      return;
+    }
+
+    await _db.setAveragingWindowDays(days);
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Averaging window set to: $days days')),
+    );
+
+    FocusScope.of(context).unfocus();
+    setState(() {
+      _ctrl.clear();
+      _canSubmit = false;
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
-    return Scaffold(
-      appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Padding(
+            padding: EdgeInsets.only(bottom: 6),
+            child: Text(
+              'Averaging window, in days',
+              style: TextStyle(fontWeight: FontWeight.w500),
             ),
-          ],
-        ),
+          ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    TextField(
+                      controller: _ctrl,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      onChanged: (v) => setState(() => _canSubmit = v.trim().isNotEmpty),
+                      decoration: const InputDecoration(
+                        hintText: 'e.g., 30',
+                        isDense: true,
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    OutlinedButton.icon(
+                      icon: const Icon(Icons.date_range, size: 18),
+                      label: const Text('Pick start date'),
+                      onPressed: _pickDate,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              FilledButton(
+                onPressed: _canSubmit ? _submit : null,
+                child: const Text('Submit'),
+              ),
+            ],
+          ),
+        ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
 }
+
+class _TzRow extends StatefulWidget {
+  const _TzRow();
+  @override
+  State<_TzRow> createState() => _TzRowState();
+}
+
+class _TzRowState extends State<_TzRow> {
+  final _db = _Db();
+  final _ctrl = TextEditingController();
+  String _query = '';
+  List<String> _options = const [];
+  bool _loading = true;
+  bool _canSubmit = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadOptions();
+  }
+
+  Future<void> _loadOptions() async {
+    try {
+      final opts = await _db.listTzAliasStrings();
+      if (!mounted) return;
+      setState(() {
+        _options = opts;
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _loading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to load time zones: $e')),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    final raw = _ctrl.text.trim();
+    if (raw.isEmpty) return;
+
+    String displayString = raw;
+    String aliasToSave;
+
+    if (raw.contains('/')) {
+      aliasToSave = raw.split('/').first.trim();
+    } else {
+      final rawUpper = raw.toUpperCase();
+      final match = _options.firstWhere(
+            (opt) => opt.split('/').any((a) => a.toUpperCase() == rawUpper),
+        orElse: () => raw,
+      );
+      displayString = match;
+      aliasToSave = match.contains('/') ? match.split('/').first.trim() : raw;
+      _ctrl.text = displayString;
+    }
+
+    await _db.setActiveTzByAlias(aliasToSave);
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Time zone: ($displayString) saved')),
+    );
+
+    FocusScope.of(context).unfocus();
+
+    _ctrl.clear();
+    setState(() => _canSubmit = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) {
+      return const ListTile(
+        title: Text('Time Zone'),
+        subtitle: Text('Loading…'),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: [
+          const Text(
+            'Time Zone:',
+            style: TextStyle(fontWeight: FontWeight.w500),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Autocomplete<String>(
+              optionsBuilder: (TextEditingValue tev) {
+                final q = tev.text.trim().toLowerCase();
+                if (q.isEmpty) return _options;
+                return _options.where((s) => s.toLowerCase().contains(q));
+              },
+              onSelected: (value) {
+                _ctrl.text = value;
+              },
+              fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+                controller.text = _ctrl.text;
+                controller.addListener(() {
+                  _ctrl.text = controller.text;
+                  final next = controller.text.trim();
+                  final changed = next != _query;
+                  final canSubmitNow = next.isNotEmpty;
+                  if (changed || canSubmitNow != _canSubmit) {
+                    setState(() {
+                      _query = next;
+                      _canSubmit = canSubmitNow;
+                    });
+                  }
+                });
+
+                return TextField(
+                  controller: controller,
+                  focusNode: focusNode,
+                  decoration: const InputDecoration(
+                    hintText: 'e.g., MT/MST/MDT or MT',
+                    isDense: true,
+                    border: OutlineInputBorder(),
+                  ),
+                );
+              },
+              optionsViewBuilder: (context, onSelected, options) {
+                final q = _query.trim().toLowerCase();
+                return Align(
+                  alignment: Alignment.topLeft,
+                  child: Material(
+                    elevation: 4,
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxHeight: 240),
+                      child: ListView(
+                        padding: EdgeInsets.zero,
+                        shrinkWrap: true,
+                        children: options.map((opt) {
+                          final aliases = opt.split('/');
+                          final match = q.isNotEmpty &&
+                              aliases.any((a) => a.toLowerCase() == q);
+
+                          final title = Text.rich(
+                            TextSpan(
+                              children: [
+                                for (int i = 0; i < aliases.length; i++) ...[
+                                  TextSpan(
+                                    text: aliases[i],
+                                    style: TextStyle(
+                                      fontWeight: (q.isNotEmpty &&
+                                          aliases[i].toLowerCase() == q)
+                                          ? FontWeight.bold
+                                          : FontWeight.normal,
+                                    ),
+                                  ),
+                                  if (i < aliases.length - 1)
+                                    const TextSpan(text: '/'),
+                                ]
+                              ],
+                            ),
+                          );
+
+                          return ListTile(
+                            dense: true,
+                            selected: match,
+                            title: title,
+                            onTap: () => onSelected(opt),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(width: 12),
+          FilledButton(
+            onPressed: _canSubmit ? _submit : null,
+            child: const Text('Submit'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ViewScreen extends StatefulWidget {
+  const _ViewScreen();
+
+  @override
+  State<_ViewScreen> createState() => _ViewScreenState();
+}
+
+class _ViewScreenState extends State<_ViewScreen> {
+  static _ViewScreenState? _lastMounted;
+
+  final _store = _Store(_Db());
+  final _ctrl = TextEditingController();
+  bool _loading = true;
+  String? _error;
+  final _db = _Db();
+  String? _tzDisplay;
+  String? _lastAdded;
+
+  Future<void> _loadActiveTzDisplay() async {
+    final s = await _db.readActiveTzAliasString();
+    if (!mounted) return;
+    setState(() => _tzDisplay = s);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _lastMounted = this;
+    _loadActiveTzDisplay();
+    unawaited(_init());
+  }
+
+  Future<void> _init() async {
+    try {
+      await _store.load();
+    } catch (e) {
+      _error = e.toString();
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  void dispose() {
+    _lastMounted = null;
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _openAddSheet() async {
+    final pills = _store.pills;
+    if (pills.isEmpty) return;
+
+    final qty = List<int>.filled(pills.length, 0);
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setState) {
+            return SafeArea(
+              child: Padding(
+                padding: EdgeInsets.only(
+                  left: 12,
+                  right: 12,
+                  top: 12,
+                  bottom: MediaQuery.of(ctx).viewInsets.bottom + 12,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text('Log pills',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+                    Flexible(
+                      child: ListView.separated(
+                        shrinkWrap: true,
+                        itemCount: pills.length,
+                        separatorBuilder: (_, __) => const Divider(height: 1),
+                        itemBuilder: (ctx, i) {
+                          final p = pills[i];
+                          return Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  p.name,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.keyboard_arrow_down),
+                                onPressed: () => setState(() {
+                                  if (qty[i] > 0) qty[i]--;
+                                }),
+                              ),
+                              SizedBox(
+                                width: 48,
+                                child: TextField(
+                                  key: ValueKey('qty_$i'),
+                                  textAlign: TextAlign.center,
+                                  keyboardType: TextInputType.number,
+                                  decoration: const InputDecoration(
+                                    isDense: true,
+                                    contentPadding:
+                                    EdgeInsets.symmetric(vertical: 6),
+                                    border: OutlineInputBorder(),
+                                  ),
+                                  controller: TextEditingController(
+                                      text: qty[i].toString()),
+                                  onChanged: (s) {
+                                    final v = int.tryParse(s) ?? 0;
+                                    setState(
+                                            () => qty[i] = v.clamp(0, 1000000));
+                                  },
+                                ),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.keyboard_arrow_up),
+                                onPressed: () =>
+                                    setState(() => qty[i] = qty[i] + 1),
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        TextButton(
+                          onPressed: () => Navigator.of(ctx).pop(),
+                          child: const Text('Cancel'),
+                        ),
+                        ElevatedButton(
+                          onPressed: () async {
+                            final map = <int, int>{};
+                            final parts = <String>[];
+                            for (var i = 0; i < pills.length; i++) {
+                              final q = qty[i];
+                              if (q > 0) {
+                                map[pills[i].id] = q;
+                                parts.add('${pills[i].name} x $q');
+                              }
+                            }
+                            if (map.isEmpty) {
+                              if (!mounted) return;
+                              Navigator.of(context).pop();
+                              return;
+                            }
+                            await _store.addBatch(map);
+
+                            if (!mounted) return;
+
+                            final message = 'Added: ${parts.join(', ')}';
+
+                            if (mounted) {
+                              setState(() {
+                                _lastAdded = message;
+                              });
+                            }
+
+                            Navigator.of(context).pop();
+                          },
+                          child: const Text('Submit'),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<List<_TxRow>> _queryTransactions({
+    required tz.Location loc,
+    DateTime? startLocal,
+    DateTime? endLocal,
+  }) async {
+    final where = <String>[];
+    final args = <Object?>[];
+
+    if (startLocal != null) {
+      where.add('t.timestamp_utc >= ?');
+      args.add(fmtUtcForSql(startLocal));
+    }
+    if (endLocal != null) {
+      where.add('t.timestamp_utc < ?');
+      args.add(fmtUtcForSql(endLocal));
+    }
+
+    final whereSql = where.isEmpty ? '' : 'WHERE ${where.join(' AND ')}';
+
+    final rows = await _db.open().then((db) => db.rawQuery('''
+        SELECT t.timestamp_utc, p.name AS pill_name, t.quantity
+        FROM pill_transactions t
+        JOIN pills p ON p.id = t.pill_id
+        $whereSql
+        ORDER BY t.timestamp_utc DESC
+      ''', args));
+
+    return rows.map((r) {
+      final ts = parseDbUtc((r['timestamp_utc'] ?? '') as String);
+      final nm = (r['pill_name'] ?? '').toString();
+      final q = int.tryParse((r['quantity'] ?? '0').toString()) ?? 0;
+      return _TxRow(ts, nm, q);
+    }).toList();
+  }
+
+  void _openTransactionViewer(BuildContext context) async {
+    final tzName = _store.activeTz.tzName;
+    tz.Location loc;
+    try {
+      loc = tz.getLocation(tzName);
+    } catch (_) {
+      loc = tz.getLocation('Etc/UTC');
+    }
+
+    _TxMode mode = _TxMode.today;
+    final lastDaysCtrl = TextEditingController(text: '7');
+    DateTime? startLocal;
+    DateTime? endLocal;
+
+    List<_TxRow> items = [];
+    bool busy = false;
+    String? error;
+
+    Future<void> runQuery() async {
+      setState(() {
+        busy = true;
+        error = null;
+      });
+      try {
+        DateTime? s, e;
+        final nowL = tz.TZDateTime.now(loc);
+        switch (mode) {
+          case _TxMode.today:
+            s = tz.TZDateTime(loc, nowL.year, nowL.month, nowL.day);
+            e = tz.TZDateTime(loc, nowL.year, nowL.month, nowL.day + 1);
+            break;
+          case _TxMode.lastNDays:
+            final n = int.tryParse(lastDaysCtrl.text.trim());
+            final days = (n == null || n <= 0) ? 1 : n;
+            e = nowL;
+            s = e.subtract(Duration(days: days));
+            break;
+          case _TxMode.range:
+            s = startLocal;
+            e = endLocal;
+            break;
+          case _TxMode.all:
+            s = null;
+            e = null;
+            break;
+        }
+        items = await _queryTransactions(loc: loc, startLocal: s, endLocal: e);
+      } catch (ex) {
+        error = ex.toString();
+      } finally {
+        setState(() {
+          busy = false;
+        });
+      }
+    }
+
+    await runQuery();
+    if (!mounted) return;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setSheetState) {
+            void ss(VoidCallback f) {
+              if (mounted) setSheetState(f);
+            }
+
+            String fmtLocal(DateTime? d) {
+              if (d == null) return '';
+              String two(int n) => n < 10 ? '0$n' : '$n';
+              return '${d.year}-${two(d.month)}-${two(d.day)} '
+                  '${two(d.hour)}:${two(d.minute)}';
+            }
+
+            Widget radioRow(_TxMode m, Widget trailing) => Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Radio<_TxMode>(
+                  value: m,
+                  groupValue: mode,
+                  onChanged: (v) => ss(() {
+                    mode = v!;
+                  }),
+                ),
+                const SizedBox(width: 4),
+                Expanded(child: trailing),
+              ],
+            );
+
+            return SafeArea(
+              child: Padding(
+                padding: EdgeInsets.only(
+                  left: 12,
+                  right: 12,
+                  top: 8,
+                  bottom: MediaQuery.of(ctx).viewInsets.bottom + 12,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        IconButton(
+                          tooltip: 'Back',
+                          icon: const Icon(Icons.arrow_back),
+                          onPressed: () => Navigator.of(ctx).pop(),
+                        ),
+                        const SizedBox(width: 4),
+                        const Text('Transaction Viewer',
+                            style: TextStyle(
+                                fontSize: 18, fontWeight: FontWeight.w600)),
+                        const Spacer(),
+                        IconButton(
+                          tooltip: 'Refresh',
+                          icon: const Icon(Icons.refresh),
+                          onPressed: busy
+                              ? null
+                              : () async {
+                            await runQuery();
+                            ss(() {});
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    radioRow(_TxMode.today, const Text('Today')),
+                    const Divider(),
+                    radioRow(
+                        _TxMode.lastNDays,
+                        Row(
+                          children: [
+                            const Text('Last'),
+                            const SizedBox(width: 8),
+                            SizedBox(
+                              width: 72,
+                              child: TextField(
+                                controller: lastDaysCtrl,
+                                keyboardType: TextInputType.number,
+                                decoration: const InputDecoration(
+                                    isDense: true,
+                                    border: OutlineInputBorder()),
+                                onTap: () => ss(() {
+                                  mode = _TxMode.lastNDays;
+                                }),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            const Text('days'),
+                          ],
+                        )),
+                    const Divider(),
+                    radioRow(
+                        _TxMode.range,
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                const Text('From'),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: TextField(
+                                    readOnly: true,
+                                    controller: TextEditingController(
+                                        text: fmtLocal(startLocal)),
+                                    decoration: InputDecoration(
+                                      isDense: true,
+                                      border: const OutlineInputBorder(),
+                                      hintText:
+                                      fmtLocal(startLocal).isEmpty ? '— select date —' : null,
+                                      hintStyle:
+                                      const TextStyle(color: Colors.grey),
+                                    ),
+                                    onTap: () => ss(() {
+                                      mode = _TxMode.range;
+                                    }),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                TextButton(
+                                  onPressed: () async {
+                                    ss(() {
+                                      mode = _TxMode.range;
+                                    });
+                                    final picked = await _pickLocalDateTime(
+                                        context,
+                                        loc: loc,
+                                        initialLocal: startLocal);
+                                    ss(() {
+                                      startLocal = picked;
+                                    });
+                                  },
+                                  child: const Text('Pick start date'),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text('to'),
+                                    const SizedBox(width: 26),
+                                    Expanded(
+                                      child: Stack(
+                                        alignment: Alignment.center,
+                                        children: [
+                                          TextField(
+                                            readOnly: true,
+                                            controller: TextEditingController(
+                                                text: fmtLocal(endLocal)),
+                                            decoration: InputDecoration(
+                                              isDense: true,
+                                              border:
+                                              const OutlineInputBorder(),
+                                              hintText: fmtLocal(startLocal)
+                                                  .isEmpty
+                                                  ? '— select date —'
+                                                  : null,
+                                              hintStyle: const TextStyle(
+                                                  color: Colors.grey),
+                                            ),
+                                            onTap: () => ss(() {
+                                              mode = _TxMode.range;
+                                            }),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    TextButton(
+                                      onPressed: () async {
+                                        ss(() {
+                                          mode = _TxMode.range;
+                                        });
+                                        final picked =
+                                        await _pickLocalDateTime(context,
+                                            loc: loc,
+                                            initialLocal: endLocal);
+                                        ss(() {
+                                          endLocal = picked;
+                                        });
+                                      },
+                                      child: const Text('Pick end date'),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 6),
+                              ],
+                            ),
+                          ],
+                        )),
+                    const Divider(),
+                    radioRow(_TxMode.all, const Text('All')),
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.search),
+                        label: const Text('Apply'),
+                        onPressed: busy
+                            ? null
+                            : () async {
+                          FocusManager.instance.primaryFocus?.unfocus();
+                          await runQuery();
+                          ss(() {});
+                        },
+                      ),
+                    ),
+                    if (error != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Text(
+                          error!,
+                          style: TextStyle(
+                              color: Theme.of(ctx).colorScheme.error),
+                        ),
+                      ),
+                    const SizedBox(height: 8),
+                    Flexible(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                              color: Theme.of(ctx).dividerColor),
+                        ),
+                        child: Column(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 8),
+                              child: Row(
+                                children: const [
+                                  Expanded(
+                                      flex: 44, child: Text('Timestamp')),
+                                  Expanded(
+                                      flex: 44, child: Text('Pill name')),
+                                  Expanded(
+                                      flex: 12,
+                                      child: Text('Qty.',
+                                          textAlign: TextAlign.right)),
+                                ],
+                              ),
+                            ),
+                            const Divider(height: 1),
+                            Expanded(
+                              child: busy
+                                  ? const Center(
+                                  child: CircularProgressIndicator())
+                                  : ListView.builder(
+                                itemCount: items.length,
+                                itemBuilder: (c, i) {
+                                  final it = items[i];
+                                  final local =
+                                  tz.TZDateTime.from(it.utc, loc);
+                                  String two(int n) =>
+                                      n < 10 ? '0$n' : '$n';
+                                  final tsStr =
+                                      '${local.year}-${two(local.month)}-${two(local.day)} '
+                                      '${two(local.hour)}:${two(local.minute)}:${two(local.second)}';
+
+                                  return Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 12, vertical: 10),
+                                    child: Row(
+                                      crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                      children: [
+                                        Expanded(
+                                            flex: 44,
+                                            child: Text(tsStr)),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                            flex: 44,
+                                            child: Text(it.pill,
+                                                softWrap: true)),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          flex: 12,
+                                          child: Text(
+                                            it.qty.toString(),
+                                            textAlign: TextAlign.right,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final titleDays = _store.days;
+    return Scaffold(
+      appBar: AppBar(
+        title: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Pill tracker'),
+            const SizedBox(height: 3),
+            if (_tzDisplay != null)
+              Text(
+                'Time zone: $_tzDisplay',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+          ],
+        ),
+        actions: [
+          IconButton(
+            tooltip: 'Settings',
+            icon: const Icon(Icons.settings),
+            onPressed: () async {
+              await Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const SettingsScreen()),
+              );
+              if (!mounted) return;
+              await _store.load();
+              await _loadActiveTzDisplay();
+              if (!mounted) return;
+              setState(() {});
+            },
+          ),
+        ],
+      ),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null
+          ? Padding(
+        padding: const EdgeInsets.all(16),
+        child:
+        Text(_error!, style: const TextStyle(color: Colors.red)),
+      )
+          : AnimatedBuilder(
+        animation: _store,
+        builder: (context, _) {
+          return Column(
+            children: [
+              const SizedBox.shrink(),
+              const SizedBox(height: 4),
+              if (_lastAdded != null) ...[
+                Padding(
+                  padding:
+                  const EdgeInsets.symmetric(horizontal: 12),
+                  child: Card(
+                    elevation: 0,
+                    color: Theme.of(context)
+                        .colorScheme
+                        .surfaceContainerHighest,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 8, horizontal: 12),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Padding(
+                            padding: EdgeInsets.only(top: 2),
+                            child: Icon(Icons.history),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(
+                                maxHeight:
+                                MediaQuery.of(context).size.height *
+                                    0.35,
+                              ),
+                              child: SingleChildScrollView(
+                                padding:
+                                const EdgeInsets.only(right: 8),
+                                child: SelectionArea(
+                                  child: Text(
+                                    _lastAdded!,
+                                    softWrap: true,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            tooltip: 'Clear',
+                            icon: const Icon(Icons.close),
+                            onPressed: () {
+                              setState(() {
+                                _lastAdded = null;
+                              });
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 12, vertical: 6),
+                child: Row(
+                  children: [
+                    const Expanded(
+                      child: Text(
+                        'Pill',
+                        style:
+                        TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    Text(
+                      'Avg. ($titleDays day(s))',
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: _store.rows.length,
+                  itemExtent: 28.0,
+                  itemBuilder: (context, i) {
+                    final r = _store.rows[i];
+                    return Stack(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 6),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  r.pillName,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                      fontSize: 14, height: 1.0),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                r.avg.toStringAsFixed(2),
+                                style: const TextStyle(
+                                    fontSize: 14, height: 1.0),
+                                textAlign: TextAlign.right,
+                              ),
+                            ],
+                          ),
+                        ),
+                        Positioned.fill(
+                          child: Align(
+                            alignment: Alignment.bottomCenter,
+                            child: Container(
+                              height: 1,
+                              color: Colors.grey.shade300,
+                              margin: const EdgeInsets.symmetric(
+                                  horizontal: 8),
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+      floatingActionButtonLocation:
+      FloatingActionButtonLocation.centerFloat,
+      floatingActionButton: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          AnimatedBuilder(
+            animation: _store,
+            builder: (context, _) {
+              final enabled = _store.canUndo;
+              return Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: Opacity(
+                  opacity: enabled ? 1.0 : 0.38,
+                  child: IgnorePointer(
+                    ignoring: !enabled,
+                    child: FloatingActionButton(
+                      heroTag: 'undo_fab',
+                      onPressed:
+                      enabled ? () async => await _store.undoLast() : null,
+                      mini: true,
+                      tooltip: 'Undo last',
+                      child: const Icon(Icons.undo),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+          FloatingActionButton.extended(
+            heroTag: 'add_fab',
+            onPressed: _openAddSheet,
+            icon: const Icon(Icons.add),
+            label: const Text('Add'),
+          ),
+          AnimatedBuilder(
+            animation: _store,
+            builder: (context, _) {
+              final enabled = _store.canRedo;
+              return Padding(
+                padding: const EdgeInsets.only(left: 12),
+                child: Opacity(
+                  opacity: enabled ? 1.0 : 0.38,
+                  child: IgnorePointer(
+                    ignoring: !enabled,
+                    child: FloatingActionButton(
+                      heroTag: 'redo_fab',
+                      onPressed:
+                      enabled ? () async => await _store.redoLast() : null,
+                      mini: true,
+                      tooltip: 'Redo last',
+                      child: const Icon(Icons.redo),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// </editor-fold>
+
+// <editor-fold desc="main()">
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  if (Platform.isAndroid) {
+    await MediaStore.ensureInitialized();
+    MediaStore.appFolder = 'daily_pill_tracking';
+  }
+  tzdata.initializeTimeZones();
+  runApp(const PillApp());
+}
+// </editor-fold>
