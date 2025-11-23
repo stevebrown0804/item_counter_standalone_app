@@ -1,0 +1,2 @@
+TODO: Build an Android FFI version of libitem_counter_ffi.so.  See if that gets the app to run.
+
