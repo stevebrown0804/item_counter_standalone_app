@@ -1,2 +1,2 @@
-TODO: Build an Android FFI version of libitem_counter_ffi.so.  See if that gets the app to run.
+TODO: Migrate any remaining functionality from the Flutter app to the rust back-end.
 
