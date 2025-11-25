@@ -1,6 +1,4 @@
-TODO(DONE, PRETTY SURE): Migrate any remaining functionality from the Flutter app to the rust back-end.
-
-TODO: Make sure the DB can be created/initialized in-place if necessary
+TODO: See the backend project's TODO.txt for "things to migrate to the back-end"
 
 TODO: Replace remnants of "pill tracking" legacy with "item tracking"
 
