@@ -1,30 +1,23 @@
 TODO(DONE, PRETTY SURE): Migrate any remaining functionality from the Flutter app to the rust back-end.
 
-Per ChatGPT, here's what remains:
-(Follow-up: Turns out, they were implemented in the backend; they just weren't exported in the ffi project.)
+TODO: Make sure the DB can be created/initialized in-place if necessary
 
+TODO: Replace remnants of "pill tracking" legacy with "item tracking"
+
+TODO: Remove the pill types; give a UI for entering 'items'
+    When the app is started the first time, let's bring up that UI to prompt the user to enter some "stuff to count"
+
+TODO: Look for other UI elements that can be generalized:
+    App title
+    LHS column header
+    (anything else? TBD)
+
+TODO: Give a way to choose other summary statistics (but probably don't implement them atm)
+
+------------------------------------------------------------------------------------
+Stuff not yet done:
 1. Pills
-    List pills (id, name, display_order)
     Insert pill? (if needed later)  <---not implemented yet; "add new pills to list" is what this means, but that's waiting for us to generalize the app/backend
-
-2. Transactions
-    Insert many transactions
-    Read transactions in a date range
-    Delete by ID
-    Delete older than N days
-    Count older than N days
-    Undo snapshot retrieval
-    Redo insertion
-
-3. Time zones
-    List supported aliases
-    Resolve alias → tz_name
-    Read active alias (string)
-    Set active alias
-
-4. Settings
-    Read boolean flags
-    Write boolean flags
 
 5. DB export (optional)
     Provide a Rust function that returns a path to a safe copy for export.  <--not implemented, but I'm not sure we want the back-end doing this
