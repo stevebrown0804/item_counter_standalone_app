@@ -17,7 +17,6 @@ import 'package:flutter/services.dart'; // for FilteringTextInputFormatter
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest_all.dart' as tzdata;
 
-
 /// Filenames / view names must match your existing DB.
 const String kDbFileName = 'daily-pill-tracking.db';
 const String kViewName = 'daily_avg_by_pill_UTC';
@@ -59,7 +58,7 @@ Future<DateTime?> _pickLocalDateTime(
 }
 
 class _TxRow {
-  final DateTime utc;   // stored in UTC
+  final DateTime utc; // stored in UTC
   final String pill;
   final int qty;
   const _TxRow(this.utc, this.pill, this.qty);
@@ -252,7 +251,6 @@ typedef _IcbUtcToLocalDart = ffi.Pointer<ffi_helpers.Utf8> Function(
     ffi.Pointer<ffi_helpers.Utf8>,
     );
 
-
 /// Thin wrapper over the Rust item-counter-ffi library.
 ///
 /// Rust side exports:
@@ -266,7 +264,13 @@ typedef _IcbUtcToLocalDart = ffi.Pointer<ffi_helpers.Utf8> Function(
 ///   - icb_list_timezones_json
 ///   - icb_set_active_tz_by_alias
 ///   - icb_read_active_tz_json
+///   - icb_local_to_utc_db_timestamp_json
+///   - icb_utc_db_to_local_timestamp_json
 ///   - icb_insert_many_at_utc_json
+///   - icb_query_transactions_today_json
+///   - icb_query_transactions_last_n_days_json
+///   - icb_query_transactions_range_local_json
+///   - icb_query_transactions_all_json
 ///   - icb_query_transactions_utc_range_json
 ///   - icb_delete_transaction_by_id
 ///   - icb_read_transaction_by_id_json
@@ -320,8 +324,7 @@ class _FfiBackend {
     _icbClose =
         _lib.lookupFunction<_IcbCloseNative, _IcbCloseDart>('icb_close');
 
-    _icbReadDailyAveragesJson = _lib.lookupFunction<
-        _IcbJsonNoArgsNative,
+    _icbReadDailyAveragesJson = _lib.lookupFunction<_IcbJsonNoArgsNative,
         _IcbJsonNoArgsDart>('icb_read_daily_averages_json');
 
     _icbReadWindowDaysJson = _lib.lookupFunction<_IcbJsonNoArgsNative,
@@ -836,7 +839,6 @@ class _FfiBackend {
     return _decodeTxRows(jsonStr);
   }
 
-
   Future<void> deleteTransactionById(int id) async {
     final h = _requireHandle();
     final rc = _icbDeleteTxById(h, id);
@@ -1010,11 +1012,11 @@ class _Db {
     return _FfiBackend.instance.utcDbToLocalTimestamp(utcTs);
   }
 
-
   // ───────────────────────── Transactions: insert / undo / redo ─────────────────────────
 
   /// Insert entries (at a given UTC timestamp, or now if null) and return their new row IDs.
-  Future<List<int>> insertManyAtUtcReturningIds(List<_Entry> entries, String? utcIso) async {
+  Future<List<int>> insertManyAtUtcReturningIds(
+      List<_Entry> entries, String? utcIso) async {
     await open();
     return _FfiBackend.instance.insertManyAtUtcReturningIds(entries, utcIso);
   }
@@ -1068,7 +1070,6 @@ class _Db {
     return _FfiBackend.instance.queryTransactionsAll();
   }
 
-
   // ───────────────────────── sqflite escape hatch ─────────────────────────
   // Only kept for cases where we truly do not have an FFI helper yet.
   Future<List<Map<String, Object?>>> rawQuery(
@@ -1116,7 +1117,8 @@ class _Tz {
 
 DateTime parseDbUtc(String s) {
   final base = s.replaceFirst(' ', 'T');
-  final iso = base.endsWith('+00:00') ? base.replaceFirst('+00:00', 'Z') : '${base}Z';
+  final iso =
+  base.endsWith('+00:00') ? base.replaceFirst('+00:00', 'Z') : '${base}Z';
   return DateTime.parse(iso).toUtc();
 }
 
@@ -1209,10 +1211,12 @@ class _SkipSecondConfirmSetting extends StatefulWidget {
   const _SkipSecondConfirmSetting();
 
   @override
-  State<_SkipSecondConfirmSetting> createState() => _SkipSecondConfirmSettingState();
+  State<_SkipSecondConfirmSetting> createState() =>
+      _SkipSecondConfirmSettingState();
 }
 
-class _SkipSecondConfirmSettingState extends State<_SkipSecondConfirmSetting> {
+class _SkipSecondConfirmSettingState
+    extends State<_SkipSecondConfirmSetting> {
   final _db = _Db();
   bool? _initial;
   bool _current = false;
@@ -1266,7 +1270,8 @@ class _SkipSecondConfirmSettingState extends State<_SkipSecondConfirmSetting> {
             value: _current,
             onChanged: (v) => setState(() => _current = v ?? false),
             controlAffinity: ListTileControlAffinity.leading,
-            title: const Text('Skip second confirmation when deleting transactions'),
+            title: const Text(
+                'Skip second confirmation when deleting transactions'),
           ),
           Align(
             alignment: Alignment.centerRight,
@@ -1406,7 +1411,9 @@ class SettingsScreen extends StatelessWidget {
       final deleted = await db.deleteTransactionsOlderThanDays(days);
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Deleted $deleted transactions older than $days days.')),
+        SnackBar(
+            content:
+            Text('Deleted $deleted transactions older than $days days.')),
       );
       return;
     }
@@ -1451,11 +1458,14 @@ class SettingsScreen extends StatelessWidget {
                           if (skipNext) {
                             await db.setSkipDeleteSecondConfirm(true);
                           }
-                          final deleted = await db.deleteTransactionsOlderThanDays(days);
+                          final deleted =
+                          await db.deleteTransactionsOlderThanDays(days);
                           if (!context.mounted) return;
                           Navigator.of(ctx).pop();
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Deleted $deleted transactions older than $days days.')),
+                            SnackBar(
+                                content: Text(
+                                    'Deleted $deleted transactions older than $days days.')),
                           );
                         },
                         child: const Text('Proceed'),
@@ -1653,8 +1663,11 @@ class _WindowRowState extends State<_WindowRow> {
                     TextField(
                       controller: _ctrl,
                       keyboardType: TextInputType.number,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      onChanged: (v) => setState(() => _canSubmit = v.trim().isNotEmpty),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly
+                      ],
+                      onChanged: (v) =>
+                          setState(() => _canSubmit = v.trim().isNotEmpty),
                       decoration: const InputDecoration(
                         hintText: 'e.g., 30',
                         isDense: true,
@@ -1787,7 +1800,8 @@ class _TzRowState extends State<_TzRow> {
               onSelected: (value) {
                 _ctrl.text = value;
               },
-              fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+              fieldViewBuilder:
+                  (context, controller, focusNode, onFieldSubmitted) {
                 controller.text = _ctrl.text;
                 controller.addListener(() {
                   _ctrl.text = controller.text;
@@ -1946,13 +1960,15 @@ class _ViewScreenState extends State<_ViewScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     const Text('Log pills',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        style: TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 8),
                     Flexible(
                       child: ListView.separated(
                         shrinkWrap: true,
                         itemCount: pills.length,
-                        separatorBuilder: (_, __) => const Divider(height: 1),
+                        separatorBuilder: (_, __) =>
+                        const Divider(height: 1),
                         itemBuilder: (ctx, i) {
                           final p = pills[i];
                           return Row(
@@ -1965,7 +1981,8 @@ class _ViewScreenState extends State<_ViewScreen> {
                                 ),
                               ),
                               IconButton(
-                                icon: const Icon(Icons.keyboard_arrow_down),
+                                icon:
+                                const Icon(Icons.keyboard_arrow_down),
                                 onPressed: () => setState(() {
                                   if (qty[i] > 0) qty[i]--;
                                 }),
@@ -1986,13 +2003,14 @@ class _ViewScreenState extends State<_ViewScreen> {
                                       text: qty[i].toString()),
                                   onChanged: (s) {
                                     final v = int.tryParse(s) ?? 0;
-                                    setState(
-                                            () => qty[i] = v.clamp(0, 1000000));
+                                    setState(() =>
+                                    qty[i] = v.clamp(0, 1000000));
                                   },
                                 ),
                               ),
                               IconButton(
-                                icon: const Icon(Icons.keyboard_arrow_up),
+                                icon:
+                                const Icon(Icons.keyboard_arrow_up),
                                 onPressed: () =>
                                     setState(() => qty[i] = qty[i] + 1),
                               ),
@@ -2003,10 +2021,12 @@ class _ViewScreenState extends State<_ViewScreen> {
                     ),
                     const SizedBox(height: 8),
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      mainAxisAlignment:
+                      MainAxisAlignment.spaceBetween,
                       children: [
                         TextButton(
-                          onPressed: () => Navigator.of(ctx).pop(),
+                          onPressed: () =>
+                              Navigator.of(ctx).pop(),
                           child: const Text('Cancel'),
                         ),
                         ElevatedButton(
@@ -2017,7 +2037,8 @@ class _ViewScreenState extends State<_ViewScreen> {
                               final q = qty[i];
                               if (q > 0) {
                                 map[pills[i].id] = q;
-                                parts.add('${pills[i].name} x $q');
+                                parts.add(
+                                    '${pills[i].name} x $q');
                               }
                             }
                             if (map.isEmpty) {
@@ -2029,7 +2050,8 @@ class _ViewScreenState extends State<_ViewScreen> {
 
                             if (!mounted) return;
 
-                            final message = 'Added: ${parts.join(', ')}';
+                            final message =
+                                'Added: ${parts.join(', ')}';
 
                             if (mounted) {
                               setState(() {
@@ -2123,7 +2145,6 @@ class _ViewScreenState extends State<_ViewScreen> {
       }
     }
 
-
     await runQuery();
     if (!mounted) return;
 
@@ -2169,7 +2190,8 @@ class _ViewScreenState extends State<_ViewScreen> {
                   left: 12,
                   right: 12,
                   top: 8,
-                  bottom: MediaQuery.of(ctx).viewInsets.bottom + 12,
+                  bottom:
+                  MediaQuery.of(ctx).viewInsets.bottom + 12,
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -2184,7 +2206,8 @@ class _ViewScreenState extends State<_ViewScreen> {
                         const SizedBox(width: 4),
                         const Text('Transaction Viewer',
                             style: TextStyle(
-                                fontSize: 18, fontWeight: FontWeight.w600)),
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600)),
                         const Spacer(),
                         IconButton(
                           tooltip: 'Refresh',
@@ -2214,7 +2237,8 @@ class _ViewScreenState extends State<_ViewScreen> {
                                 keyboardType: TextInputType.number,
                                 decoration: const InputDecoration(
                                     isDense: true,
-                                    border: OutlineInputBorder()),
+                                    border:
+                                    OutlineInputBorder()),
                                 onTap: () => ss(() {
                                   mode = _TxMode.lastNDays;
                                 }),
@@ -2228,7 +2252,8 @@ class _ViewScreenState extends State<_ViewScreen> {
                     radioRow(
                         _TxMode.range,
                         Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                          crossAxisAlignment:
+                          CrossAxisAlignment.start,
                           children: [
                             Row(
                               children: [
@@ -2241,11 +2266,14 @@ class _ViewScreenState extends State<_ViewScreen> {
                                         text: fmtLocal(startLocal)),
                                     decoration: InputDecoration(
                                       isDense: true,
-                                      border: const OutlineInputBorder(),
-                                      hintText:
-                                      fmtLocal(startLocal).isEmpty ? '— select date —' : null,
-                                      hintStyle:
-                                      const TextStyle(color: Colors.grey),
+                                      border:
+                                      const OutlineInputBorder(),
+                                      hintText: fmtLocal(startLocal)
+                                          .isEmpty
+                                          ? '— select date —'
+                                          : null,
+                                      hintStyle: const TextStyle(
+                                          color: Colors.grey),
                                     ),
                                     onTap: () => ss(() {
                                       mode = _TxMode.range;
@@ -2258,48 +2286,61 @@ class _ViewScreenState extends State<_ViewScreen> {
                                     ss(() {
                                       mode = _TxMode.range;
                                     });
-                                    final picked = await _pickLocalDateTime(
+                                    final picked =
+                                    await _pickLocalDateTime(
                                         context,
                                         loc: loc,
-                                        initialLocal: startLocal);
+                                        initialLocal:
+                                        startLocal);
                                     ss(() {
                                       startLocal = picked;
                                     });
                                   },
-                                  child: const Text('Pick start date'),
+                                  child:
+                                  const Text('Pick start date'),
                                 ),
                               ],
                             ),
                             const SizedBox(height: 6),
                             Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                              crossAxisAlignment:
+                              CrossAxisAlignment.start,
                               children: [
                                 Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  crossAxisAlignment:
+                                  CrossAxisAlignment.start,
                                   children: [
                                     const Text('to'),
                                     const SizedBox(width: 26),
                                     Expanded(
                                       child: Stack(
-                                        alignment: Alignment.center,
+                                        alignment:
+                                        Alignment.center,
                                         children: [
                                           TextField(
                                             readOnly: true,
-                                            controller: TextEditingController(
-                                                text: fmtLocal(endLocal)),
-                                            decoration: InputDecoration(
+                                            controller:
+                                            TextEditingController(
+                                                text: fmtLocal(
+                                                    endLocal)),
+                                            decoration:
+                                            InputDecoration(
                                               isDense: true,
                                               border:
                                               const OutlineInputBorder(),
-                                              hintText: fmtLocal(startLocal)
+                                              hintText: fmtLocal(
+                                                  startLocal)
                                                   .isEmpty
                                                   ? '— select date —'
                                                   : null,
-                                              hintStyle: const TextStyle(
-                                                  color: Colors.grey),
+                                              hintStyle:
+                                              const TextStyle(
+                                                  color: Colors
+                                                      .grey),
                                             ),
                                             onTap: () => ss(() {
-                                              mode = _TxMode.range;
+                                              mode =
+                                                  _TxMode.range;
                                             }),
                                           ),
                                         ],
@@ -2312,14 +2353,17 @@ class _ViewScreenState extends State<_ViewScreen> {
                                           mode = _TxMode.range;
                                         });
                                         final picked =
-                                        await _pickLocalDateTime(context,
+                                        await _pickLocalDateTime(
+                                            context,
                                             loc: loc,
-                                            initialLocal: endLocal);
+                                            initialLocal:
+                                            endLocal);
                                         ss(() {
                                           endLocal = picked;
                                         });
                                       },
-                                      child: const Text('Pick end date'),
+                                      child:
+                                      const Text('Pick end date'),
                                     ),
                                   ],
                                 ),
@@ -2339,7 +2383,9 @@ class _ViewScreenState extends State<_ViewScreen> {
                         onPressed: busy
                             ? null
                             : () async {
-                          FocusManager.instance.primaryFocus?.unfocus();
+                          FocusManager
+                              .instance.primaryFocus
+                              ?.unfocus();
                           await runQuery();
                           ss(() {});
                         },
@@ -2351,32 +2397,41 @@ class _ViewScreenState extends State<_ViewScreen> {
                         child: Text(
                           error!,
                           style: TextStyle(
-                              color: Theme.of(ctx).colorScheme.error),
+                              color: Theme.of(ctx)
+                                  .colorScheme
+                                  .error),
                         ),
                       ),
                     const SizedBox(height: 8),
                     Flexible(
                       child: Container(
                         decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius:
+                          BorderRadius.circular(16),
                           border: Border.all(
-                              color: Theme.of(ctx).dividerColor),
+                              color: Theme.of(ctx)
+                                  .dividerColor),
                         ),
                         child: Column(
                           children: [
                             Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 8),
+                              padding:
+                              const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 8),
                               child: Row(
                                 children: const [
                                   Expanded(
-                                      flex: 44, child: Text('Timestamp')),
+                                      flex: 44,
+                                      child: Text('Timestamp')),
                                   Expanded(
-                                      flex: 44, child: Text('Pill name')),
+                                      flex: 44,
+                                      child: Text('Pill name')),
                                   Expanded(
                                       flex: 12,
                                       child: Text('Qty.',
-                                          textAlign: TextAlign.right)),
+                                          textAlign:
+                                          TextAlign.right)),
                                 ],
                               ),
                             ),
@@ -2384,40 +2439,57 @@ class _ViewScreenState extends State<_ViewScreen> {
                             Expanded(
                               child: busy
                                   ? const Center(
-                                  child: CircularProgressIndicator())
+                                  child:
+                                  CircularProgressIndicator())
                                   : ListView.builder(
                                 itemCount: items.length,
                                 itemBuilder: (c, i) {
                                   final it = items[i];
                                   final local =
-                                  tz.TZDateTime.from(it.utc, loc);
+                                  tz.TZDateTime.from(
+                                      it.utc, loc);
                                   String two(int n) =>
-                                      n < 10 ? '0$n' : '$n';
+                                      n < 10
+                                          ? '0$n'
+                                          : '$n';
                                   final tsStr =
                                       '${local.year}-${two(local.month)}-${two(local.day)} '
                                       '${two(local.hour)}:${two(local.minute)}:${two(local.second)}';
 
                                   return Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 12, vertical: 10),
+                                    padding:
+                                    const EdgeInsets
+                                        .symmetric(
+                                      horizontal: 12,
+                                      vertical: 10,
+                                    ),
                                     child: Row(
                                       crossAxisAlignment:
-                                      CrossAxisAlignment.start,
+                                      CrossAxisAlignment
+                                          .start,
                                       children: [
                                         Expanded(
                                             flex: 44,
-                                            child: Text(tsStr)),
-                                        const SizedBox(width: 8),
+                                            child:
+                                            Text(tsStr)),
+                                        const SizedBox(
+                                            width: 8),
                                         Expanded(
                                             flex: 44,
-                                            child: Text(it.pill,
-                                                softWrap: true)),
-                                        const SizedBox(width: 8),
+                                            child: Text(
+                                                it.pill,
+                                                softWrap:
+                                                true)),
+                                        const SizedBox(
+                                            width: 8),
                                         Expanded(
                                           flex: 12,
                                           child: Text(
-                                            it.qty.toString(),
-                                            textAlign: TextAlign.right,
+                                            it.qty
+                                                .toString(),
+                                            textAlign:
+                                            TextAlign
+                                                .right,
                                           ),
                                         ),
                                       ],
@@ -2465,7 +2537,8 @@ class _ViewScreenState extends State<_ViewScreen> {
             icon: const Icon(Icons.settings),
             onPressed: () async {
               await Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                MaterialPageRoute(
+                    builder: (_) => const SettingsScreen()),
               );
               if (!mounted) return;
               await _store.load();
@@ -2481,8 +2554,8 @@ class _ViewScreenState extends State<_ViewScreen> {
           : _error != null
           ? Padding(
         padding: const EdgeInsets.all(16),
-        child:
-        Text(_error!, style: const TextStyle(color: Colors.red)),
+        child: Text(_error!,
+            style: const TextStyle(color: Colors.red)),
       )
           : AnimatedBuilder(
         animation: _store,
@@ -2493,21 +2566,25 @@ class _ViewScreenState extends State<_ViewScreen> {
               const SizedBox(height: 4),
               if (_lastAdded != null) ...[
                 Padding(
-                  padding:
-                  const EdgeInsets.symmetric(horizontal: 12),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 12),
                   child: Card(
                     elevation: 0,
                     color: Theme.of(context)
                         .colorScheme
                         .surfaceContainerHighest,
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 8, horizontal: 12),
+                      padding:
+                      const EdgeInsets.symmetric(
+                          vertical: 8,
+                          horizontal: 12),
                       child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        crossAxisAlignment:
+                        CrossAxisAlignment.start,
                         children: [
                           const Padding(
-                            padding: EdgeInsets.only(top: 2),
+                            padding: EdgeInsets.only(
+                                top: 2),
                             child: Icon(Icons.history),
                           ),
                           const SizedBox(width: 12),
@@ -2515,12 +2592,18 @@ class _ViewScreenState extends State<_ViewScreen> {
                             child: ConstrainedBox(
                               constraints: BoxConstraints(
                                 maxHeight:
-                                MediaQuery.of(context).size.height *
+                                MediaQuery.of(
+                                    context)
+                                    .size
+                                    .height *
                                     0.35,
                               ),
-                              child: SingleChildScrollView(
+                              child:
+                              SingleChildScrollView(
                                 padding:
-                                const EdgeInsets.only(right: 8),
+                                const EdgeInsets
+                                    .only(
+                                    right: 8),
                                 child: SelectionArea(
                                   child: Text(
                                     _lastAdded!,
@@ -2532,7 +2615,8 @@ class _ViewScreenState extends State<_ViewScreen> {
                           ),
                           IconButton(
                             tooltip: 'Clear',
-                            icon: const Icon(Icons.close),
+                            icon:
+                            const Icon(Icons.close),
                             onPressed: () {
                               setState(() {
                                 _lastAdded = null;
@@ -2554,8 +2638,9 @@ class _ViewScreenState extends State<_ViewScreen> {
                     const Expanded(
                       child: Text(
                         'Pill',
-                        style:
-                        TextStyle(fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                            fontWeight:
+                            FontWeight.bold),
                       ),
                     ),
                     Text(
@@ -2576,36 +2661,48 @@ class _ViewScreenState extends State<_ViewScreen> {
                     return Stack(
                       children: [
                         Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 6),
+                          padding: const EdgeInsets
+                              .symmetric(
+                              horizontal: 12,
+                              vertical: 6),
                           child: Row(
                             children: [
                               Expanded(
                                 child: Text(
                                   r.pillName,
                                   maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
+                                  overflow:
+                                  TextOverflow
+                                      .ellipsis,
                                   style: const TextStyle(
-                                      fontSize: 14, height: 1.0),
+                                      fontSize: 14,
+                                      height: 1.0),
                                 ),
                               ),
                               const SizedBox(width: 8),
                               Text(
-                                r.avg.toStringAsFixed(2),
+                                r.avg
+                                    .toStringAsFixed(
+                                    2),
                                 style: const TextStyle(
-                                    fontSize: 14, height: 1.0),
-                                textAlign: TextAlign.right,
+                                    fontSize: 14,
+                                    height: 1.0),
+                                textAlign:
+                                TextAlign.right,
                               ),
                             ],
                           ),
                         ),
                         Positioned.fill(
                           child: Align(
-                            alignment: Alignment.bottomCenter,
+                            alignment: Alignment
+                                .bottomCenter,
                             child: Container(
                               height: 1,
-                              color: Colors.grey.shade300,
-                              margin: const EdgeInsets.symmetric(
+                              color:
+                              Colors.grey.shade300,
+                              margin: const EdgeInsets
+                                  .symmetric(
                                   horizontal: 8),
                             ),
                           ),
@@ -2636,8 +2733,9 @@ class _ViewScreenState extends State<_ViewScreen> {
                     ignoring: !enabled,
                     child: FloatingActionButton(
                       heroTag: 'undo_fab',
-                      onPressed:
-                      enabled ? () async => await _store.undoLast() : null,
+                      onPressed: enabled
+                          ? () async => await _store.undoLast()
+                          : null,
                       mini: true,
                       tooltip: 'Undo last',
                       child: const Icon(Icons.undo),
@@ -2665,8 +2763,9 @@ class _ViewScreenState extends State<_ViewScreen> {
                     ignoring: !enabled,
                     child: FloatingActionButton(
                       heroTag: 'redo_fab',
-                      onPressed:
-                      enabled ? () async => await _store.redoLast() : null,
+                      onPressed: enabled
+                          ? () async => await _store.redoLast()
+                          : null,
                       mini: true,
                       tooltip: 'Redo last',
                       child: const Icon(Icons.redo),
