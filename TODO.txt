@@ -1,4 +1,4 @@
-TODO: See the backend project's TODO.txt for "things to migrate to the back-end"
+TODO (IN PROGRESS): See the backend project's TODO.txt for "things to migrate to the back-end"
 
 TODO: Replace remnants of "pill tracking" legacy with "item tracking"
 
