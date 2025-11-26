@@ -163,6 +163,36 @@ typedef _IcbInsertManyAtUtcDart = ffi.Pointer<ffi_helpers.Utf8> Function(
     int,
     ffi.Pointer<ffi_helpers.Utf8>,
     );
+typedef _IcbQueryTxTodayNative = ffi.Pointer<ffi_helpers.Utf8> Function(
+    ffi.Pointer<ffi.Void>,
+    );
+typedef _IcbQueryTxTodayDart = ffi.Pointer<ffi_helpers.Utf8> Function(
+    ffi.Pointer<ffi.Void>,
+    );
+typedef _IcbQueryTxLastNDaysNative = ffi.Pointer<ffi_helpers.Utf8> Function(
+    ffi.Pointer<ffi.Void>,
+    ffi.Int64,
+    );
+typedef _IcbQueryTxLastNDaysDart = ffi.Pointer<ffi_helpers.Utf8> Function(
+    ffi.Pointer<ffi.Void>,
+    int,
+    );
+typedef _IcbQueryTxRangeLocalNative = ffi.Pointer<ffi_helpers.Utf8> Function(
+    ffi.Pointer<ffi.Void>,
+    ffi.Pointer<ffi_helpers.Utf8>,
+    ffi.Pointer<ffi_helpers.Utf8>,
+    );
+typedef _IcbQueryTxRangeLocalDart = ffi.Pointer<ffi_helpers.Utf8> Function(
+    ffi.Pointer<ffi.Void>,
+    ffi.Pointer<ffi_helpers.Utf8>,
+    ffi.Pointer<ffi_helpers.Utf8>,
+    );
+typedef _IcbQueryTxAllNative = ffi.Pointer<ffi_helpers.Utf8> Function(
+    ffi.Pointer<ffi.Void>,
+    );
+typedef _IcbQueryTxAllDart = ffi.Pointer<ffi_helpers.Utf8> Function(
+    ffi.Pointer<ffi.Void>,
+    );
 typedef _IcbQueryTxRangeNative = ffi.Pointer<ffi_helpers.Utf8> Function(
     ffi.Pointer<ffi.Void>,
     ffi.Pointer<ffi_helpers.Utf8>,
@@ -265,6 +295,10 @@ class _FfiBackend {
   late final _IcbSetActiveTzDart _icbSetActiveTzByAlias;
   late final _IcbReadActiveTzDart _icbReadActiveTzJson;
   late final _IcbInsertManyAtUtcDart _icbInsertManyAtUtcJson;
+  late final _IcbQueryTxTodayDart _icbQueryTxTodayJson;
+  late final _IcbQueryTxLastNDaysDart _icbQueryTxLastNDaysJson;
+  late final _IcbQueryTxRangeLocalDart _icbQueryTxRangeLocalJson;
+  late final _IcbQueryTxAllDart _icbQueryTxAllJson;
   late final _IcbQueryTxRangeDart _icbQueryTxRangeJson;
   late final _IcbDeleteTxByIdDart _icbDeleteTxById;
   late final _IcbReadTxByIdDart _icbReadTxByIdJson;
@@ -322,6 +356,22 @@ class _FfiBackend {
 
     _icbInsertManyAtUtcJson = _lib.lookupFunction<_IcbInsertManyAtUtcNative,
         _IcbInsertManyAtUtcDart>('icb_insert_many_at_utc_json');
+
+    _icbQueryTxTodayJson = _lib.lookupFunction<_IcbQueryTxTodayNative,
+        _IcbQueryTxTodayDart>('icb_query_transactions_today_json');
+
+    _icbQueryTxLastNDaysJson =
+        _lib.lookupFunction<_IcbQueryTxLastNDaysNative,
+            _IcbQueryTxLastNDaysDart>(
+            'icb_query_transactions_last_n_days_json');
+
+    _icbQueryTxRangeLocalJson =
+        _lib.lookupFunction<_IcbQueryTxRangeLocalNative,
+            _IcbQueryTxRangeLocalDart>(
+            'icb_query_transactions_range_local_json');
+
+    _icbQueryTxAllJson = _lib.lookupFunction<_IcbQueryTxAllNative,
+        _IcbQueryTxAllDart>('icb_query_transactions_all_json');
 
     _icbQueryTxRangeJson = _lib.lookupFunction<_IcbQueryTxRangeNative,
         _IcbQueryTxRangeDart>('icb_query_transactions_utc_range_json');
@@ -657,6 +707,21 @@ class _FfiBackend {
 
   // ── Transactions ──
 
+  List<_TxRow> _decodeTxRows(String jsonStr) {
+    final list = _decodeList(jsonStr);
+    return list.map((e) {
+      final m = e as Map<String, dynamic>;
+      final tsStr = (m['timestamp_utc'] ?? '').toString();
+      final pillName = (m['pill_name'] ?? '').toString();
+      final qtyRaw = m['quantity'];
+      final qty = (qtyRaw is num)
+          ? qtyRaw.toInt()
+          : int.tryParse(qtyRaw?.toString() ?? '0') ?? 0;
+      final dt = parseDbUtc(tsStr);
+      return _TxRow(dt, pillName, qty);
+    }).toList();
+  }
+
   Future<List<int>> insertManyAtUtcReturningIds(
       List<_Entry> entries, String? utcIso) async {
     if (entries.isEmpty) return const [];
@@ -717,23 +782,60 @@ class _FfiBackend {
     try {
       final ptr = _icbQueryTxRangeJson(h, startPtr, endPtr);
       final jsonStr = _jsonFromPtr(ptr);
-      final list = _decodeList(jsonStr);
-      return list.map((e) {
-        final m = e as Map<String, dynamic>;
-        final tsStr = (m['timestamp_utc'] ?? '').toString();
-        final pillName = (m['pill_name'] ?? '').toString();
-        final qtyRaw = m['quantity'];
-        final qty = (qtyRaw is num)
-            ? qtyRaw.toInt()
-            : int.tryParse(qtyRaw?.toString() ?? '0') ?? 0;
-        final dt = parseDbUtc(tsStr);
-        return _TxRow(dt, pillName, qty);
-      }).toList();
+      return _decodeTxRows(jsonStr);
     } finally {
       if (startUtc != null) ffi_helpers.malloc.free(startPtr);
       if (endUtc != null) ffi_helpers.malloc.free(endPtr);
     }
   }
+
+  Future<List<_TxRow>> queryTransactionsToday() async {
+    final h = _requireHandle();
+    final ptr = _icbQueryTxTodayJson(h);
+    final jsonStr = _jsonFromPtr(ptr);
+    return _decodeTxRows(jsonStr);
+  }
+
+  Future<List<_TxRow>> queryTransactionsLastNDays(int days) async {
+    if (days <= 0) {
+      throw ArgumentError('days must be > 0');
+    }
+    final h = _requireHandle();
+    final ptr = _icbQueryTxLastNDaysJson(h, days);
+    final jsonStr = _jsonFromPtr(ptr);
+    return _decodeTxRows(jsonStr);
+  }
+
+  Future<List<_TxRow>> queryTransactionsRangeLocal({
+    String? startLocal,
+    String? endLocal,
+  }) async {
+    final h = _requireHandle();
+
+    final startPtr = startLocal == null
+        ? ffi.Pointer<ffi_helpers.Utf8>.fromAddress(0)
+        : startLocal.toNativeUtf8();
+    final endPtr = endLocal == null
+        ? ffi.Pointer<ffi_helpers.Utf8>.fromAddress(0)
+        : endLocal.toNativeUtf8();
+
+    try {
+      final ptr = _icbQueryTxRangeLocalJson(h, startPtr, endPtr);
+      final jsonStr = _jsonFromPtr(ptr);
+      return _decodeTxRows(jsonStr);
+    } finally {
+      if (startLocal != null) ffi_helpers.malloc.free(startPtr);
+      if (endLocal != null) ffi_helpers.malloc.free(endPtr);
+    }
+  }
+
+  Future<List<_TxRow>> queryTransactionsAll() async {
+    final h = _requireHandle();
+    final ptr = _icbQueryTxAllJson(h);
+    final jsonStr = _jsonFromPtr(ptr);
+    return _decodeTxRows(jsonStr);
+  }
+
 
   Future<void> deleteTransactionById(int id) async {
     final h = _requireHandle();
@@ -939,6 +1041,33 @@ class _Db {
       endUtc: endUtc,
     );
   }
+
+  Future<List<_TxRow>> queryTransactionsToday() async {
+    await open();
+    return _FfiBackend.instance.queryTransactionsToday();
+  }
+
+  Future<List<_TxRow>> queryTransactionsLastNDays(int days) async {
+    await open();
+    return _FfiBackend.instance.queryTransactionsLastNDays(days);
+  }
+
+  Future<List<_TxRow>> queryTransactionsRangeLocal({
+    String? startLocal,
+    String? endLocal,
+  }) async {
+    await open();
+    return _FfiBackend.instance.queryTransactionsRangeLocal(
+      startLocal: startLocal,
+      endLocal: endLocal,
+    );
+  }
+
+  Future<List<_TxRow>> queryTransactionsAll() async {
+    await open();
+    return _FfiBackend.instance.queryTransactionsAll();
+  }
+
 
   // ───────────────────────── sqflite escape hatch ─────────────────────────
   // Only kept for cases where we truly do not have an FFI helper yet.
@@ -1924,38 +2053,6 @@ class _ViewScreenState extends State<_ViewScreen> {
     );
   }
 
-  Future<List<_TxRow>> _queryTransactions({
-    required tz.Location loc,
-    DateTime? startLocal,
-    DateTime? endLocal,
-  }) async {
-    // Convert local DateTimes (in the active time zone) to UTC DB timestamps
-    // via the Rust backend, then query by those UTC bounds.
-    String? startUtc;
-    String? endUtc;
-
-    String formatLocal(DateTime dt) {
-      String two(int n) => n.toString().padLeft(2, '0');
-      return '${dt.year}-${two(dt.month)}-${two(dt.day)} '
-          '${two(dt.hour)}:${two(dt.minute)}:${two(dt.second)}';
-    }
-
-    if (startLocal != null) {
-      final localStr = formatLocal(startLocal);
-      startUtc = await _db.localToUtcDbTimestamp(localStr);
-    }
-    if (endLocal != null) {
-      final localStr = formatLocal(endLocal);
-      endUtc = await _db.localToUtcDbTimestamp(localStr);
-    }
-
-    return _db.queryTransactionsUtcRange(
-      startUtc: startUtc,
-      endUtc: endUtc,
-    );
-  }
-
-
   void _openTransactionViewer(BuildContext context) async {
     final tzName = _store.activeTz.tzName;
     tz.Location loc;
@@ -1979,30 +2076,44 @@ class _ViewScreenState extends State<_ViewScreen> {
         busy = true;
         error = null;
       });
+
+      String formatLocal(DateTime dt) {
+        String two(int n) => n.toString().padLeft(2, '0');
+        return '${dt.year}-${two(dt.month)}-${two(dt.day)} '
+            '${two(dt.hour)}:${two(dt.minute)}:${two(dt.second)}';
+      }
+
       try {
-        DateTime? s, e;
-        final nowL = tz.TZDateTime.now(loc);
         switch (mode) {
           case _TxMode.today:
-            s = tz.TZDateTime(loc, nowL.year, nowL.month, nowL.day);
-            e = tz.TZDateTime(loc, nowL.year, nowL.month, nowL.day + 1);
+            items = await _db.queryTransactionsToday();
             break;
+
           case _TxMode.lastNDays:
             final n = int.tryParse(lastDaysCtrl.text.trim());
             final days = (n == null || n <= 0) ? 1 : n;
-            e = nowL;
-            s = e.subtract(Duration(days: days));
+            items = await _db.queryTransactionsLastNDays(days);
             break;
+
           case _TxMode.range:
-            s = startLocal;
-            e = endLocal;
+            String? startStr;
+            String? endStr;
+            if (startLocal != null) {
+              startStr = formatLocal(startLocal!);
+            }
+            if (endLocal != null) {
+              endStr = formatLocal(endLocal!);
+            }
+            items = await _db.queryTransactionsRangeLocal(
+              startLocal: startStr,
+              endLocal: endStr,
+            );
             break;
+
           case _TxMode.all:
-            s = null;
-            e = null;
+            items = await _db.queryTransactionsAll();
             break;
         }
-        items = await _queryTransactions(loc: loc, startLocal: s, endLocal: e);
       } catch (ex) {
         error = ex.toString();
       } finally {
@@ -2011,6 +2122,7 @@ class _ViewScreenState extends State<_ViewScreen> {
         });
       }
     }
+
 
     await runQuery();
     if (!mounted) return;
