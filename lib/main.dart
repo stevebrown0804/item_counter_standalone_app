@@ -17,13 +17,6 @@ import 'package:flutter/services.dart'; // for FilteringTextInputFormatter
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest_all.dart' as tzdata;
 
-// --- time/SQL helpers (single source of truth) ---
-String fmtUtcForSql(DateTime dt) {
-  // 'YYYY-MM-DD HH:MM:SS' in UTC, no milliseconds.
-  final s = dt.toUtc().toIso8601String();        // 2025-10-18T23:19:41.123Z
-  final noMs = s.split('.').first;               // 2025-10-18T23:19:41
-  return noMs.replaceFirst('T', ' ');            // 2025-10-18 23:19:41
-}
 
 /// Filenames / view names must match your existing DB.
 const String kDbFileName = 'daily-pill-tracking.db';
@@ -92,17 +85,14 @@ typedef _IcbOpenNative = ffi.Pointer<ffi.Void> Function(
 typedef _IcbOpenDart = ffi.Pointer<ffi.Void> Function(
     ffi.Pointer<ffi_helpers.Utf8>,
     );
-
 typedef _IcbCloseNative = ffi.Void Function(ffi.Pointer<ffi.Void>);
 typedef _IcbCloseDart = void Function(ffi.Pointer<ffi.Void>);
-
 typedef _IcbJsonNoArgsNative = ffi.Pointer<ffi_helpers.Utf8> Function(
     ffi.Pointer<ffi.Void>,
     );
 typedef _IcbJsonNoArgsDart = ffi.Pointer<ffi_helpers.Utf8> Function(
     ffi.Pointer<ffi.Void>,
     );
-
 typedef _IcbSetWindowDaysNative = ffi.Int32 Function(
     ffi.Pointer<ffi.Void>,
     ffi.Int64,
@@ -111,7 +101,6 @@ typedef _IcbSetWindowDaysDart = int Function(
     ffi.Pointer<ffi.Void>,
     int,
     );
-
 typedef _IcbFreeStringNative = ffi.Void Function(
     ffi.Pointer<ffi_helpers.Utf8>,
     );
@@ -126,14 +115,12 @@ typedef _IcbListPillsNative = ffi.Pointer<ffi_helpers.Utf8> Function(
 typedef _IcbListPillsDart = ffi.Pointer<ffi_helpers.Utf8> Function(
     ffi.Pointer<ffi.Void>,
     );
-
 typedef _IcbReadSkipConfirmNative = ffi.Pointer<ffi_helpers.Utf8> Function(
     ffi.Pointer<ffi.Void>,
     );
 typedef _IcbReadSkipConfirmDart = ffi.Pointer<ffi_helpers.Utf8> Function(
     ffi.Pointer<ffi.Void>,
     );
-
 typedef _IcbSetSkipConfirmNative = ffi.Int32 Function(
     ffi.Pointer<ffi.Void>,
     ffi.Int32,
@@ -142,14 +129,12 @@ typedef _IcbSetSkipConfirmDart = int Function(
     ffi.Pointer<ffi.Void>,
     int,
     );
-
 typedef _IcbListTimezonesNative = ffi.Pointer<ffi_helpers.Utf8> Function(
     ffi.Pointer<ffi.Void>,
     );
 typedef _IcbListTimezonesDart = ffi.Pointer<ffi_helpers.Utf8> Function(
     ffi.Pointer<ffi.Void>,
     );
-
 typedef _IcbSetActiveTzNative = ffi.Int32 Function(
     ffi.Pointer<ffi.Void>,
     ffi.Pointer<ffi_helpers.Utf8>,
@@ -158,14 +143,12 @@ typedef _IcbSetActiveTzDart = int Function(
     ffi.Pointer<ffi.Void>,
     ffi.Pointer<ffi_helpers.Utf8>,
     );
-
 typedef _IcbReadActiveTzNative = ffi.Pointer<ffi_helpers.Utf8> Function(
     ffi.Pointer<ffi.Void>,
     );
 typedef _IcbReadActiveTzDart = ffi.Pointer<ffi_helpers.Utf8> Function(
     ffi.Pointer<ffi.Void>,
     );
-
 typedef _IcbInsertManyAtUtcNative = ffi.Pointer<ffi_helpers.Utf8> Function(
     ffi.Pointer<ffi.Void>,
     ffi.Pointer<ffi.Int64>,
@@ -180,7 +163,6 @@ typedef _IcbInsertManyAtUtcDart = ffi.Pointer<ffi_helpers.Utf8> Function(
     int,
     ffi.Pointer<ffi_helpers.Utf8>,
     );
-
 typedef _IcbQueryTxRangeNative = ffi.Pointer<ffi_helpers.Utf8> Function(
     ffi.Pointer<ffi.Void>,
     ffi.Pointer<ffi_helpers.Utf8>,
@@ -191,7 +173,6 @@ typedef _IcbQueryTxRangeDart = ffi.Pointer<ffi_helpers.Utf8> Function(
     ffi.Pointer<ffi_helpers.Utf8>,
     ffi.Pointer<ffi_helpers.Utf8>,
     );
-
 typedef _IcbDeleteTxByIdNative = ffi.Int32 Function(
     ffi.Pointer<ffi.Void>,
     ffi.Int64,
@@ -200,7 +181,6 @@ typedef _IcbDeleteTxByIdDart = int Function(
     ffi.Pointer<ffi.Void>,
     int,
     );
-
 typedef _IcbReadTxByIdNative = ffi.Pointer<ffi_helpers.Utf8> Function(
     ffi.Pointer<ffi.Void>,
     ffi.Int64,
@@ -209,7 +189,6 @@ typedef _IcbReadTxByIdDart = ffi.Pointer<ffi_helpers.Utf8> Function(
     ffi.Pointer<ffi.Void>,
     int,
     );
-
 typedef _IcbCountOlderNative = ffi.Pointer<ffi_helpers.Utf8> Function(
     ffi.Pointer<ffi.Void>,
     ffi.Int64,
@@ -218,7 +197,6 @@ typedef _IcbCountOlderDart = ffi.Pointer<ffi_helpers.Utf8> Function(
     ffi.Pointer<ffi.Void>,
     int,
     );
-
 typedef _IcbDeleteOlderNative = ffi.Pointer<ffi_helpers.Utf8> Function(
     ffi.Pointer<ffi.Void>,
     ffi.Int64,
@@ -227,6 +205,23 @@ typedef _IcbDeleteOlderDart = ffi.Pointer<ffi_helpers.Utf8> Function(
     ffi.Pointer<ffi.Void>,
     int,
     );
+typedef _IcbLocalToUtcNative = ffi.Pointer<ffi_helpers.Utf8> Function(
+    ffi.Pointer<ffi.Void>,
+    ffi.Pointer<ffi_helpers.Utf8>,
+    );
+typedef _IcbLocalToUtcDart = ffi.Pointer<ffi_helpers.Utf8> Function(
+    ffi.Pointer<ffi.Void>,
+    ffi.Pointer<ffi_helpers.Utf8>,
+    );
+typedef _IcbUtcToLocalNative = ffi.Pointer<ffi_helpers.Utf8> Function(
+    ffi.Pointer<ffi.Void>,
+    ffi.Pointer<ffi_helpers.Utf8>,
+    );
+typedef _IcbUtcToLocalDart = ffi.Pointer<ffi_helpers.Utf8> Function(
+    ffi.Pointer<ffi.Void>,
+    ffi.Pointer<ffi_helpers.Utf8>,
+    );
+
 
 /// Thin wrapper over the Rust item-counter-ffi library.
 ///
@@ -275,6 +270,8 @@ class _FfiBackend {
   late final _IcbReadTxByIdDart _icbReadTxByIdJson;
   late final _IcbCountOlderDart _icbCountOlderJson;
   late final _IcbDeleteOlderDart _icbDeleteOlderJson;
+  late final _IcbLocalToUtcDart _icbLocalToUtcJson;
+  late final _IcbUtcToLocalDart _icbUtcToLocalJson;
 
   ffi.Pointer<ffi.Void>? _handle;
 
@@ -340,6 +337,12 @@ class _FfiBackend {
 
     _icbDeleteOlderJson = _lib.lookupFunction<_IcbDeleteOlderNative,
         _IcbDeleteOlderDart>('icb_delete_transactions_older_than_days_json');
+
+    _icbLocalToUtcJson = _lib.lookupFunction<_IcbLocalToUtcNative,
+        _IcbLocalToUtcDart>('icb_local_to_utc_db_timestamp_json');
+
+    _icbUtcToLocalJson = _lib.lookupFunction<_IcbUtcToLocalNative,
+        _IcbUtcToLocalDart>('icb_utc_db_to_local_timestamp_json');
 
     final cPath = dbPath.toNativeUtf8();
     try {
@@ -606,6 +609,52 @@ class _FfiBackend {
     return aliases.join('/');
   }
 
+  // ── Timestamps: local <-> UTC (DB format) ──
+
+  Future<String> localToUtcDbTimestamp(String localTs) async {
+    final h = _requireHandle();
+    final cLocal = localTs.toNativeUtf8();
+    try {
+      final ptr = _icbLocalToUtcJson(h, cLocal);
+      final jsonStr = _jsonFromPtr(ptr);
+      final decoded = _decodeMap(jsonStr);
+      if (decoded['ok'] != true) {
+        final msg = decoded['error']?.toString() ?? 'unknown error';
+        throw StateError('Rust localToUtcDbTimestamp failed: $msg');
+      }
+      final data = decoded['data'] as Map<String, dynamic>? ?? const {};
+      final ts = data['timestamp']?.toString();
+      if (ts == null || ts.isEmpty) {
+        throw StateError('Rust localToUtcDbTimestamp returned empty timestamp');
+      }
+      return ts;
+    } finally {
+      ffi_helpers.malloc.free(cLocal);
+    }
+  }
+
+  Future<String> utcDbToLocalTimestamp(String utcTs) async {
+    final h = _requireHandle();
+    final cUtc = utcTs.toNativeUtf8();
+    try {
+      final ptr = _icbUtcToLocalJson(h, cUtc);
+      final jsonStr = _jsonFromPtr(ptr);
+      final decoded = _decodeMap(jsonStr);
+      if (decoded['ok'] != true) {
+        final msg = decoded['error']?.toString() ?? 'unknown error';
+        throw StateError('Rust utcDbToLocalTimestamp failed: $msg');
+      }
+      final data = decoded['data'] as Map<String, dynamic>? ?? const {};
+      final ts = data['timestamp']?.toString();
+      if (ts == null || ts.isEmpty) {
+        throw StateError('Rust utcDbToLocalTimestamp returned empty timestamp');
+      }
+      return ts;
+    } finally {
+      ffi_helpers.malloc.free(cUtc);
+    }
+  }
+
   // ── Transactions ──
 
   Future<List<int>> insertManyAtUtcReturningIds(
@@ -843,6 +892,23 @@ class _Db {
     return _FfiBackend.instance.readActiveTzAliasString();
   }
 
+  // ───────────────────────── Timestamps ─────────────────────────
+
+  /// Convert a local wall-clock timestamp (in the active time zone)
+  /// to a UTC DB timestamp "YYYY-MM-DD HH:MM:SS".
+  Future<String> localToUtcDbTimestamp(String localTs) async {
+    await open();
+    return _FfiBackend.instance.localToUtcDbTimestamp(localTs);
+  }
+
+  /// Convert a UTC DB timestamp "YYYY-MM-DD HH:MM:SS" to local wall-clock
+  /// time in the active time zone, also as "YYYY-MM-DD HH:MM:SS".
+  Future<String> utcDbToLocalTimestamp(String utcTs) async {
+    await open();
+    return _FfiBackend.instance.utcDbToLocalTimestamp(utcTs);
+  }
+
+
   // ───────────────────────── Transactions: insert / undo / redo ─────────────────────────
 
   /// Insert entries (at a given UTC timestamp, or now if null) and return their new row IDs.
@@ -927,22 +993,6 @@ DateTime parseDbUtc(String s) {
 
 // </editor-fold>
 
-// <editor-fold desc="Time-related helper fns/classes">
-class _Clock {
-  /// "YYYY-MM-DD HH:MM:SS" in UTC
-  static String nowUtcIsoSeconds() {
-    final now = DateTime.now().toUtc();
-    return _fmtIso(now);
-  }
-
-  static String _fmtIso(DateTime dt) {
-    String two(int x) => x.toString().padLeft(2, '0');
-    return '${dt.year}-${two(dt.month)}-${two(dt.day)} ${two(dt.hour)}:${two(dt.minute)}:${two(dt.second)}';
-  }
-}
-
-// </editor-fold>
-
 // <editor-fold desc="_Store? *shrug*">
 class _Store extends ChangeNotifier {
   _Store(this._db);
@@ -993,46 +1043,6 @@ class _Store extends ChangeNotifier {
     _undoStack.add(ids);
 
     await load();
-  }
-
-  Future<List<_TxRow>> _queryTransactions({
-    required tz.Location loc,
-    DateTime? startLocal,
-    DateTime? endLocal,
-  }) async {
-    final where = <String>[];
-    final args = <Object?>[];
-
-    String toUtcSql(DateTime local) {
-      final asUtc = tz.TZDateTime.from(local, loc).toUtc();
-      return fmtUtcForSql(asUtc);
-    }
-
-    if (startLocal != null) {
-      where.add('timestamp_utc >= ?');
-      args.add(toUtcSql(startLocal));
-    }
-    if (endLocal != null) {
-      where.add('timestamp_utc < ?');
-      args.add(toUtcSql(endLocal));
-    }
-
-    final whereSql = where.isEmpty ? '' : 'WHERE ${where.join(' AND ')}';
-
-    final rows = await _db.rawQuery('''
-      SELECT t.timestamp_utc, p.name AS pill_name, t.quantity
-      FROM pill_transactions t
-      JOIN pills p ON p.id = t.pill_id
-      $whereSql
-      ORDER BY t.timestamp_utc DESC
-    ''', args);
-
-    return rows.map((r) {
-      final ts = parseDbUtc((r['timestamp_utc'] ?? '') as String);
-      final nm = (r['pill_name'] ?? '').toString();
-      final q = int.tryParse((r['quantity'] ?? '0').toString()) ?? 0;
-      return _TxRow(ts, nm, q);
-    }).toList();
   }
 
   Future<void> load() async {
@@ -1919,15 +1929,24 @@ class _ViewScreenState extends State<_ViewScreen> {
     DateTime? startLocal,
     DateTime? endLocal,
   }) async {
-    // Convert local DateTimes to UTC SQL strings and delegate to Rust.
+    // Convert local DateTimes (in the active time zone) to UTC DB timestamps
+    // via the Rust backend, then query by those UTC bounds.
     String? startUtc;
     String? endUtc;
 
+    String formatLocal(DateTime dt) {
+      String two(int n) => n.toString().padLeft(2, '0');
+      return '${dt.year}-${two(dt.month)}-${two(dt.day)} '
+          '${two(dt.hour)}:${two(dt.minute)}:${two(dt.second)}';
+    }
+
     if (startLocal != null) {
-      startUtc = fmtUtcForSql(startLocal);
+      final localStr = formatLocal(startLocal);
+      startUtc = await _db.localToUtcDbTimestamp(localStr);
     }
     if (endLocal != null) {
-      endUtc = fmtUtcForSql(endLocal);
+      final localStr = formatLocal(endLocal);
+      endUtc = await _db.localToUtcDbTimestamp(localStr);
     }
 
     return _db.queryTransactionsUtcRange(
@@ -1935,6 +1954,7 @@ class _ViewScreenState extends State<_ViewScreen> {
       endUtc: endUtc,
     );
   }
+
 
   void _openTransactionViewer(BuildContext context) async {
     final tzName = _store.activeTz.tzName;
