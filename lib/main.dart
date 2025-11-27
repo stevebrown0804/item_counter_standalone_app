@@ -250,6 +250,39 @@ typedef _IcbUtcToLocalDart = ffi.Pointer<ffi_helpers.Utf8> Function(
     ffi.Pointer<ffi.Void>,
     ffi.Pointer<ffi_helpers.Utf8>,
     );
+typedef _IcbInsertBatchWithUndoTokenNative
+= ffi.Pointer<ffi_helpers.Utf8> Function(
+    ffi.Pointer<ffi.Void>,
+    ffi.Pointer<ffi.Int64>,
+    ffi.Pointer<ffi.Int64>,
+    ffi.IntPtr,
+    ffi.Pointer<ffi_helpers.Utf8>,
+    );
+typedef _IcbInsertBatchWithUndoTokenDart
+= ffi.Pointer<ffi_helpers.Utf8> Function(
+    ffi.Pointer<ffi.Void>,
+    ffi.Pointer<ffi.Int64>,
+    ffi.Pointer<ffi.Int64>,
+    int,
+    ffi.Pointer<ffi_helpers.Utf8>,
+    );
+typedef _IcbUndoLogicalBatchNative = ffi.Pointer<ffi_helpers.Utf8> Function(
+    ffi.Pointer<ffi.Void>,
+    ffi.Pointer<ffi_helpers.Utf8>,
+    );
+typedef _IcbUndoLogicalBatchDart = ffi.Pointer<ffi_helpers.Utf8> Function(
+    ffi.Pointer<ffi.Void>,
+    ffi.Pointer<ffi_helpers.Utf8>,
+    );
+typedef _IcbRedoLogicalBatchNative = ffi.Pointer<ffi_helpers.Utf8> Function(
+    ffi.Pointer<ffi.Void>,
+    ffi.Pointer<ffi_helpers.Utf8>,
+    );
+typedef _IcbRedoLogicalBatchDart = ffi.Pointer<ffi_helpers.Utf8> Function(
+    ffi.Pointer<ffi.Void>,
+    ffi.Pointer<ffi_helpers.Utf8>,
+    );
+
 
 /// Thin wrapper over the Rust item-counter-ffi library.
 ///
@@ -310,6 +343,12 @@ class _FfiBackend {
   late final _IcbDeleteOlderDart _icbDeleteOlderJson;
   late final _IcbLocalToUtcDart _icbLocalToUtcJson;
   late final _IcbUtcToLocalDart _icbUtcToLocalJson;
+
+  // New: logical batch API
+  late final _IcbInsertBatchWithUndoTokenDart
+  _icbInsertBatchWithUndoTokenJson;
+  late final _IcbUndoLogicalBatchDart _icbUndoLogicalBatchJson;
+  late final _IcbRedoLogicalBatchDart _icbRedoLogicalBatchJson;
 
   ffi.Pointer<ffi.Void>? _handle;
 
@@ -396,6 +435,20 @@ class _FfiBackend {
 
     _icbUtcToLocalJson = _lib.lookupFunction<_IcbUtcToLocalNative,
         _IcbUtcToLocalDart>('icb_utc_db_to_local_timestamp_json');
+
+    _icbInsertBatchWithUndoTokenJson =
+        _lib.lookupFunction<_IcbInsertBatchWithUndoTokenNative,
+            _IcbInsertBatchWithUndoTokenDart>(
+            'icb_insert_batch_with_undo_token_json');
+
+    _icbUndoLogicalBatchJson =
+        _lib.lookupFunction<_IcbUndoLogicalBatchNative,
+            _IcbUndoLogicalBatchDart>('icb_undo_logical_batch_json');
+
+    _icbRedoLogicalBatchJson =
+        _lib.lookupFunction<_IcbRedoLogicalBatchNative,
+            _IcbRedoLogicalBatchDart>('icb_redo_logical_batch_json');
+
 
     final cPath = dbPath.toNativeUtf8();
     try {
@@ -901,7 +954,100 @@ class _FfiBackend {
     if (v is num) return v.toInt();
     return int.tryParse(v?.toString() ?? '0') ?? 0;
   }
+
+  // ── Logical batch insert / undo / redo ──
+
+  Future<String> insertBatchWithUndoToken(
+      List<_Entry> entries, String? utcIso) async {
+    if (entries.isEmpty) {
+      throw ArgumentError('entries must not be empty');
+    }
+
+    final h = _requireHandle();
+    final len = entries.length;
+
+    final idsPtr = ffi_helpers.malloc<ffi.Int64>(len);
+    final qtyPtr = ffi_helpers.malloc<ffi.Int64>(len);
+
+    for (var i = 0; i < len; i++) {
+      idsPtr[i] = entries[i].pillId;
+      qtyPtr[i] = entries[i].qty;
+    }
+
+    ffi.Pointer<ffi_helpers.Utf8> tsPtr =
+    ffi.Pointer<ffi_helpers.Utf8>.fromAddress(0);
+    if (utcIso != null) {
+      tsPtr = utcIso.toNativeUtf8();
+    }
+
+    try {
+      final ptr =
+      _icbInsertBatchWithUndoTokenJson(h, idsPtr, qtyPtr, len, tsPtr);
+      final jsonStr = _jsonFromPtr(ptr);
+      final decoded = _decodeMap(jsonStr);
+      if (decoded['ok'] != true) {
+        final msg = decoded['error']?.toString() ?? 'unknown error';
+        throw StateError('Rust insertBatchWithUndoToken failed: $msg');
+      }
+      final data = decoded['data'] as Map<String, dynamic>? ?? const {};
+      final token = data['token']?.toString();
+      if (token == null || token.isEmpty) {
+        throw StateError(
+            'Rust insertBatchWithUndoToken returned empty token');
+      }
+      return token;
+    } finally {
+      ffi_helpers.malloc.free(idsPtr);
+      ffi_helpers.malloc.free(qtyPtr);
+      if (utcIso != null) {
+        ffi_helpers.malloc.free(tsPtr);
+      }
+    }
+  }
+
+  Future<List<int>> undoLogicalBatch(String token) async {
+    final h = _requireHandle();
+    final cTok = token.toNativeUtf8();
+    try {
+      final ptr = _icbUndoLogicalBatchJson(h, cTok);
+      final jsonStr = _jsonFromPtr(ptr);
+      final decoded = _decodeMap(jsonStr);
+      if (decoded['ok'] != true) {
+        final msg = decoded['error']?.toString() ?? 'unknown error';
+        throw StateError('Rust undoLogicalBatch failed: $msg');
+      }
+      final data = decoded['data'] as Map<String, dynamic>? ?? const {};
+      final list = data['ids'] as List<dynamic>? ?? const [];
+      return list
+          .map((v) => (v is num) ? v.toInt() : int.parse(v.toString()))
+          .toList();
+    } finally {
+      ffi_helpers.malloc.free(cTok);
+    }
+  }
+
+  Future<List<int>> redoLogicalBatch(String token) async {
+    final h = _requireHandle();
+    final cTok = token.toNativeUtf8();
+    try {
+      final ptr = _icbRedoLogicalBatchJson(h, cTok);
+      final jsonStr = _jsonFromPtr(ptr);
+      final decoded = _decodeMap(jsonStr);
+      if (decoded['ok'] != true) {
+        final msg = decoded['error']?.toString() ?? 'unknown error';
+        throw StateError('Rust redoLogicalBatch failed: $msg');
+      }
+      final data = decoded['data'] as Map<String, dynamic>? ?? const {};
+      final list = data['ids'] as List<dynamic>? ?? const [];
+      return list
+          .map((v) => (v is num) ? v.toInt() : int.parse(v.toString()))
+          .toList();
+    } finally {
+      ffi_helpers.malloc.free(cTok);
+    }
+  }
 }
+
 
 // ───────────────────────── DB wrapper (sqflite + Rust FFI) ─────────────────────────
 
@@ -1070,7 +1216,26 @@ class _Db {
     return _FfiBackend.instance.queryTransactionsAll();
   }
 
+  // Logical batch insert / undo / redo via backend
+
+  Future<String> insertBatchWithUndoToken(
+      List<_Entry> entries, String? utcIso) async {
+    await open();
+    return _FfiBackend.instance.insertBatchWithUndoToken(entries, utcIso);
+  }
+
+  Future<List<int>> undoLogicalBatch(String token) async {
+    await open();
+    return _FfiBackend.instance.undoLogicalBatch(token);
+  }
+
+  Future<List<int>> redoLogicalBatch(String token) async {
+    await open();
+    return _FfiBackend.instance.redoLogicalBatch(token);
+  }
+
   // ───────────────────────── sqflite escape hatch ─────────────────────────
+
   // Only kept for cases where we truly do not have an FFI helper yet.
   Future<List<Map<String, Object?>>> rawQuery(
       String sql, [
@@ -1136,42 +1301,43 @@ class _Store extends ChangeNotifier {
   UnmodifiableListView<_Pill> get pills => UnmodifiableListView(_pills);
   _Tz? _activeTz;
   _Tz get activeTz => _activeTz ?? _Tz('UTC', 'UTC');
-  final List<List<int>> _undoStack = [];
-  bool get canUndo => _undoStack.isNotEmpty;
-  final List<List<_TxnSnapshot>> _redoStack = [];
-  bool get canRedo => _redoStack.isNotEmpty;
+
+  // Undo/redo now track opaque batch tokens provided by Rust backend.
+  final List<String> _undoTokens = [];
+  bool get canUndo => _undoTokens.isNotEmpty;
+  final List<String> _redoTokens = [];
+  bool get canRedo => _redoTokens.isNotEmpty;
 
   void _breakRedoChain() {
-    if (_redoStack.isNotEmpty) {
-      _redoStack.clear();
+    if (_redoTokens.isNotEmpty) {
+      _redoTokens.clear();
     }
   }
 
   Future<void> undoLast() async {
-    if (_undoStack.isEmpty) return;
-    final ids = _undoStack.removeLast();
+    if (_undoTokens.isEmpty) return;
+    final token = _undoTokens.removeLast();
 
-    final snaps = <_TxnSnapshot>[];
-    for (final id in ids) {
-      final snap = await _db.readTransactionById(id);
-      await _db.deleteTransactionById(id);
-      if (snap != null) snaps.add(snap);
-    }
-    if (snaps.isNotEmpty) _redoStack.add(snaps);
+    // Backend will delete/recreate pill_transactions based on the batch.
+    await _db.undoLogicalBatch(token);
+
+    // Keep token so we can redo the same logical batch.
+    _redoTokens.add(token);
 
     await load();
     notifyListeners();
   }
 
   Future<void> redoLast() async {
-    if (_redoStack.isEmpty) return;
-    final snaps = _redoStack.removeLast();
+    if (_redoTokens.isEmpty) return;
+    final token = _redoTokens.removeLast();
 
-    final entries = snaps.map((s) => _Entry(s.pillId, s.qty)).toList();
-    final ts = snaps.isNotEmpty ? snaps.first.utcIso : null;
-    final ids = await _db.insertManyAtUtcReturningIds(entries, ts);
+    // Backend re-applies the batch; it also updates transaction IDs internally.
+    await _db.redoLogicalBatch(token);
+
+    // Redo establishes a new “top” undo batch; clear older redo history.
     _breakRedoChain();
-    _undoStack.add(ids);
+    _undoTokens.add(token);
 
     await load();
   }
@@ -1195,14 +1361,15 @@ class _Store extends ChangeNotifier {
     });
     if (entries.isEmpty) return;
 
-    final ids = await _db.insertManyAtUtcReturningIds(entries, null);
+    // Insert as a single logical batch and record the opaque undo token.
+    final token = await _db.insertBatchWithUndoToken(entries, null);
     _breakRedoChain();
-    _undoStack.add(ids);
-    _redoStack.clear();
+    _undoTokens.add(token);
 
     await load();
   }
 }
+
 
 // </editor-fold>
 
