@@ -283,6 +283,17 @@ typedef _IcbRedoLogicalBatchDart = ffi.Pointer<ffi_helpers.Utf8> Function(
     ffi.Pointer<ffi_helpers.Utf8>,
     );
 
+// Assumed new FFI for TODO 3:
+typedef _IcbComputeWindowFromPickedDateNative
+= ffi.Pointer<ffi_helpers.Utf8> Function(
+    ffi.Pointer<ffi.Void>,
+    ffi.Pointer<ffi_helpers.Utf8>,
+    );
+typedef _IcbComputeWindowFromPickedDateDart
+= ffi.Pointer<ffi_helpers.Utf8> Function(
+    ffi.Pointer<ffi.Void>,
+    ffi.Pointer<ffi_helpers.Utf8>,
+    );
 
 /// Thin wrapper over the Rust item-counter-ffi library.
 ///
@@ -309,6 +320,11 @@ typedef _IcbRedoLogicalBatchDart = ffi.Pointer<ffi_helpers.Utf8> Function(
 ///   - icb_read_transaction_by_id_json
 ///   - icb_count_transactions_older_than_days_json
 ///   - icb_delete_transactions_older_than_days_json
+///   - icb_insert_batch_with_undo_token_json
+///   - icb_undo_logical_batch_json
+///   - icb_redo_logical_batch_json
+///   - icb_compute_averaging_window_days_from_picked_date_json   // TODO 3
+///   - icb_delete_old_transactions_with_policy_json              // TODO 6 (not wired here)
 ///   - icb_free_string
 class _FfiBackend {
   _FfiBackend._internal();
@@ -349,6 +365,10 @@ class _FfiBackend {
   _icbInsertBatchWithUndoTokenJson;
   late final _IcbUndoLogicalBatchDart _icbUndoLogicalBatchJson;
   late final _IcbRedoLogicalBatchDart _icbRedoLogicalBatchJson;
+
+  // New: compute averaging window from picked local date (TODO 3)
+  late final _IcbComputeWindowFromPickedDateDart
+  _icbComputeWindowFromPickedDateJson;
 
   ffi.Pointer<ffi.Void>? _handle;
 
@@ -449,6 +469,11 @@ class _FfiBackend {
         _lib.lookupFunction<_IcbRedoLogicalBatchNative,
             _IcbRedoLogicalBatchDart>('icb_redo_logical_batch_json');
 
+    // New: compute averaging window from picked local date (TODO 3)
+    _icbComputeWindowFromPickedDateJson =
+        _lib.lookupFunction<_IcbComputeWindowFromPickedDateNative,
+            _IcbComputeWindowFromPickedDateDart>(
+            'icb_compute_averaging_window_days_from_picked_date_json');
 
     final cPath = dbPath.toNativeUtf8();
     try {
@@ -602,6 +627,31 @@ class _FfiBackend {
     }).toList();
   }
 
+  // New: compute averaging window from picked local date (TODO 3)
+
+  Future<int> computeAveragingWindowDaysFromPickedLocalDate(
+      String localDateYmd) async {
+    final h = _requireHandle();
+    final cDate = localDateYmd.toNativeUtf8();
+    try {
+      final ptr = _icbComputeWindowFromPickedDateJson(h, cDate);
+      final jsonStr = _jsonFromPtr(ptr);
+      final decoded = _decodeMap(jsonStr);
+      if (decoded['ok'] != true) {
+        final msg = decoded['error']?.toString() ?? 'unknown error';
+        throw StateError(
+            'Rust computeAveragingWindowDaysFromPickedLocalDate failed: $msg');
+      }
+      final data = decoded['data'] as Map<String, dynamic>? ?? const {};
+      final v = data['days'];
+      if (v is int) return v;
+      if (v is num) return v.toInt();
+      return int.tryParse(v?.toString() ?? '0') ?? 0;
+    } finally {
+      ffi_helpers.malloc.free(cDate);
+    }
+  }
+
   // ── Pills ──
 
   Future<List<_Pill>> listPills() async {
@@ -622,7 +672,7 @@ class _FfiBackend {
     }).toList();
   }
 
-  // ── Settings: skip second confirmation ──
+  // ── Settings: skip second confirmation ─────────────────────────
 
   Future<bool> readSkipDeleteSecondConfirm() async {
     final jsonStr = _jsonFromNoArg(_icbReadSkipConfirmJson);
@@ -647,7 +697,7 @@ class _FfiBackend {
     }
   }
 
-  // ── Time zones ──
+  // ── Time zones ─────────────────────────
 
   Future<List<Map<String, dynamic>>> _listTimezonesRaw() async {
     final jsonStr = _jsonFromNoArg(_icbListTimezonesJson);
@@ -715,7 +765,7 @@ class _FfiBackend {
     return aliases.join('/');
   }
 
-  // ── Timestamps: local <-> UTC (DB format) ──
+  // ── Timestamps: local <-> UTC (DB format) ─────────────────────────
 
   Future<String> localToUtcDbTimestamp(String localTs) async {
     final h = _requireHandle();
@@ -761,7 +811,7 @@ class _FfiBackend {
     }
   }
 
-  // ── Transactions ──
+  // ── Transactions ─────────────────────────
 
   List<_TxRow> _decodeTxRows(String jsonStr) {
     final list = _decodeList(jsonStr);
@@ -955,7 +1005,7 @@ class _FfiBackend {
     return int.tryParse(v?.toString() ?? '0') ?? 0;
   }
 
-  // ── Logical batch insert / undo / redo ──
+  // ── Logical batch insert / undo / redo ─────────────────────────
 
   Future<String> insertBatchWithUndoToken(
       List<_Entry> entries, String? utcIso) async {
@@ -1048,7 +1098,6 @@ class _FfiBackend {
   }
 }
 
-
 // ───────────────────────── DB wrapper (sqflite + Rust FFI) ─────────────────────────
 
 class _Db {
@@ -1084,6 +1133,15 @@ class _Db {
   Future<void> setAveragingWindowDays(int days) async {
     await open();
     await _FfiBackend.instance.setAveragingWindowDays(days);
+  }
+
+  /// Compute the averaging window (in days) based on a picked local calendar date
+  /// string "YYYY-MM-DD" in the active time zone. (TODO 3 wired to backend.)
+  Future<int> computeAveragingWindowDaysFromPickedLocalDate(
+      String localDateYmd) async {
+    await open();
+    return _FfiBackend.instance
+        .computeAveragingWindowDaysFromPickedLocalDate(localDateYmd);
   }
 
   // ───────────────────────── Settings: skip second confirmation ─────────────────────────
@@ -1369,7 +1427,6 @@ class _Store extends ChangeNotifier {
     await load();
   }
 }
-
 
 // </editor-fold>
 
@@ -1759,26 +1816,36 @@ class _WindowRowState extends State<_WindowRow> {
   }
 
   Future<void> _pickDate() async {
-    final now = DateTime.now();
     final picked = await showDatePicker(
       context: context,
-      initialDate: now,
+      initialDate: DateTime.now(),
       firstDate: DateTime(2000, 1, 1),
       lastDate: DateTime(2100, 12, 31),
       helpText: 'Choose the initial date of transaction',
     );
     if (picked == null) return;
 
-    final today = DateTime(now.year, now.month, now.day);
-    final date = DateTime(picked.year, picked.month, picked.day);
-    final rawDays = today.difference(date).inDays;
+    try {
+      String two(int n) => n.toString().padLeft(2, '0');
+      // Local calendar date in "YYYY-MM-DD" for the backend to interpret
+      // in the active time zone. Backend decides how many days the window is.
+      final localDate =
+          '${picked.year}-${two(picked.month)}-${two(picked.day)}';
 
-    final days = (rawDays <= 0) ? 1 : rawDays;
+      final days =
+      await _db.computeAveragingWindowDaysFromPickedLocalDate(localDate);
 
-    setState(() {
-      _ctrl.text = days.toString();
-      _canSubmit = true;
-    });
+      if (!mounted) return;
+      setState(() {
+        _ctrl.text = days.toString();
+        _canSubmit = true;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to compute window days: $e')),
+      );
+    }
   }
 
   Future<void> _submit() async {
@@ -2065,7 +2132,6 @@ class _ViewScreenState extends State<_ViewScreen> {
   static _ViewScreenState? _lastMounted;
 
   final _store = _Store(_Db());
-  final _ctrl = TextEditingController();
   bool _loading = true;
   String? _error;
   final _db = _Db();
@@ -2099,7 +2165,6 @@ class _ViewScreenState extends State<_ViewScreen> {
   @override
   void dispose() {
     _lastMounted = null;
-    _ctrl.dispose();
     super.dispose();
   }
 
