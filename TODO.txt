@@ -1,7 +1,5 @@
 TODO (IN PROGRESS): See the backend project's TODO.txt for "things to migrate to the back-end"
 
-TODO: Split up main.dart; see 'SPLIT_UP_MAIN_DOT_DART.TXT'
-
 TODO: Replace remnants of "pill tracking" legacy with "item tracking"
 
 TODO: Remove the pill types; give a UI for entering 'items'
