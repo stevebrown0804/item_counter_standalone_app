@@ -2,6 +2,10 @@ TODO (DEBUG): Get undo/redo working again.
 
 TODO (IN PROGRESS): See the backend project's TODO.txt for "things to migrate to the back-end"
 
+TODO (NEXT UP): Move TZ alias display logic to Rust.
+    "This is pure domain formatting you will absolutely want to reuse.
+    The Dart change is small and low-risk."
+
 TODO: Replace remnants of "pill tracking" legacy with "item tracking"
 
 TODO: Remove the pill types; give a UI for entering 'items'
