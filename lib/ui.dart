@@ -203,7 +203,7 @@ class SettingsScreen extends StatelessWidget {
     final skip = await db.readSkipDeleteSecondConfirm();
 
     if (skip) {
-      final deleted = await db.deleteTransactionsOlderThanDays(days);
+      final deleted = await db.deleteOldTransactionsWithPolicy(days);
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -254,7 +254,7 @@ class SettingsScreen extends StatelessWidget {
                             await db.setSkipDeleteSecondConfirm(true);
                           }
                           final deleted =
-                          await db.deleteTransactionsOlderThanDays(days);
+                          await db.deleteOldTransactionsWithPolicy(days);
                           if (!context.mounted) return;
                           Navigator.of(ctx).pop();
                           ScaffoldMessenger.of(context).showSnackBar(

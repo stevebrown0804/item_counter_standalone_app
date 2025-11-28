@@ -71,6 +71,11 @@ class _Db {
     return _FfiBackend.instance.countTransactionsOlderThanDays(days);
   }
 
+  Future<int> deleteOldTransactionsWithPolicy(int days) async {
+    await open();
+    return _FfiBackend.instance.deleteOldTransactionsWithPolicy(days);
+  }
+
   // ───────────────────────── Averages ─────────────────────────
 
   Future<List<_AvgRow>> readDailyAverages() async {

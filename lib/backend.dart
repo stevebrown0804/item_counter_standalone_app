@@ -158,6 +158,14 @@ typedef _IcbDeleteOlderDart = ffi.Pointer<ffi_helpers.Utf8> Function(
     ffi.Pointer<ffi.Void>,
     int,
     );
+typedef _IcbDeleteOldWithPolicyNative = ffi.Pointer<ffi_helpers.Utf8> Function(
+    ffi.Pointer<ffi.Void>,
+    ffi.Int64,
+    );
+typedef _IcbDeleteOldWithPolicyDart = ffi.Pointer<ffi_helpers.Utf8> Function(
+    ffi.Pointer<ffi.Void>,
+    int,
+    );
 typedef _IcbLocalToUtcNative = ffi.Pointer<ffi_helpers.Utf8> Function(
     ffi.Pointer<ffi.Void>,
     ffi.Pointer<ffi_helpers.Utf8>,
@@ -279,8 +287,10 @@ class _FfiBackend {
   late final _IcbReadTxByIdDart _icbReadTxByIdJson;
   late final _IcbCountOlderDart _icbCountOlderJson;
   late final _IcbDeleteOlderDart _icbDeleteOlderJson;
+  late final _IcbDeleteOldWithPolicyDart _icbDeleteOldWithPolicyJson;
   late final _IcbLocalToUtcDart _icbLocalToUtcJson;
   late final _IcbUtcToLocalDart _icbUtcToLocalJson;
+
 
   // New: logical batch API
   late final _IcbInsertBatchWithUndoTokenDart
@@ -371,6 +381,11 @@ class _FfiBackend {
 
     _icbDeleteOlderJson = _lib.lookupFunction<_IcbDeleteOlderNative,
         _IcbDeleteOlderDart>('icb_delete_transactions_older_than_days_json');
+
+    _icbDeleteOldWithPolicyJson =
+        _lib.lookupFunction<_IcbDeleteOldWithPolicyNative,
+            _IcbDeleteOldWithPolicyDart>(
+            'icb_delete_old_transactions_with_policy_json');
 
     _icbLocalToUtcJson = _lib.lookupFunction<_IcbLocalToUtcNative,
         _IcbLocalToUtcDart>('icb_local_to_utc_db_timestamp_json');
@@ -919,6 +934,23 @@ class _FfiBackend {
     if (decoded['ok'] != true) {
       final msg = decoded['error']?.toString() ?? 'unknown error';
       throw StateError('Rust deleteTransactionsOlderThanDays failed: $msg');
+    }
+    final data = decoded['data'] as Map<String, dynamic>? ?? const {};
+    final v = data['deleted'];
+    if (v is int) return v;
+    if (v is num) return v.toInt();
+    return int.tryParse(v?.toString() ?? '0') ?? 0;
+  }
+
+  Future<int> deleteOldTransactionsWithPolicy(int days) async {
+    if (days <= 0) return 0;
+    final h = _requireHandle();
+    final ptr = _icbDeleteOldWithPolicyJson(h, days);
+    final jsonStr = _jsonFromPtr(ptr);
+    final decoded = _decodeMap(jsonStr);
+    if (decoded['ok'] != true) {
+      final msg = decoded['error']?.toString() ?? 'unknown error';
+      throw StateError('Rust deleteOldTransactionsWithPolicy failed: $msg');
     }
     final data = decoded['data'] as Map<String, dynamic>? ?? const {};
     final v = data['deleted'];
