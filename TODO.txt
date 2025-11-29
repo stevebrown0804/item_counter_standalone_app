@@ -17,6 +17,4 @@ Stuff not yet done:
 1. Pills
     Insert pill? (if needed later)  <---not implemented yet; "add new pills to list" is what this means, but that's waiting for us to generalize the app/backend
 
-5. DB export (optional)
-    Provide a Rust function that returns a path to a safe copy for export.  <--not implemented, but I'm not sure we want the back-end doing this
 
