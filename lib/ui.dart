@@ -548,33 +548,27 @@ class _TzRowState extends State<_TzRow> {
     final raw = _ctrl.text.trim();
     if (raw.isEmpty) return;
 
-    String displayString = raw;
-    String aliasToSave;
+    try {
+      final aliasToSave = await _db.interpretTzAliasInput(raw);
+      await _db.setActiveTzByAlias(aliasToSave);
 
-    if (raw.contains('/')) {
-      aliasToSave = raw.split('/').first.trim();
-    } else {
-      final rawUpper = raw.toUpperCase();
-      final match = _options.firstWhere(
-            (opt) => opt.split('/').any((a) => a.toUpperCase() == rawUpper),
-        orElse: () => raw,
+      final displayString = await _db.readActiveTzAliasString();
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Time zone: ($displayString) saved')),
       );
-      displayString = match;
-      aliasToSave = match.contains('/') ? match.split('/').first.trim() : raw;
-      _ctrl.text = displayString;
+
+      FocusScope.of(context).unfocus();
+
+      _ctrl.clear();
+      setState(() => _canSubmit = false);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to save time zone: $e')),
+      );
     }
-
-    await _db.setActiveTzByAlias(aliasToSave);
-
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Time zone: ($displayString) saved')),
-    );
-
-    FocusScope.of(context).unfocus();
-
-    _ctrl.clear();
-    setState(() => _canSubmit = false);
   }
 
   @override

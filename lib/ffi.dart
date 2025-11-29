@@ -72,6 +72,28 @@ typedef _IcbReadActiveTzNative = ffi.Pointer<ffi_helpers.Utf8> Function(
 typedef _IcbReadActiveTzDart = ffi.Pointer<ffi_helpers.Utf8> Function(
     ffi.Pointer<ffi.Void>,
     );
+typedef _IcbListTzAliasGroupsNative = ffi.Pointer<ffi_helpers.Utf8> Function(
+    ffi.Pointer<ffi.Void>,
+    );
+typedef _IcbListTzAliasGroupsDart = ffi.Pointer<ffi_helpers.Utf8> Function(
+    ffi.Pointer<ffi.Void>,
+    );
+typedef _IcbReadActiveTzDisplayNative = ffi.Pointer<ffi_helpers.Utf8> Function(
+    ffi.Pointer<ffi.Void>,
+    );
+typedef _IcbReadActiveTzDisplayDart = ffi.Pointer<ffi_helpers.Utf8> Function(
+    ffi.Pointer<ffi.Void>,
+    );
+typedef _IcbInterpretTzAliasInputNative
+= ffi.Pointer<ffi_helpers.Utf8> Function(
+    ffi.Pointer<ffi.Void>,
+    ffi.Pointer<ffi_helpers.Utf8>,
+    );
+typedef _IcbInterpretTzAliasInputDart
+= ffi.Pointer<ffi_helpers.Utf8> Function(
+    ffi.Pointer<ffi.Void>,
+    ffi.Pointer<ffi_helpers.Utf8>,
+    );
 typedef _IcbInsertManyAtUtcNative = ffi.Pointer<ffi_helpers.Utf8> Function(
     ffi.Pointer<ffi.Void>,
     ffi.Pointer<ffi.Int64>,
@@ -262,21 +284,21 @@ class _FfiBackend {
 
   bool _initialized = false;
   late final ffi.DynamicLibrary _lib;
-
   late final _IcbOpenDart _icbOpen;
   late final _IcbCloseDart _icbClose;
   late final _IcbJsonNoArgsDart _icbReadDailyAveragesJson;
   late final _IcbJsonNoArgsDart _icbReadWindowDaysJson;
   late final _IcbSetWindowDaysDart _icbSetWindowDays;
   late final _IcbFreeStringDart _icbFreeString;
-
-  // New symbols
   late final _IcbListPillsDart _icbListPillsJson;
   late final _IcbReadSkipConfirmDart _icbReadSkipConfirmJson;
   late final _IcbSetSkipConfirmDart _icbSetSkipConfirm;
   late final _IcbListTimezonesDart _icbListTimezonesJson;
   late final _IcbSetActiveTzDart _icbSetActiveTzByAlias;
   late final _IcbReadActiveTzDart _icbReadActiveTzJson;
+  late final _IcbListTzAliasGroupsDart _icbListTzAliasGroupsJson;
+  late final _IcbReadActiveTzDisplayDart _icbReadActiveTzDisplayJson;
+  late final _IcbInterpretTzAliasInputDart _icbInterpretTzAliasInputJson;
   late final _IcbInsertManyAtUtcDart _icbInsertManyAtUtcJson;
   late final _IcbQueryTxTodayDart _icbQueryTxTodayJson;
   late final _IcbQueryTxLastNDaysDart _icbQueryTxLastNDaysJson;
@@ -290,9 +312,6 @@ class _FfiBackend {
   late final _IcbDeleteOldWithPolicyDart _icbDeleteOldWithPolicyJson;
   late final _IcbLocalToUtcDart _icbLocalToUtcJson;
   late final _IcbUtcToLocalDart _icbUtcToLocalJson;
-
-
-  // New: logical batch API
   late final _IcbInsertBatchWithUndoTokenDart
   _icbInsertBatchWithUndoTokenJson;
   late final _IcbUndoLogicalBatchDart _icbUndoLogicalBatchJson;
@@ -327,7 +346,6 @@ class _FfiBackend {
     _icbFreeString = _lib.lookupFunction<_IcbFreeStringNative,
         _IcbFreeStringDart>('icb_free_string');
 
-    // New lookups
     _icbListPillsJson = _lib.lookupFunction<_IcbListPillsNative,
         _IcbListPillsDart>('icb_list_pills_json');
 
@@ -348,8 +366,23 @@ class _FfiBackend {
     _icbReadActiveTzJson = _lib.lookupFunction<_IcbReadActiveTzNative,
         _IcbReadActiveTzDart>('icb_read_active_tz_json');
 
+    _icbListTzAliasGroupsJson =
+        _lib.lookupFunction<_IcbListTzAliasGroupsNative,
+            _IcbListTzAliasGroupsDart>('icb_list_tz_alias_groups_json');
+
+    _icbReadActiveTzDisplayJson =
+        _lib.lookupFunction<_IcbReadActiveTzDisplayNative,
+            _IcbReadActiveTzDisplayDart>('icb_read_active_tz_display_json');
+
+    _icbInterpretTzAliasInputJson =
+        _lib.lookupFunction<_IcbInterpretTzAliasInputNative,
+            _IcbInterpretTzAliasInputDart>(
+          'icb_interpret_tz_alias_input_json',
+        );
+
     _icbInsertManyAtUtcJson = _lib.lookupFunction<_IcbInsertManyAtUtcNative,
         _IcbInsertManyAtUtcDart>('icb_insert_many_at_utc_json');
+
 
     _icbQueryTxTodayJson = _lib.lookupFunction<_IcbQueryTxTodayNative,
         _IcbQueryTxTodayDart>('icb_query_transactions_today_json');
@@ -636,35 +669,6 @@ class _FfiBackend {
 
   // ── Time zones ─────────────────────────
 
-  Future<List<Map<String, dynamic>>> _listTimezonesRaw() async {
-    final jsonStr = _jsonFromNoArg(_icbListTimezonesJson);
-    final decoded = _decodeMap(jsonStr);
-    if (decoded['ok'] != true) {
-      final msg = decoded['error']?.toString() ?? 'unknown error';
-      throw StateError('Rust listTimezones failed: $msg');
-    }
-    final data = decoded['data'] as List<dynamic>? ?? const [];
-    return data.cast<Map<String, dynamic>>();
-  }
-
-  Future<List<String>> listTzAliasStrings() async {
-    final rows = await _listTimezonesRaw();
-    final Map<String, List<String>> byName = {};
-    for (final r in rows) {
-      final alias = (r['alias'] ?? '').toString();
-      final name = (r['tz_name'] ?? '').toString();
-      if (alias.isEmpty || name.isEmpty) continue;
-      byName.putIfAbsent(name, () => []).add(alias);
-    }
-    final out = <String>[];
-    byName.forEach((_, aliases) {
-      aliases.sort();
-      out.add(aliases.join('/'));
-    });
-    out.sort();
-    return out;
-  }
-
   Future<void> setActiveTzByAlias(String alias) async {
     final h = _requireHandle();
     final cAlias = alias.toNativeUtf8();
@@ -678,29 +682,93 @@ class _FfiBackend {
     }
   }
 
+
+  Future<List<Map<String, dynamic>>> _listTimezonesRaw() async {
+    final jsonStr = _jsonFromNoArg(_icbListTimezonesJson);
+    final decoded = _decodeMap(jsonStr);
+    if (decoded['ok'] != true) {
+      final msg = decoded['error']?.toString() ?? 'unknown error';
+      throw StateError('Rust list_timezones failed: $msg');
+    }
+    final data = decoded['data'];
+    if (data is! List) return const <Map<String, dynamic>>[];
+    return data
+        .whereType<Map>()
+        .map<Map<String, dynamic>>(
+            (m) => m.map((k, v) => MapEntry(k.toString(), v)))
+        .toList();
+  }
+
+  /// Returns display strings like "MT/MST/MDT" for the UI.
+  Future<List<String>> listTzAliasStrings() async {
+    final jsonStr = _jsonFromNoArg(_icbListTzAliasGroupsJson);
+    final decoded = _decodeMap(jsonStr);
+    if (decoded['ok'] != true) {
+      final msg = decoded['error']?.toString() ?? 'unknown error';
+      throw StateError('Rust list_tz_alias_groups failed: $msg');
+    }
+    final data = decoded['data'];
+    if (data is! List) return const <String>[];
+    final out = <String>[];
+    for (final item in data) {
+      if (item is! Map) continue;
+      final display = item['display']?.toString().trim() ?? '';
+      if (display.isNotEmpty) {
+        out.add(display);
+      }
+    }
+    out.sort();
+    return out;
+  }
+
   Future<_Tz?> readActiveTz() async {
     final jsonStr = _jsonFromNoArg(_icbReadActiveTzJson);
-    final data = _decodeNullableMap(jsonStr);
-    if (data == null) return null;
-    final alias = (data['alias'] ?? 'UTC').toString();
-    final tzName = (data['tz_name'] ?? 'UTC').toString();
+    final decoded = _decodeMap(jsonStr);
+    if (decoded['ok'] != true) {
+      return null;
+    }
+    final data = decoded['data'] as Map<String, dynamic>? ?? const {};
+    final alias = data['alias']?.toString();
+    final tzName = data['tz_name']?.toString() ?? 'UTC';
+    if (alias == null || alias.isEmpty) return null;
     return _Tz(alias, tzName);
   }
 
   Future<String> readActiveTzAliasString() async {
-    final rows = await _listTimezonesRaw();
-    final active = await readActiveTz();
-    final tzName = active?.tzName ?? 'UTC';
-
-    final aliases = rows
-        .where((r) => (r['tz_name'] ?? '').toString() == tzName)
-        .map((r) => (r['alias'] ?? '').toString())
-        .where((s) => s.isNotEmpty)
-        .toList();
-    if (aliases.isEmpty) return 'UTC';
-    aliases.sort();
-    return aliases.join('/');
+    final jsonStr = _jsonFromNoArg(_icbReadActiveTzDisplayJson);
+    final decoded = _decodeMap(jsonStr);
+    if (decoded['ok'] != true) {
+      final msg = decoded['error']?.toString() ?? 'unknown error';
+      throw StateError('Rust read_active_tz_display failed: $msg');
+    }
+    final data = decoded['data'] as Map<String, dynamic>? ?? const {};
+    final display = data['display']?.toString().trim() ?? '';
+    if (display.isEmpty) return 'UTC';
+    return display;
   }
+
+  Future<String> interpretTzAliasInput(String rawInput) async {
+    final h = _requireHandle();
+    final cInput = rawInput.toNativeUtf8();
+    try {
+      final ptr = _icbInterpretTzAliasInputJson(h, cInput);
+      final jsonStr = _jsonFromPtr(ptr);
+      final decoded = _decodeMap(jsonStr);
+      if (decoded['ok'] != true) {
+        final msg = decoded['error']?.toString() ?? 'unknown error';
+        throw StateError('Rust interpret_tz_alias_input failed: $msg');
+      }
+      final data = decoded['data'] as Map<String, dynamic>? ?? const {};
+      final alias = data['alias']?.toString().trim() ?? '';
+      if (alias.isEmpty) {
+        throw StateError('Rust interpret_tz_alias_input returned empty alias');
+      }
+      return alias;
+    } finally {
+      ffi_helpers.malloc.free(cInput);
+    }
+  }
+
 
   // ── Timestamps: local <-> UTC (DB format) ─────────────────────────
 

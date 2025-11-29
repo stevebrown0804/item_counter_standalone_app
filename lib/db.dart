@@ -108,6 +108,11 @@ class _Db {
     return _FfiBackend.instance.readActiveTzAliasString();
   }
 
+  Future<String> interpretTzAliasInput(String rawInput) async {
+    await open();
+    return _FfiBackend.instance.interpretTzAliasInput(rawInput);
+  }
+
   // ───────────────────────── Timestamps ─────────────────────────
 
   /// Convert a local wall-clock timestamp (in the active time zone)
