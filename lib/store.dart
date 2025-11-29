@@ -43,14 +43,14 @@ class _Store extends ChangeNotifier {
     if (_redoTokens.isEmpty) return;
     final token = _redoTokens.removeLast();
 
-    // Backend re-applies the batch; it also updates transaction IDs internally.
     await _db.redoLogicalBatch(token);
 
-    // Redo establishes a new “top” undo batch; clear older redo history.
+    // Redo resets the redo chain and adds token to undo history.
     _breakRedoChain();
     _undoTokens.add(token);
 
     await load();
+    notifyListeners();
   }
 
   Future<void> load() async {
