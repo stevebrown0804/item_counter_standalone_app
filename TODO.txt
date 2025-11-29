@@ -1,5 +1,3 @@
-TODO (DEBUG): Get undo/redo working again.
-
 TODO: Replace remnants of "pill tracking" legacy with "item tracking"
 
 TODO: Remove the pill types; give a UI for entering 'items'
