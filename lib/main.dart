@@ -17,10 +17,14 @@ import 'package:flutter/services.dart'; // for FilteringTextInputFormatter
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest_all.dart' as tzdata;
 
+part 'ffi.dart';
 part 'store.dart';
 part 'db.dart';
-part 'ui.dart';
-part 'ffi.dart';
+part 'ui_ViewScreen.dart';
+part 'ui_Settings_Screen.dart';
+part 'ui_Settings_TimeZoneSetting.dart';
+part 'ui_Settings_AveragingWindow.dart';
+part 'ui_Settings_SkipSecondConfirmation.dart';
 
 /// Filenames / view names must match your existing DB.
 const String kDbFileName = 'daily-pill-tracking.db';
