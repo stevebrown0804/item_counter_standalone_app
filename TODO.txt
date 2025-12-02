@@ -40,8 +40,6 @@ TODO: Time-zone specifying
 
 
 ---UI adjustments---
-TODO: Make the "Skip second confirmation..." row shorter (by moving the "Save" button up beside the text and having the text wrap earlier, probably)
-
 TODO: Shuffle the rows of the settings screen; let's put them in order of 'frequency of our use'
     * MAYBE: Let the user long-tap & drag them to rearrange them
 
