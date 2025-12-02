@@ -1,18 +1,16 @@
 part of 'main.dart';
 
-//Btw this is "window" as in "averaging window," ie. the number of days over which the average is taken
+// <editor-fold desc="Summary statistic row of the settings sheet">
 
-// <editor-fold desc="The UI">
-
-class _WindowRow extends StatefulWidget {
-  const _WindowRow();
+class _SummaryStatisticRow extends StatefulWidget {
+  const _SummaryStatisticRow();
   @override
-  State<_WindowRow> createState() => _WindowRowState();
+  State<_SummaryStatisticRow> createState() => _SummaryStatisticRowState();
 }
 
-class _WindowRowState extends State<_WindowRow> {
+class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
   final _db = _Db();
-  final TextEditingController _ctrl = TextEditingController();
+  final TextEditingController _summaryStatisticTextInputBox = TextEditingController();
   bool _canSubmit = false;
   String? _summaryPrompt;
 
@@ -40,7 +38,7 @@ class _WindowRowState extends State<_WindowRow> {
 
   @override
   void dispose() {
-    _ctrl.dispose();
+    _summaryStatisticTextInputBox.dispose();
     super.dispose();
   }
 
@@ -66,7 +64,7 @@ class _WindowRowState extends State<_WindowRow> {
 
       if (!mounted) return;
       setState(() {
-        _ctrl.text = days.toString();
+        _summaryStatisticTextInputBox.text = days.toString();
         _canSubmit = true;
       });
     } catch (e) {
@@ -78,7 +76,7 @@ class _WindowRowState extends State<_WindowRow> {
   }
 
   Future<void> _submit() async {
-    final raw = _ctrl.text.trim();
+    final raw = _summaryStatisticTextInputBox.text.trim();
     final days = int.tryParse(raw);
     if (days == null || days <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -96,7 +94,7 @@ class _WindowRowState extends State<_WindowRow> {
 
     FocusScope.of(context).unfocus();
     setState(() {
-      _ctrl.clear();
+      _summaryStatisticTextInputBox.clear();
       _canSubmit = false;
     });
   }
@@ -124,7 +122,7 @@ class _WindowRowState extends State<_WindowRow> {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     TextField(
-                      controller: _ctrl,
+                      controller: _summaryStatisticTextInputBox,
                       keyboardType: TextInputType.number,
                       inputFormatters: [
                         FilteringTextInputFormatter.digitsOnly

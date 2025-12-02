@@ -209,7 +209,7 @@ class SettingsScreen extends StatelessWidget {
         children: [
           const _TzRow(),
           const Divider(),
-          const _WindowRow(),
+          const _SummaryStatisticRow(),
           const Divider(),
           const SizedBox(height: 0),
           SizedBox(
