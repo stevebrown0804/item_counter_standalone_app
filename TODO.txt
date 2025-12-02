@@ -1,15 +1,9 @@
-TODO (IN PROGRESS): Make sure the DB gets set up correctly on first run.
-
-TODO: Incorporate the following default settings (from backend's lib.rs):
-    self.ensure_settings_table_kv_pair_default("appbar_title", "Item Counter")?;
-    self.ensure_settings_table_kv_pair_default("lhs_column_header", "Item")?;
-    self.ensure_settings_table_kv_pair_default("rhs_column_header", "Avg. ({days} day(s))")?;
-    self.ensure_settings_table_kv_pair_default("summary_statistic_prompt", "Averaging window, in days")?;
-
 
 ---Minor initiatives---
 TODO: Add an "Add item(s) to count" button to the settings screen
     * It'll bring up a sheet with (LHS) "Item name" and (RHS) "View order"
+        * When a new item is added, use the (highest view order #) + 1 as the new view order
+        * If a view order if changed to equal an existing value, let the just-changed entry take on the new value and increment all higher-valued entries (until a unused number is reached)
     * Let's also add this to the main view, when it's empty
 
 TODO: Add a "Show time zone" checkbox to the Settings screen
@@ -57,7 +51,7 @@ TODO: Compress the "Averaging window..." row to a single line (by making the inp
 ---TBD---
 TODO: Make sure an older-format DB (ie. from the pill_counter_flutter_preliminary project or w/e its called) will be properly updated to the newer format, if dragged into Device Explorer (in Android Studio)
 
-TODO: Give a way to choose other summary statistics (but probably don't implement them atm)
+TODO: Give a way to choose other summary statistics (but we probably don't implement them atm)
 
 ChatGPT describes the current summary statistic as:
 "In plain terms, the statistic is:
@@ -66,5 +60,6 @@ ChatGPT describes the current summary statistic as:
 More precise description you can use in a setting name/tooltip:
     “For each pill, sum all quantities from max(today − (N−1) days, first transaction date) through today (inclusive), then divide by the number of calendar days in that range, counting days with zero intake.”"
 
-
-
+TODO: We already changed the code (in ui_ViewScreen.dart) to use this setting:
+        self.ensure_settings_table_kv_pair_default("rhs_column_header", "Avg. ({days} day(s))")?;
+    ...but let's make sure it's populating {days} correctly (once there's some data for the app to take an average over).
