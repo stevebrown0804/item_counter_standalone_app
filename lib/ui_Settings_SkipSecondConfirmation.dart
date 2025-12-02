@@ -1,15 +1,15 @@
 part of 'main.dart';
 
-class _SkipSecondConfirmSetting extends StatefulWidget {
-  const _SkipSecondConfirmSetting();
+class _SkipSecondConfirmationSetting extends StatefulWidget {
+  const _SkipSecondConfirmationSetting();
 
   @override
-  State<_SkipSecondConfirmSetting> createState() =>
-      _SkipSecondConfirmSettingState();
+  State<_SkipSecondConfirmationSetting> createState() =>
+      _SkipSecondConfirmationSettingState();
 }
 
-class _SkipSecondConfirmSettingState
-    extends State<_SkipSecondConfirmSetting> {
+class _SkipSecondConfirmationSettingState
+    extends State<_SkipSecondConfirmationSetting> {
   final _db = _Db();
   bool? _initial;
   bool _current = false;

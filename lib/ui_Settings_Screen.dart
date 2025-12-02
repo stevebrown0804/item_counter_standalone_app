@@ -273,7 +273,7 @@ class SettingsScreen extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           const Divider(),
-          const _SkipSecondConfirmSetting(),
+          const _SkipSecondConfirmationSetting(),
           const Divider(),
         ],
       ),
