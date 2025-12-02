@@ -1,7 +1,3 @@
-//REMINDER: Path (Medium Phone API 36.0):
-// Full path: /data/data/com.example.daily_pill_counter
-// Pastable piece: com.example.daily_pill_counter
-
 // <editor-fold desc="Imports, consts, main, etc.">
 import 'dart:async';
 import 'dart:collection';

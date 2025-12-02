@@ -80,5 +80,4 @@ class _Store extends ChangeNotifier {
     await load();
   }
 }
-
 // </editor-fold>
