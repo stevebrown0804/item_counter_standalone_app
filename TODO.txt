@@ -1,18 +1,70 @@
-TODO: Replace remnants of "pill tracking" legacy with "item tracking"
+TODO (IN PROGRESS): Make sure the DB gets set up correctly on first run.
 
-TODO: Remove the pill types; give a UI for entering 'items'
-    When the app is started the first time, let's bring up that UI to prompt the user to enter some "stuff to count"
+TODO: Incorporate the following default settings (from backend's lib.rs):
+    self.ensure_settings_table_kv_pair_default("appbar_title", "Item Counter")?;
+    self.ensure_settings_table_kv_pair_default("lhs_column_header", "Item")?;
+    self.ensure_settings_table_kv_pair_default("rhs_column_header", "Avg. ({days} day(s))")?;
+    self.ensure_settings_table_kv_pair_default("summary_statistic_prompt", "Averaging window, in days")?;
 
-TODO: Look for other UI elements that can be generalized:
-    App title
-    LHS column header
-    (anything else? TBD)
+
+---Minor initiatives---
+TODO: Add an "Add item(s) to count" button to the settings screen
+    * It'll bring up a sheet with (LHS) "Item name" and (RHS) "View order"
+    * Let's also add this to the main view, when it's empty
+
+TODO: Add a "Show time zone" checkbox to the Settings screen
+    * Default value: True
+    * When it's checked, show the "Time zone: [Alias/name]" box beneath the app title on the main view
+    * When it's unchecked, hide that text
+
+TODO: Let timestamps be added to new transactions
+
+TODO: Let the user modify the timestamp on a transaction, in the transaction viewer
+
+
+---Major initiatives---
+TODO: UI customizing
+    * Let the user long-tap the (modifiable) text fields to begin editing them
+        * Upon editing, store those values in the settings table in the DB
+    * Also give a screen under settings for seeing/editing these values
+        * Button label: "Customize UI" <---or something along these lines.  tbd.
+        * Have that button bring up a sheet with (LHS) description (eg. AppBar Title) and (RHS) current value
+            * Let the values on the RHS column be modified there; update the app immediately with any changes
+        * Sounds like this sheet just needs a "Close" button
+        * Although...that depends on the UI for editing a text field.  In-place?  Modal dialog w/ input box? tbd.
+
+TODO: Time-zone specifying
+    * Add a "Specify time zone by alias" checkbox
+        * If it's checked, present a button labeled "Specify a time zone alias"
+            * Pressing that button brings up a sheet of time zone aliases and an initially-empty column (except for UTC, I suppose) of tz aliases.  Let the user either tap an alias and pressed a button labeled "Enter alias" to bring up a window with an input box in which they can enter an alias (and tap an "OK" button or a "Cancel" button), or long-tap the alias field beside an alias and edit the alias in-place.
+            * When the user taps in the "Time Zone" input box, it brings up a list of aliases in the DB.  (That is, it does the current behavior for selecting an alias.)
+        * If the box is unchecked:
+            * When the user taps into the "Time Zone" input box, it presents a complete list of tz names
+            * As the user enters characters, it refines that list to names matching the substring that the user as entered.  It continues like this until the user either taps "Submit" or taps the name (which then populates the input box), then taps "Submit."
+    *Add a setting with key derived from "Specify time zone by alias"; default value is false (ie. unchecked)
+
+
+---UI adjustments---
+TODO: Make the "Skip second confirmation..." row shorter (by moving the "Save" button up beside the text and having the text wrap earlier, probably)
+
+TODO: Shuffle the rows of the settings screen; let's put them in order of 'frequency of our use'
+    * MAYBE: Let the user long-tap & drag them to rearrange them
+
+TODO: Compress the "Averaging window..." row to a single line (by making the input box narrower)
+    *Afterwards, move the "Pick start date" button so that it's horizontally centered over the entire row
+
+
+---TBD---
+TODO: Make sure an older-format DB (ie. from the pill_counter_flutter_preliminary project or w/e its called) will be properly updated to the newer format, if dragged into Device Explorer (in Android Studio)
 
 TODO: Give a way to choose other summary statistics (but probably don't implement them atm)
 
-------------------------------------------------------------------------------------
-Stuff not yet done:
-1. Pills
-    Insert pill? (if needed later)  <---not implemented yet; "add new pills to list" is what this means, but that's waiting for us to generalize the app/backend
+ChatGPT describes the current summary statistic as:
+"In plain terms, the statistic is:
+    Average per day over the last N days (including days with no logs).
+
+More precise description you can use in a setting name/tooltip:
+    “For each pill, sum all quantities from max(today − (N−1) days, first transaction date) through today (inclusive), then divide by the number of calendar days in that range, counting days with zero intake.”"
+
 
 
