@@ -34,7 +34,7 @@ enum _TxMode { today, lastNDays, range, all }
 
 // </editor-fold>
 
-// <editor-fold desc="Some fn; the _TxRow, PillApp and _DB classes">
+// <editor-fold desc="Some fn; the _TxRow, ItemCounterApp and _DB classes">
 
 Future<DateTime?> _pickLocalDateTime(
     BuildContext context, {
@@ -70,8 +70,8 @@ class _TxRow {
   const _TxRow(this.utc, this.pill, this.qty);
 }
 
-class PillApp extends StatelessWidget {
-  const PillApp({super.key});
+class ItemCounterApp extends StatelessWidget {
+  const ItemCounterApp({super.key});
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -91,6 +91,6 @@ void main() async {
     MediaStore.appFolder = 'daily_pill_tracking';
   }
   tzdata.initializeTimeZones();
-  runApp(const PillApp());
+  runApp(const ItemCounterApp());
 }
 // </editor-fold>
