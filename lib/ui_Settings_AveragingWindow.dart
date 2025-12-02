@@ -132,7 +132,7 @@ class _WindowRowState extends State<_WindowRow> {
                       onChanged: (v) =>
                           setState(() => _canSubmit = v.trim().isNotEmpty),
                       decoration: const InputDecoration(
-                        hintText: 'e.g., 30',
+                        hintText: '# days to average over, e.g. 30',
                         isDense: true,
                         border: OutlineInputBorder(),
                       ),
