@@ -31,11 +31,9 @@ const List<String> kShowColumns = ['pill_name', 'daily_avg'];
 
 // --- Transaction viewer types (top-level) ---
 enum _TxMode { today, lastNDays, range, all }
-
 // </editor-fold>
 
 // <editor-fold desc="Some fn; the _TxRow, ItemCounterApp and _DB classes">
-
 Future<DateTime?> _pickLocalDateTime(
     BuildContext context, {
       required tz.Location loc,
@@ -86,11 +84,14 @@ class ItemCounterApp extends StatelessWidget {
 // <editor-fold desc="main()">
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
   if (Platform.isAndroid) {
     await MediaStore.ensureInitialized();
-    MediaStore.appFolder = 'daily_pill_tracking';
+    MediaStore.appFolder = 'item_tracker';
   }
+
   tzdata.initializeTimeZones();
+
   runApp(const ItemCounterApp());
 }
 // </editor-fold>
