@@ -177,7 +177,7 @@ class _TzRowState extends State<_TzRow> {
           const SizedBox(width: 12),
           FilledButton(
             onPressed: _canSubmit ? _submit : null,
-            child: const Text('Submit'),
+            child: const Text('Save'),
           ),
         ],
       ),

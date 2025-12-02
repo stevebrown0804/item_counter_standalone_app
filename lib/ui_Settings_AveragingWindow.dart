@@ -126,7 +126,7 @@ class _WindowRowState extends State<_WindowRow> {
               const SizedBox(width: 12),
               FilledButton(
                 onPressed: _canSubmit ? _submit : null,
-                child: const Text('Submit'),
+                child: const Text('Save'),
               ),
             ],
           ),

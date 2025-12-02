@@ -79,7 +79,7 @@ class PillApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Pill tracker',
+      title: 'Item Counter',
       home: const _ViewScreen(),
     );
   }

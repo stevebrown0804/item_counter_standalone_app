@@ -633,7 +633,7 @@ class _ViewScreenState extends State<_ViewScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Pill tracker'),
+            const Text('Item counter'),
             const SizedBox(height: 3),
             if (_tzDisplay != null)
               Text(
