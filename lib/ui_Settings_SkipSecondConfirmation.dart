@@ -59,25 +59,30 @@ class _SkipSecondConfirmSettingState
       padding: const EdgeInsets.symmetric(horizontal: 8.0),
       child: Column(
         children: [
-          CheckboxListTile(
-            value: _current,
-            onChanged: (v) => setState(() => _current = v ?? false),
-            controlAffinity: ListTileControlAffinity.leading,
-            title: const Text(
-                'Skip second confirmation when deleting transactions'),
-          ),
-          Align(
-            alignment: Alignment.centerRight,
-            child: ElevatedButton(
-              onPressed: (!changed || _saving) ? null : _save,
-              child: _saving
-                  ? const SizedBox(
-                width: 18,
-                height: 18,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-                  : const Text('Save'),
-            ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Checkbox(
+                value: _current,
+                onChanged: (v) => setState(() => _current = v ?? false),
+              ),
+              Expanded(
+                child: const Text(
+                  'Skip second confirmation when deleting transactions',
+                ),
+              ),
+              const SizedBox(width: 8),
+              ElevatedButton(
+                onPressed: (!changed || _saving) ? null : _save,
+                child: _saving
+                    ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+                    : const Text('Save'),
+              ),
+            ],
           ),
           const SizedBox(height: 8),
         ],
