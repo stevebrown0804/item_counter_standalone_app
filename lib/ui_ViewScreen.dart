@@ -16,6 +16,10 @@ class _ViewScreenState extends State<_ViewScreen> {
   final _db = _Db();
   String? _tzDisplay;
   String? _lastAdded;
+  // UI text loaded from settings table
+  String? _appBarTitle;
+  String? _lhsColumnHeader;
+  String? _rhsHeaderTemplate;
 
   Future<void> _loadActiveTzDisplay() async {
     final s = await _db.readActiveTzAliasString();
@@ -23,11 +27,36 @@ class _ViewScreenState extends State<_ViewScreen> {
     setState(() => _tzDisplay = s);
   }
 
+  Future<void> _loadUiTextFromSettings() async {
+    try {
+      final appBarTitle =
+      await _db.readSettingString('appbar_title');
+      final lhsHeader =
+      await _db.readSettingString('lhs_column_header');
+      final rhsTemplate =
+      await _db.readSettingString('rhs_column_header');
+
+      if (!mounted) return;
+      setState(() {
+        _appBarTitle = appBarTitle;
+        _lhsColumnHeader = lhsHeader;
+        _rhsHeaderTemplate = rhsTemplate;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      // Preserve any existing error; otherwise record this one.
+      _error ??= 'Failed to load UI text: $e';
+      setState(() {});
+    }
+  }
+
+
   @override
   void initState() {
     super.initState();
     _lastMounted = this;
     _loadActiveTzDisplay();
+    _loadUiTextFromSettings();
     unawaited(_init());
   }
 
@@ -633,7 +662,9 @@ class _ViewScreenState extends State<_ViewScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Item counter'),
+            Text(
+              _appBarTitle ?? 'Item Counter',
+            ),
             const SizedBox(height: 3),
             if (_tzDisplay != null)
               Text(
@@ -746,18 +777,20 @@ class _ViewScreenState extends State<_ViewScreen> {
                     horizontal: 12, vertical: 6),
                 child: Row(
                   children: [
-                    const Expanded(
+                    Expanded(
                       child: Text(
-                        'Pill',
-                        style: TextStyle(
-                            fontWeight:
-                            FontWeight.bold),
+                        _lhsColumnHeader ?? 'Pill',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                     Text(
-                      'Avg. ($titleDays day(s))',
+                      (_rhsHeaderTemplate ?? 'Avg. ({days} day(s))')
+                          .replaceAll('{days}', titleDays.toString()),
                       style: const TextStyle(
-                          fontWeight: FontWeight.bold),
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ],
                 ),

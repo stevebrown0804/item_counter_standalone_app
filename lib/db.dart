@@ -26,6 +26,20 @@ class _Db {
     return _FfiBackend.instance.listPills();
   }
 
+  // Generic settings helper: read a required string value by key.
+  Future<String> readSettingString(String key) async {
+    final rows = await rawQuery(
+      'SELECT value FROM settings WHERE key = ?1',
+      [key],
+    );
+    if (rows.isEmpty || rows.first['value'] == null) {
+      throw StateError('Missing required setting: $key');
+    }
+    final v = rows.first['value'];
+    if (v is String) return v;
+    return v.toString();
+  }
+
   // ───────────────────────── Settings: averaging window ─────────────────────────
 
   Future<int> readAveragingWindowDays() async {
@@ -39,7 +53,7 @@ class _Db {
   }
 
   /// Compute the averaging window (in days) based on a picked local calendar date
-  /// string "YYYY-MM-DD" in the active time zone. (TODO 3 wired to backend.)
+  /// string "YYYY-MM-DD" in the active time zone.
   Future<int> computeAveragingWindowDaysFromPickedLocalDate(
       String localDateYmd) async {
     await open();

@@ -14,6 +14,29 @@ class _WindowRowState extends State<_WindowRow> {
   final _db = _Db();
   final TextEditingController _ctrl = TextEditingController();
   bool _canSubmit = false;
+  String? _summaryPrompt;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSummaryPrompt();
+  }
+  Future<void> _loadSummaryPrompt() async {
+    try {
+      final prompt =
+      await _db.readSettingString('summary_statistic_prompt');
+      if (!mounted) return;
+      setState(() {
+        _summaryPrompt = prompt;
+      });
+    } catch (_) {
+      // If missing or failing, we quietly fall back to the default literal.
+      if (!mounted) return;
+      setState(() {
+        _summaryPrompt ??= 'Averaging window, in days';
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -85,11 +108,11 @@ class _WindowRowState extends State<_WindowRow> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
-            padding: EdgeInsets.only(bottom: 6),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6),
             child: Text(
-              'Averaging window, in days',
-              style: TextStyle(fontWeight: FontWeight.w500),
+              _summaryPrompt ?? 'Averaging window, in days',
+              style: const TextStyle(fontWeight: FontWeight.w500),
             ),
           ),
           Row(
