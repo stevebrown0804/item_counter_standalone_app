@@ -69,10 +69,14 @@ CREATE TABLE settings (
     value TEXT NOT NULL
 );
 
-settings table kv pairs:
-avg_window_days	90
-time_zone_id	3                                       #pretty sure 0 (for UTC) is the default
+settings table defaults:
+avg_window_days	30
 skip_delete_transactions_second_dialog_confirmation	0
+time_zone_id	0
+appbar_title	"Item Counter"
+lhs_column_header	"Item"
+rhs_column_header	"Avg. ({days} day(s))""
+summary_statistic_prompt	"Averaging window, in days"
 
 
 CREATE TABLE time_zones (
@@ -83,6 +87,7 @@ CREATE TABLE time_zones (
 );
 
 
+---------------------------------------------------------------------------------------------------
 View queries:
 
 CREATE VIEW daily_avg_by_pill_UTC AS
