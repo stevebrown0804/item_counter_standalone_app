@@ -1,3 +1,4 @@
+TODO (IN PROGRESS, AS WE FIND THEM): Replace remnants of "pill" (and similar phrases) with "item"
 
 ---Minor initiatives---
 TODO: Add an "Add item(s) to count" button to the settings screen
