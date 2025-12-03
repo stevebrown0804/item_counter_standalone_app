@@ -207,9 +207,6 @@ class SettingsScreen extends StatelessWidget {
       appBar: AppBar(title: const Text('Settings')),
       body: ListView(
         children: [
-          const _TzRow(), //Time Zone row
-          const Divider(),
-          const _SummaryStatisticRow(),
           const Divider(),
           _ViewTransactionsRow(
             onPressed: () {
@@ -223,34 +220,31 @@ class SettingsScreen extends StatelessWidget {
             },
           ),
           const Divider(),
-          SizedBox(
-            child: Align(
-              alignment: Alignment.center,
-              child: OutlinedButton.icon(
-                icon: const Icon(Icons.download),
-                label: const Text('Export database'),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    _exportDatabase(context);
-                  });
-                },
-              ),
-            ),
+          _ExportDatabaseRow(
+            onPressed: () {
+              Navigator.of(context).pop();
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                _exportDatabase(context);
+              });
+            },
           ),
-          const SizedBox(height: 8),  //Export database button row? TBD
           const Divider(),
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
-            child: Text(
-              'Danger Zone',
-              style: TextStyle(
-                color: Colors.red,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
+          const _SummaryStatisticRow(),
+          const Divider(),
+          const _TzRow(), //Time Zone row
+          const Divider(),
+          // const Padding(
+          //   padding: EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
+          //   child: Text(
+          //     'Danger Zone',
+          //     style: TextStyle(
+          //       color: Colors.red,
+          //       fontSize: 18,
+          //       fontWeight: FontWeight.bold,
+          //     ),
+          //   ),
+          // ),
+          const _DangerZoneHeader(),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: ElevatedButton(
