@@ -22,6 +22,7 @@ part 'ui/settings/TimeZoneSetting.dart';
 part 'ui/settings/AveragingWindow.dart';
 part 'ui/settings/SkipSecondConfirmation.dart';
 part 'ui/settings/ViewTransactions.dart';
+part 'ui/settings/TransactionViewerSheet.dart';
 part 'ui/settings/ExportDatabase.dart';
 part 'ui/settings/DangerZoneHeader.dart';
 part 'ui/settings/DeleteOutdatedTransactions.dart';

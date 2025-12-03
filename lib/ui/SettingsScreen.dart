@@ -215,7 +215,14 @@ class SettingsScreen extends StatelessWidget {
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 final s = _MainScreenState._lastMounted;
                 if (s != null) {
-                  s._openTransactionViewer(s.context);
+                  openTransactionViewerSheet(
+                    context: s.context,
+                    db: s._db,
+                    store: s._store,
+                    parentSetState: s.setState,
+                    parentMounted: () => s.mounted,
+                  );
+
                 }
               });
             },
