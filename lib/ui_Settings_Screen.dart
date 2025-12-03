@@ -233,29 +233,9 @@ class SettingsScreen extends StatelessWidget {
           const Divider(),
           const _TzRow(), //Time Zone row
           const Divider(),
-          // const Padding(
-          //   padding: EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
-          //   child: Text(
-          //     'Danger Zone',
-          //     style: TextStyle(
-          //       color: Colors.red,
-          //       fontSize: 18,
-          //       fontWeight: FontWeight.bold,
-          //     ),
-          //   ),
-          // ),
           const _DangerZoneHeader(),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 12.0),
-              ),
-              onPressed: () => _showDeleteOldTxDialog(context),
-              child: const Text('Delete outdated transactions'),
-            ),
+          _DeleteOutdatedTransactions(
+            onPressed: () => _showDeleteOldTxDialog(context),
           ),
           const SizedBox(height: 8),
           const Divider(),

@@ -24,6 +24,7 @@ part 'ui_Settings_SkipSecondConfirmation.dart';
 part 'ui_Settings_ViewTransactions.dart';
 part 'ui_Settings_ExportDatabase.dart';
 part 'ui_Settings_DangerZoneHeader.dart';
+part 'ui_Settings_DeleteOutdatedTransactions.dart';
 
 /// Filenames / view names must match your existing DB.
 const String kDbFileName = 'daily-pill-tracking.db';
