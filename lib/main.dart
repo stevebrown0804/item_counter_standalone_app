@@ -16,15 +16,15 @@ import 'package:timezone/data/latest_all.dart' as tzdata;
 part 'ffi.dart';
 part 'store.dart';
 part 'db.dart';
-part 'ui_ViewScreen.dart';
-part 'ui_Settings_Screen.dart';
-part 'ui_Settings_TimeZoneSetting.dart';
-part 'ui_Settings_AveragingWindow.dart';
-part 'ui_Settings_SkipSecondConfirmation.dart';
-part 'ui_Settings_ViewTransactions.dart';
-part 'ui_Settings_ExportDatabase.dart';
-part 'ui_Settings_DangerZoneHeader.dart';
-part 'ui_Settings_DeleteOutdatedTransactions.dart';
+part 'ui/MainScreen.dart';
+part 'ui/SettingsScreen.dart';
+part 'ui/settings/TimeZoneSetting.dart';
+part 'ui/settings/AveragingWindow.dart';
+part 'ui/settings/SkipSecondConfirmation.dart';
+part 'ui/settings/ViewTransactions.dart';
+part 'ui/settings/ExportDatabase.dart';
+part 'ui/settings/DangerZoneHeader.dart';
+part 'ui/settings/DeleteOutdatedTransactions.dart';
 
 /// Filenames / view names must match your existing DB.
 const String kDbFileName = 'daily-pill-tracking.db';
@@ -78,7 +78,7 @@ class ItemCounterApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Item Counter',
-      home: const _ViewScreen(),
+      home: const _MainScreen(),
     );
   }
 }
