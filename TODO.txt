@@ -1,4 +1,4 @@
-TODO (IN PROGRESS, AS WE FIND THEM): Replace remnants of "pill" (and similar phrases) with "item"
+TODO (IN PROGRESS, AS WE FIND THEM): Replace remnants of "pill" (and related phrases) with "item", "item counter", etc.
 
 ---Minor initiatives---
 TODO: Add an "Add item(s) to count" button to the settings screen
@@ -40,9 +40,6 @@ TODO: Time-zone specifying
 
 
 ---UI adjustments---
-TODO: Shuffle the rows of the settings screen; let's put them in order of 'frequency of our use'
-    * MAYBE: Let the user long-tap & drag them to rearrange them
-
 TODO: Compress the "Averaging window..." row to a single line (by making the input box narrower)
     *Afterwards, move the "Pick start date" button so that it's horizontally centered over the entire row
 
@@ -62,3 +59,7 @@ More precise description you can use in a setting name/tooltip:
 TODO: We already changed the code (in ui_ViewScreen.dart) to use this setting:
         self.ensure_settings_table_kv_pair_default("rhs_column_header", "Avg. ({days} day(s))")?;
     ...but let's make sure it's populating {days} correctly (once there's some data for the app to take an average over).
+
+
+---MAYBE---
+MAYBE: Let the user long-tap & drag them to rearrange the rows of the settings sheet
