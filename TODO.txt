@@ -5,9 +5,7 @@ TODO: Let the user modify the timestamp, pill and quantity of a transaction, in 
 
 TODO: Let the user delete a transaction from the Transaction Viewer
 
-TODO: Have the SnackBar banner's 'last pill added' persist through app restarts
-
-TODO: When a transaction is undone, remove the banner that announces it as "Added."  Redisplay that banner if the transaction is re-done.
+TODO: When a transaction is undone, remove the card that announces it as "Added."  Redisplay that card if the transaction is re-done.
 
 TODO: Compress the "Averaging window..." row to a single line (by making the input box narrower)
     *Afterwards, move the "Pick start date" button so that it's horizontally centered over the entire row
