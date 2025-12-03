@@ -5,16 +5,19 @@ TODO: Let the user modify the timestamp, pill and quantity of a transaction, in 
 
 TODO: Let the user delete a transaction from the Transaction Viewer
 
+TODO: Have the SnackBar banner's 'last pill added' persist through app restarts
+
+TODO: When a transaction is undone, remove the banner that announces it as "Added."  Redisplay that banner if the transaction is re-done.
+
 TODO: Compress the "Averaging window..." row to a single line (by making the input box narrower)
     *Afterwards, move the "Pick start date" button so that it's horizontally centered over the entire row
 
 TODO: Make sure an older-format DB (ie. from the pill_counter_flutter_preliminary project or w/e its called) will be properly updated to the newer format, if uploaded via Device Explorer (in Android Studio)
     OR we could just take a copy of the old DB, update it by hand and insert that when we install the debug version of the app on our phone (assuming that we're going to start using the newer app).
 
-TODO: When a transaction is undone, remove the banner that announces it as "Added."  Redisplay that banner if the transaction is re-done.
+
 
 ---------------------------------------Public use--------------------------------------------------
-
 TODO (IN PROGRESS, AS WE FIND THEM): Replace remnants of "pill" (and related phrases) with "item", "item counter", etc.
 
 ---Minor initiatives---
@@ -64,4 +67,4 @@ TODO: Give a way to choose other summary statistics (but we probably won't imple
 
 
 ---MAYBE---
-MAYBE: Let the user long-tap & drag them to rearrange the rows of the settings sheet
+TODO (MAYBE): Let the user long-tap & drag them to rearrange the rows of the settings sheet
