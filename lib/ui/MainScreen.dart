@@ -50,12 +50,39 @@ class _MainScreenState extends State<_MainScreen> {
     }
   }
 
+  Future<void> _loadLastAddedBanner() async {
+    try {
+      final text =
+      await _db.tryReadSettingString('last_added_banner_text');
+      if (text == null || text.isEmpty) {
+        return;
+      }
+
+      final dismissedStr =
+      await _db.tryReadSettingString('last_added_banner_dismissed');
+      final dismissed = dismissedStr == '1';
+
+      if (dismissed) {
+        return;
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _lastAdded = text;
+      });
+    } catch (e) {
+      debugPrint('Failed to load last-added banner: $e');
+    }
+  }
+
+
   @override
   void initState() {
     super.initState();
     _lastMounted = this;
     _loadActiveTzDisplay();
     _loadUiTextFromSettings();
+    _loadLastAddedBanner();
     unawaited(_init());
   }
 
@@ -198,6 +225,12 @@ class _MainScreenState extends State<_MainScreen> {
                               });
                             }
 
+                            // Persist banner text and mark as not dismissed
+                            await _db.upsertSettingString(
+                                'last_added_banner_text', message);
+                            await _db.upsertSettingString(
+                                'last_added_banner_dismissed', '0');
+
                             Navigator.of(context).pop();
                           },
                           child: const Text('Submit'),
@@ -319,12 +352,15 @@ class _MainScreenState extends State<_MainScreen> {
                           ),
                           IconButton(
                             tooltip: 'Clear',
-                            icon:
-                            const Icon(Icons.close),
-                            onPressed: () {
+                            icon: const Icon(Icons.close),
+                            onPressed: () async {
                               setState(() {
                                 _lastAdded = null;
                               });
+                              await _db.upsertSettingString(
+                                'last_added_banner_dismissed',
+                                '1',
+                              );
                             },
                           ),
                         ],

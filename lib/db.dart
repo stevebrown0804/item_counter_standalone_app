@@ -40,6 +40,29 @@ class _Db {
     return v.toString();
   }
 
+  Future<String?> tryReadSettingString(String key) async {
+    final rows = await rawQuery(
+      'SELECT value FROM settings WHERE key = ?1',
+      [key],
+    );
+    if (rows.isEmpty || rows.first['value'] == null) {
+      return null;
+    }
+    final v = rows.first['value'];
+    if (v is String) return v;
+    return v.toString();
+  }
+
+  Future<void> upsertSettingString(String key, String value) async {
+    final db = await open();
+    await db.insert(
+      'settings',
+      {'key': key, 'value': value},
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+
   // ───────────────────────── Settings: averaging window ─────────────────────────
 
   Future<int> readAveragingWindowDays() async {
