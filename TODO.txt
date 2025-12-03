@@ -1,3 +1,21 @@
+--------------------------------------Personal use-------------------------------------------------
+TODO: Let timestamps be added to new transactions
+
+TODO: Let the user modify the timestamp on a transaction, in the transaction viewer
+
+TODO: We already changed the code (in ui_ViewScreen.dart) to use this setting:
+        self.ensure_settings_table_kv_pair_default("rhs_column_header", "Avg. ({days} day(s))")?;
+    ...but let's make sure it's populating {days} correctly (once there's some data for the app to take an average over).
+
+TODO: Compress the "Averaging window..." row to a single line (by making the input box narrower)
+    *Afterwards, move the "Pick start date" button so that it's horizontally centered over the entire row
+
+TODO: Make sure an older-format DB (ie. from the pill_counter_flutter_preliminary project or w/e its called) will be properly updated to the newer format, if uploaded via Device Explorer (in Android Studio)
+    OR we could just take a copy of the old DB, update it by hand and insert that when we install the debug version of the app on our phone (assuming that we're going to start using the newer app).
+
+
+---------------------------------------Public use--------------------------------------------------
+
 TODO (IN PROGRESS, AS WE FIND THEM): Replace remnants of "pill" (and related phrases) with "item", "item counter", etc.
 
 ---Minor initiatives---
@@ -11,10 +29,6 @@ TODO: Add a "Show time zone" checkbox to the Settings screen
     * Default value: True
     * When it's checked, show the "Time zone: [Alias/name]" box beneath the app title on the main view
     * When it's unchecked, hide that text
-
-TODO: Let timestamps be added to new transactions
-
-TODO: Let the user modify the timestamp on a transaction, in the transaction viewer
 
 
 ---Major initiatives---
@@ -39,26 +53,15 @@ TODO: Time-zone specifying
     *Add a setting with key derived from "Specify time zone by alias"; default value is false (ie. unchecked)
 
 
----UI adjustments---
-TODO: Compress the "Averaging window..." row to a single line (by making the input box narrower)
-    *Afterwards, move the "Pick start date" button so that it's horizontally centered over the entire row
-
-
 ---TBD---
-TODO: Make sure an older-format DB (ie. from the pill_counter_flutter_preliminary project or w/e its called) will be properly updated to the newer format, if dragged into Device Explorer (in Android Studio)
+TODO: Give a way to choose other summary statistics (but we probably won't implement them atm)
 
-TODO: Give a way to choose other summary statistics (but we probably don't implement them atm)
+    ChatGPT describes the current summary statistic as:
+    "In plain terms, the statistic is:
+        Average per day over the last N days (including days with no logs).
 
-ChatGPT describes the current summary statistic as:
-"In plain terms, the statistic is:
-    Average per day over the last N days (including days with no logs).
-
-More precise description you can use in a setting name/tooltip:
-    “For each pill, sum all quantities from max(today − (N−1) days, first transaction date) through today (inclusive), then divide by the number of calendar days in that range, counting days with zero intake.”"
-
-TODO: We already changed the code (in ui_ViewScreen.dart) to use this setting:
-        self.ensure_settings_table_kv_pair_default("rhs_column_header", "Avg. ({days} day(s))")?;
-    ...but let's make sure it's populating {days} correctly (once there's some data for the app to take an average over).
+    More precise description you can use in a setting name/tooltip:
+        “For each pill, sum all quantities from max(today − (N−1) days, first transaction date) through today (inclusive), then divide by the number of calendar days in that range, counting days with zero intake.”"
 
 
 ---MAYBE---
