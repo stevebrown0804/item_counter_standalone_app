@@ -3,7 +3,6 @@ part of '../../main.dart';
 class _ViewTransactionsRow extends StatelessWidget {
   const _ViewTransactionsRow({
     required this.onPressed,
-    super.key,
   });
 
   final VoidCallback onPressed;

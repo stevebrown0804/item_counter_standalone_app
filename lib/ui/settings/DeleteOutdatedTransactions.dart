@@ -3,7 +3,6 @@ part of '../../main.dart';
 class _DeleteOutdatedTransactions extends StatelessWidget {
   const _DeleteOutdatedTransactions({
     required this.onPressed,
-    super.key,
   });
 
   final VoidCallback onPressed;

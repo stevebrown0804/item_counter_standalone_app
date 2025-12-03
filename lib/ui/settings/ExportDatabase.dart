@@ -3,7 +3,6 @@ part of '../../main.dart';
 class _ExportDatabaseRow extends StatelessWidget {
   const _ExportDatabaseRow({
     required this.onPressed,
-    super.key,
   });
 
   final VoidCallback onPressed;

@@ -1,7 +1,7 @@
 part of '../../main.dart';
 
 class _DangerZoneHeader extends StatelessWidget {
-  const _DangerZoneHeader({super.key});
+  const _DangerZoneHeader();
 
   @override
   Widget build(BuildContext context) {
