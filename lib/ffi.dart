@@ -597,10 +597,10 @@ class _FfiBackend {
     }).toList();
   }
 
-  // New: compute averaging window from picked local date (TODO 3)
-
+  // Compute averaging window from picked local date
   Future<int> computeAveragingWindowDaysFromPickedLocalDate(
-      String localDateYmd) async {
+      String localDateYmd)
+  async {
     final h = _requireHandle();
     final cDate = localDateYmd.toNativeUtf8();
     try {
@@ -834,7 +834,8 @@ class _FfiBackend {
   }
 
   Future<List<int>> insertManyAtUtcReturningIds(
-      List<_Entry> entries, String? utcIso) async {
+      List<_Entry> entries, String? utcIso)
+  async {
     if (entries.isEmpty) return const [];
 
     final h = _requireHandle();
@@ -880,7 +881,8 @@ class _FfiBackend {
   Future<List<_TxRow>> queryTransactionsUtcRange({
     String? startUtc,
     String? endUtc,
-  }) async {
+  })
+  async {
     final h = _requireHandle();
 
     final startPtr = startUtc == null
@@ -920,7 +922,8 @@ class _FfiBackend {
   Future<List<_TxRow>> queryTransactionsRangeLocal({
     String? startLocal,
     String? endLocal,
-  }) async {
+  })
+  async {
     final h = _requireHandle();
 
     final startPtr = startLocal == null
@@ -1030,7 +1033,8 @@ class _FfiBackend {
   // ── Logical batch insert / undo / redo ─────────────────────────
 
   Future<String> insertBatchWithUndoToken(
-      List<_Entry> entries, String? utcIso) async {
+      List<_Entry> entries, String? utcIso)
+  async {
     if (entries.isEmpty) {
       throw ArgumentError('entries must not be empty');
     }
