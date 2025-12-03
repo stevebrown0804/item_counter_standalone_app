@@ -1,6 +1,6 @@
 part of '../../main.dart';
 
-// <editor-fold desc="Summary statistic row of the settings sheet">
+// <editor-fold desc="(Eventually:) Summary statistic row of the settings sheet">
 
 class _SummaryStatisticRow extends StatefulWidget {
   const _SummaryStatisticRow();
@@ -19,6 +19,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
     super.initState();
     _loadSummaryPrompt();
   }
+
   Future<void> _loadSummaryPrompt() async {
     try {
       final prompt =
@@ -27,12 +28,11 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
       setState(() {
         _summaryPrompt = prompt;
       });
-    } catch (_) {
-      // If missing or failing, we quietly fall back to the default literal.
-      if (!mounted) return;
-      setState(() {
-        _summaryPrompt ??= 'Averaging window, in days';
-      });
+    } catch (e, st) {
+      // This should never happen; treat as a hard failure.
+      // Log with stack trace and rethrow to surface the invariant violation.
+      debugPrint('Invariant error: failed to load summary_statistic_prompt: $e\n$st');
+      rethrow;
     }
   }
 
