@@ -6,7 +6,8 @@ Future<void> openTransactionViewerSheet({
   required _Store store,
   required void Function(VoidCallback) parentSetState,
   required bool Function() parentMounted,
-}) async {
+})
+async {
   final tzName = store.activeTz.tzName;
   tz.Location loc;
   try {
@@ -23,6 +24,7 @@ Future<void> openTransactionViewerSheet({
   List<_TxRow> items = [];
   bool busy = false;
   String? error;
+  int? selectedIndex;
 
   Future<void> runQuery() async {
     parentSetState(() {
@@ -305,20 +307,22 @@ Future<void> openTransactionViewerSheet({
                   radioRow(_TxMode.all, const Text('All')),
                   const SizedBox(height: 8),
                   Align(
-                    alignment: Alignment.centerLeft,
+                    alignment: Alignment.center,
                     child: ElevatedButton.icon(
                       icon: const Icon(Icons.search),
-                      label: const Text('Apply'),
+                      label: const Text('Apply filter'),
                       onPressed: busy
                           ? null
                           : () async {
-                        FocusManager.instance.primaryFocus
-                            ?.unfocus();
+                        FocusManager.instance.primaryFocus?.unfocus();
                         await runQuery();
                         ss(() {});
                       },
                     ),
                   ),
+                  const SizedBox(height: 8),
+                  const Divider(height: 1),
+
                   if (error != null)
                     Padding(
                       padding: const EdgeInsets.only(top: 8),
@@ -373,54 +377,55 @@ Future<void> openTransactionViewerSheet({
                               itemCount: items.length,
                               itemBuilder: (c, i) {
                                 final it = items[i];
-                                final local =
-                                tz.TZDateTime.from(
-                                    it.utc, loc);
-                                String two(int n) =>
-                                    n < 10
-                                        ? '0$n'
-                                        : '$n';
+                                final local = tz.TZDateTime.from(it.utc, loc);
+                                String two(int n) => n < 10 ? '0$n' : '$n';
                                 final tsStr =
                                     '${local.year}-${two(local.month)}-${two(local.day)} '
                                     '${two(local.hour)}:${two(local.minute)}:${two(local.second)}';
 
-                                return Padding(
-                                  padding:
-                                  const EdgeInsets
-                                      .symmetric(
-                                    horizontal: 12,
-                                    vertical: 10,
-                                  ),
-                                  child: Row(
-                                    crossAxisAlignment:
-                                    CrossAxisAlignment
-                                        .start,
-                                    children: [
-                                      Expanded(
+                                final isSelected = selectedIndex == i;
+                                final highlightColor = Theme.of(ctx)
+                                    .colorScheme
+                                    .primary
+                                    .withOpacity(0.08);
+
+                                return InkWell(
+                                  onTap: () => ss(() {
+                                    selectedIndex =
+                                    isSelected ? null : i;
+                                  }),
+                                  child: Container(
+                                    color: isSelected ? highlightColor : null,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 10,
+                                    ),
+                                    child: Row(
+                                      crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                      children: [
+                                        Expanded(
                                           flex: 44,
-                                          child:
-                                          Text(tsStr)),
-                                      const SizedBox(
-                                          width: 8),
-                                      Expanded(
+                                          child: Text(tsStr),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
                                           flex: 44,
                                           child: Text(
-                                              it.pill,
-                                              softWrap:
-                                              true)),
-                                      const SizedBox(
-                                          width: 8),
-                                      Expanded(
-                                        flex: 12,
-                                        child: Text(
-                                          it.qty
-                                              .toString(),
-                                          textAlign:
-                                          TextAlign
-                                              .right,
+                                            it.pill,
+                                            softWrap: true,
+                                          ),
                                         ),
-                                      ),
-                                    ],
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          flex: 12,
+                                          child: Text(
+                                            it.qty.toString(),
+                                            textAlign: TextAlign.right,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 );
                               },
@@ -428,6 +433,19 @@ Future<void> openTransactionViewerSheet({
                           ),
                         ],
                       ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Align(
+                    alignment: Alignment.center,
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.edit),
+                      label: const Text('Edit transaction'),
+                      onPressed: selectedIndex == null
+                          ? null
+                          : () {
+                        // Edit behavior to be implemented later.
+                      },
                     ),
                   ),
                 ],
