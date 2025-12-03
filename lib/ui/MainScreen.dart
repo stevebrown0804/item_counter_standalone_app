@@ -1,14 +1,14 @@
-part of 'main.dart';
+part of '../main.dart';
 
-class _ViewScreen extends StatefulWidget {
-  const _ViewScreen();
+class _MainScreen extends StatefulWidget {
+  const _MainScreen();
 
   @override
-  State<_ViewScreen> createState() => _ViewScreenState();
+  State<_MainScreen> createState() => _MainScreenState();
 }
 
-class _ViewScreenState extends State<_ViewScreen> {
-  static _ViewScreenState? _lastMounted;
+class _MainScreenState extends State<_MainScreen> {
+  static _MainScreenState? _lastMounted;
 
   final _store = _Store(_Db());
   bool _loading = true;

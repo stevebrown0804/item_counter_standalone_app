@@ -1,11 +1,11 @@
-part of 'main.dart';
+part of '../main.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 
   Future<void> _exportDatabase(BuildContext context) async {
     try {
-      final s = _ViewScreenState._lastMounted;
+      final s = _MainScreenState._lastMounted;
       final active = s?._store.activeTz;
       final tzName = active?.tzName ?? 'Etc/UTC';
       final alias = active?.alias ?? DateTime.now().timeZoneName;
@@ -201,6 +201,7 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
+  //If you want to shuffle around the rows of the settings sheet, here's the place to do that
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -212,7 +213,7 @@ class SettingsScreen extends StatelessWidget {
             onPressed: () {
               Navigator.of(context).pop();
               WidgetsBinding.instance.addPostFrameCallback((_) {
-                final s = _ViewScreenState._lastMounted;
+                final s = _MainScreenState._lastMounted;
                 if (s != null) {
                   s._openTransactionViewer(s.context);
                 }

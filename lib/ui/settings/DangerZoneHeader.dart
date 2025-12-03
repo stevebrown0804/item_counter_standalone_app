@@ -1,4 +1,4 @@
-part of 'main.dart';
+part of '../../main.dart';
 
 class _DangerZoneHeader extends StatelessWidget {
   const _DangerZoneHeader({super.key});

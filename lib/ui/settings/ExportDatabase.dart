@@ -1,4 +1,4 @@
-part of 'main.dart';
+part of '../../main.dart';
 
 class _ExportDatabaseRow extends StatelessWidget {
   const _ExportDatabaseRow({

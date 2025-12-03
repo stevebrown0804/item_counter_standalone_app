@@ -1,4 +1,4 @@
-part of 'main.dart';
+part of '../../main.dart';
 
 class _ViewTransactionsRow extends StatelessWidget {
   const _ViewTransactionsRow({

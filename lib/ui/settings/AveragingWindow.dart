@@ -1,4 +1,4 @@
-part of 'main.dart';
+part of '../../main.dart';
 
 // <editor-fold desc="Summary statistic row of the settings sheet">
 
