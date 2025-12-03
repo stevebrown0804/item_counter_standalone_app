@@ -207,28 +207,20 @@ class SettingsScreen extends StatelessWidget {
       appBar: AppBar(title: const Text('Settings')),
       body: ListView(
         children: [
-          const _TzRow(),
+          const _TzRow(), //Time Zone row
           const Divider(),
           const _SummaryStatisticRow(),
           const Divider(),
-          const SizedBox(height: 0),
-          SizedBox(
-            child: Align(
-              alignment: Alignment.center,
-              child: OutlinedButton.icon(
-                icon: const Icon(Icons.list_alt),
-                label: const Text('View transactions'),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    final s = _ViewScreenState._lastMounted;
-                    if (s != null) {
-                      s._openTransactionViewer(s.context);
-                    }
-                  });
-                },
-              ),
-            ),
+          _ViewTransactionsRow(
+            onPressed: () {
+              Navigator.of(context).pop();
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                final s = _ViewScreenState._lastMounted;
+                if (s != null) {
+                  s._openTransactionViewer(s.context);
+                }
+              });
+            },
           ),
           const Divider(),
           SizedBox(
@@ -246,7 +238,7 @@ class SettingsScreen extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 8),  //Export database button row? TBD
           const Divider(),
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),

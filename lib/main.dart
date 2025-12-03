@@ -21,6 +21,7 @@ part 'ui_Settings_Screen.dart';
 part 'ui_Settings_TimeZoneSetting.dart';
 part 'ui_Settings_AveragingWindow.dart';
 part 'ui_Settings_SkipSecondConfirmation.dart';
+part 'ui_Settings_ViewTransactions.dart';
 
 /// Filenames / view names must match your existing DB.
 const String kDbFileName = 'daily-pill-tracking.db';
