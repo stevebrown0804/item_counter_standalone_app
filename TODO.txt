@@ -3,8 +3,6 @@ TODO: Let timestamps be added to new transactions
 
 TODO: Let the user modify the timestamp, pill and quantity of a transaction, in the Transaction Viewer
 
-TODO: Let the user delete a transaction from the Transaction Viewer
-
 TODO: When a transaction is undone, remove the card that announces it as "Added."  Redisplay that card if the transaction is re-done.
 
 TODO: Compress the "Averaging window..." row to a single line (by making the input box narrower)
