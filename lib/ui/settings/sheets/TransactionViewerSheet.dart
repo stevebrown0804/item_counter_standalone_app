@@ -316,7 +316,10 @@ async {
                           : () async {
                         FocusManager.instance.primaryFocus?.unfocus();
                         await runQuery();
-                        ss(() {});
+                        ss(() {
+                          // Clear any selected transaction after applying a new filter.
+                          selectedIndex = null;
+                        });
                       },
                     ),
                   ),
@@ -437,16 +440,32 @@ async {
                   const SizedBox(height: 12),
                   Align(
                     alignment: Alignment.center,
-                    child: ElevatedButton.icon(
-                      icon: const Icon(Icons.edit),
-                      label: const Text('Edit transaction'),
-                      onPressed: selectedIndex == null
-                          ? null
-                          : () {
-                        // Edit behavior to be implemented later.
-                      },
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        ElevatedButton.icon(
+                          icon: const Icon(Icons.delete),
+                          label: const Text('Delete transaction'),
+                          onPressed: selectedIndex == null
+                              ? null
+                              : () {
+                            // Delete behavior to be implemented later.
+                          },
+                        ),
+                        const SizedBox(width: 12),
+                        ElevatedButton.icon(
+                          icon: const Icon(Icons.edit),
+                          label: const Text('Edit transaction'),
+                          onPressed: selectedIndex == null
+                              ? null
+                              : () {
+                            // Edit behavior to be implemented later.
+                          },
+                        ),
+                      ],
                     ),
                   ),
+
                 ],
               ),
             ),
