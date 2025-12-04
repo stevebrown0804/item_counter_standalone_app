@@ -3,12 +3,10 @@ TODO: Let timestamps be added to new transactions
 
 TODO: Let the user modify the timestamp, pill and quantity of a transaction, in the Transaction Viewer
 
-TODO: Compress the "Averaging window..." row to a single line (by making the input box narrower)
-    *Afterwards, move the "Pick start date" button so that it's horizontally centered over the entire row
-
 TODO: Make sure an older-format DB (ie. from the pill_counter_flutter_preliminary project or w/e its called) will be properly updated to the newer format, if uploaded via Device Explorer (in Android Studio)
     OR we could just take a copy of the old DB, update it by hand and insert that when we install the debug version of the app on our phone (assuming that we're going to start using the newer app).
 
+TODO: Think about: "Is settings.summary_statistic_prompt really necessary? It's specific to a summary statistic....the user ~could~ change the prompt text, if we let them....but why bother?"
 
 
 ---------------------------------------Public use--------------------------------------------------
