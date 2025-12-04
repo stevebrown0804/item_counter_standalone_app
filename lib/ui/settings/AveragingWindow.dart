@@ -102,54 +102,51 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Padding(
-            padding: const EdgeInsets.only(bottom: 6),
-            child: Text(
-              _summaryPrompt ?? 'Averaging window, in days',
-              style: const TextStyle(fontWeight: FontWeight.w500),
-            ),
-          ),
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
+              Text(
+                _summaryPrompt ?? 'Averaging window:',
+                style: const TextStyle(fontWeight: FontWeight.w500),
+              ),
+              const SizedBox(width: 8),
               Expanded(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    TextField(
-                      controller: _summaryStatisticTextInputBox,
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly
-                      ],
-                      onChanged: (v) =>
-                          setState(() => _canSubmit = v.trim().isNotEmpty),
-                      decoration: const InputDecoration(
-                        hintText: '# days to average over, e.g. 30',
-                        isDense: true,
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    OutlinedButton.icon(
-                      icon: const Icon(Icons.date_range, size: 18),
-                      label: const Text('Pick start date'),
-                      onPressed: _pickDate,
-                    ),
+                child: TextField(
+                  controller: _summaryStatisticTextInputBox,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
                   ],
+                  onChanged: (v) =>
+                      setState(() => _canSubmit = v.trim().isNotEmpty),
+                  decoration: const InputDecoration(
+                    hintText: '##',
+                    isDense: true,
+                    border: OutlineInputBorder(),
+                  ),
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 8),
+              const Text('days'),
+              const SizedBox(width: 8),
               FilledButton(
                 onPressed: _canSubmit ? _submit : null,
                 child: const Text('Save'),
               ),
             ],
+          ),
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.center,
+            child: OutlinedButton.icon(
+              icon: const Icon(Icons.date_range, size: 10),
+              label: const Text('Pick start date'),
+              onPressed: _pickDate,
+            ),
           ),
         ],
       ),
