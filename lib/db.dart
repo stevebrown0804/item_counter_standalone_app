@@ -272,6 +272,16 @@ class _Entry {
   _Entry(this.pillId, this.qty);
 }
 
+/// Single transaction row from the DB.
+class _TxRow {
+  final int id;        // DB primary key
+  final DateTime utc;  // stored in UTC
+  final String pill;
+  final int qty;
+
+  const _TxRow(this.id, this.utc, this.pill, this.qty);
+}
+
 class _TxnSnapshot {
   final int pillId;
   final int qty;

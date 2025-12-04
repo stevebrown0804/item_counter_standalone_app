@@ -822,16 +822,30 @@ class _FfiBackend {
     final list = _decodeList(jsonStr);
     return list.map((e) {
       final m = e as Map<String, dynamic>;
+
+      // id
+      final idRaw = m['id'];
+      final id = (idRaw is num)
+          ? idRaw.toInt()
+          : int.parse(idRaw?.toString() ?? '0');
+
+      // timestamp
       final tsStr = (m['timestamp_utc'] ?? '').toString();
+      final dt = parseDbUtc(tsStr);
+
+      // pill name
       final pillName = (m['pill_name'] ?? '').toString();
+
+      // quantity
       final qtyRaw = m['quantity'];
       final qty = (qtyRaw is num)
           ? qtyRaw.toInt()
           : int.tryParse(qtyRaw?.toString() ?? '0') ?? 0;
-      final dt = parseDbUtc(tsStr);
-      return _TxRow(dt, pillName, qty);
+
+      return _TxRow(id, dt, pillName, qty);
     }).toList();
   }
+
 
   Future<List<int>> insertManyAtUtcReturningIds(
       List<_Entry> entries, String? utcIso)

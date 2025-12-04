@@ -19,6 +19,11 @@ class _Store extends ChangeNotifier {
   final List<String> _redoTokens = [];
   bool get canRedo => _redoTokens.isNotEmpty;
 
+  void clearUndoRedo() {
+    _undoTokens.clear();
+    _redoTokens.clear();
+    notifyListeners();
+  }
   void _breakRedoChain() {
     if (_redoTokens.isNotEmpty) {
       _redoTokens.clear();

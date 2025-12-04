@@ -66,13 +66,6 @@ Future<DateTime?> _pickLocalDateTime(
   return tz.TZDateTime(loc, d.year, d.month, d.day, t.hour, t.minute);
 }
 
-class _TxRow {
-  final DateTime utc; // stored in UTC
-  final String pill;
-  final int qty;
-  const _TxRow(this.utc, this.pill, this.qty);
-}
-
 class ItemCounterApp extends StatelessWidget {
   const ItemCounterApp({super.key});
   @override

@@ -448,8 +448,71 @@ async {
                           label: const Text('Delete transaction'),
                           onPressed: selectedIndex == null
                               ? null
-                              : () {
-                            // Delete behavior to be implemented later.
+                              : () async {
+                            final idx = selectedIndex;
+                            if (idx == null || idx < 0 || idx >= items.length) {
+                              return;
+                            }
+                            final tx = items[idx];
+
+                            // 1. Ask for confirmation in a modal dialog.
+                            final confirmed = await showDialog<bool>(
+                              context: ctx,
+                              builder: (dialogCtx) {
+                                return AlertDialog(
+                                  title: const Text('Confirm deletion?'),
+                                  content: const Text(
+                                    'This will permanently delete the selected transaction.',
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.of(dialogCtx).pop(false),
+                                      child: const Text('Cancel'),
+                                    ),
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.of(dialogCtx).pop(true),
+                                      child: const Text('Confirm'),
+                                    ),
+                                  ],
+                                );
+                              },
+                            );
+                            // 1a. Cancel (or dismiss) → do nothing, stay on the sheet.
+                            if (confirmed != true) {
+                              return;
+                            }
+                            // 1b.i. Delete the transaction from the database.
+                            try {
+                              await db.deleteTransactionById(tx.id);
+                            } catch (e) {
+                              ss(() {
+                                error = 'Failed to delete transaction: $e';
+                              });
+                              return;
+                            }
+
+                            // Refresh main averages and clear undo/redo history.
+                            await store.load();
+                            store.clearUndoRedo();
+
+                            // 1b.iii. Close the "Added: ..." card on the main sheet and persist dismissal.
+                            final main = _MainScreenState._lastMounted;
+                            if (main != null && main.mounted) {
+                              main.setState(() {
+                                main._lastAdded = null;
+                              });
+                              await main._db.upsertSettingString(
+                                'last_added_banner_dismissed',
+                                '1',
+                              );
+                            }
+                            // 1b.ii. Refresh the list in this sheet and clear the selection.
+                            await runQuery();
+                            ss(() {
+                              selectedIndex = null;
+                            });
                           },
                         ),
                         const SizedBox(width: 12),
