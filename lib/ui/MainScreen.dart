@@ -16,6 +16,13 @@ class _MainScreenState extends State<_MainScreen> {
   final _db = _Db();
   String? _tzDisplay;
   String? _lastAdded;
+
+  // In-memory stack of "Added: ..." banner messages for this app session.
+  final List<String> _bannerStack = <String>[];
+
+  // Index of the currently active banner in _bannerStack, or -1 if none is active.
+  int _bannerIndex = -1;
+
   // UI text loaded from settings table
   String? _appBarTitle;
   String? _lhsColumnHeader;
@@ -69,6 +76,10 @@ class _MainScreenState extends State<_MainScreen> {
       if (!mounted) return;
       setState(() {
         _lastAdded = text;
+        _bannerStack
+          ..clear()
+          ..add(text);
+        _bannerIndex = 0;
       });
     } catch (e) {
       debugPrint('Failed to load last-added banner: $e');
@@ -100,6 +111,75 @@ class _MainScreenState extends State<_MainScreen> {
   void dispose() {
     _lastMounted = null;
     super.dispose();
+  }
+
+  void _pushBannerMessage(String message) {
+    // Keep everything up to the current index (if any), drop the redo tail.
+    final keepUpTo = _bannerIndex < 0 ? 0 : _bannerIndex + 1;
+    if (keepUpTo < _bannerStack.length) {
+      _bannerStack.removeRange(keepUpTo, _bannerStack.length);
+    }
+    _bannerStack.add(message);
+    _bannerIndex = _bannerStack.length - 1;
+    _lastAdded = message;
+  }
+
+  Future<void> _persistBannerVisible(String message) async {
+    await _db.upsertSettingString('last_added_banner_text', message);
+    await _db.upsertSettingString('last_added_banner_dismissed', '0');
+  }
+
+  Future<void> _persistBannerHidden() async {
+    await _db.upsertSettingString('last_added_banner_dismissed', '1');
+  }
+
+  void _applyBannerIndex() {
+    if (_bannerIndex < 0 || _bannerIndex >= _bannerStack.length) {
+      _bannerIndex = -1;
+      _lastAdded = null;
+    } else {
+      _lastAdded = _bannerStack[_bannerIndex];
+    }
+  }
+
+  Future<void> _handleUndoPressed() async {
+    if (!_store.canUndo) return;
+
+    await _store.undoLast();
+
+    // Step back one banner in history (if any) and hide the card.
+    if (_bannerIndex >= 0) {
+      _bannerIndex--;
+    }
+
+    setState(() {
+      _applyBannerIndex(); // This will typically null out _lastAdded.
+    });
+
+    // Persist that the banner is currently not shown.
+    await _persistBannerHidden();
+  }
+
+  Future<void> _handleRedoPressed() async {
+    if (!_store.canRedo) return;
+
+    await _store.redoLast();
+
+    // Step forward one banner in history, if possible.
+    if (_bannerStack.isNotEmpty) {
+      final nextIndex = _bannerIndex + 1;
+      if (nextIndex >= 0 && nextIndex < _bannerStack.length) {
+        _bannerIndex = nextIndex;
+      }
+    }
+
+    setState(() {
+      _applyBannerIndex();
+    });
+
+    if (_lastAdded != null) {
+      await _persistBannerVisible(_lastAdded!);
+    }
   }
 
   Future<void> _openAddSheet() async {
@@ -221,15 +301,11 @@ class _MainScreenState extends State<_MainScreen> {
 
                             if (mounted) {
                               setState(() {
-                                _lastAdded = message;
+                                _pushBannerMessage(message);
                               });
                             }
 
-                            // Persist banner text and mark as not dismissed
-                            await _db.upsertSettingString(
-                                'last_added_banner_text', message);
-                            await _db.upsertSettingString(
-                                'last_added_banner_dismissed', '0');
+                            await _persistBannerVisible(message);
 
                             Navigator.of(context).pop();
                           },
@@ -357,10 +433,7 @@ class _MainScreenState extends State<_MainScreen> {
                               setState(() {
                                 _lastAdded = null;
                               });
-                              await _db.upsertSettingString(
-                                'last_added_banner_dismissed',
-                                '1',
-                              );
+                              await _persistBannerHidden();
                             },
                           ),
                         ],
@@ -476,7 +549,7 @@ class _MainScreenState extends State<_MainScreen> {
                     child: FloatingActionButton(
                       heroTag: 'undo_fab',
                       onPressed: enabled
-                          ? () async => await _store.undoLast()
+                          ? () async => await _handleUndoPressed()
                           : null,
                       mini: true,
                       tooltip: 'Undo last',
@@ -506,7 +579,7 @@ class _MainScreenState extends State<_MainScreen> {
                     child: FloatingActionButton(
                       heroTag: 'redo_fab',
                       onPressed: enabled
-                          ? () async => await _store.redoLast()
+                          ? () async => await _handleRedoPressed()
                           : null,
                       mini: true,
                       tooltip: 'Redo last',

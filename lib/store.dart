@@ -50,8 +50,7 @@ class _Store extends ChangeNotifier {
 
     await _db.redoLogicalBatch(token);
 
-    // Redo resets the redo chain and adds token to undo history.
-    _breakRedoChain();
+    // Move this batch back onto the undo stack.
     _undoTokens.add(token);
 
     await load();
