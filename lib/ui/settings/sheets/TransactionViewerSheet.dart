@@ -322,7 +322,6 @@ async {
                   ),
                   const SizedBox(height: 8),
                   const Divider(height: 1),
-
                   if (error != null)
                     Padding(
                       padding: const EdgeInsets.only(top: 8),
@@ -358,7 +357,7 @@ async {
                                     child: Text('Timestamp')),
                                 Expanded(
                                     flex: 44,
-                                    child: Text('Pill name')),
+                                    child: Text('Item name')),
                                 Expanded(
                                     flex: 12,
                                     child: Text('Qty.',
