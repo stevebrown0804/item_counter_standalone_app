@@ -76,7 +76,6 @@ time_zone_id	0
 appbar_title	"Item Counter"
 lhs_column_header	"Item"
 rhs_column_header	"Avg. ({days} day(s))""
-summary_statistic_prompt	"Averaging window, in days"
 
 
 CREATE TABLE time_zones (

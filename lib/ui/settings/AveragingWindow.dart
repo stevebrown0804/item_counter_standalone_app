@@ -12,28 +12,10 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
   final _db = _Db();
   final TextEditingController _summaryStatisticTextInputBox = TextEditingController();
   bool _canSubmit = false;
-  String? _summaryPrompt;
 
   @override
   void initState() {
     super.initState();
-    _loadSummaryPrompt();
-  }
-
-  Future<void> _loadSummaryPrompt() async {
-    try {
-      final prompt =
-      await _db.readSettingString('summary_statistic_prompt');
-      if (!mounted) return;
-      setState(() {
-        _summaryPrompt = prompt;
-      });
-    } catch (e, st) {
-      // This should never happen; treat as a hard failure.
-      // Log with stack trace and rethrow to surface the invariant violation.
-      debugPrint('Invariant error: failed to load summary_statistic_prompt: $e\n$st');
-      rethrow;
-    }
   }
 
   @override
@@ -48,7 +30,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
       initialDate: DateTime.now(),
       firstDate: DateTime(2000, 1, 1),
       lastDate: DateTime(2100, 12, 31),
-      helpText: 'Choose the initial date of transaction',
+      helpText: 'Choose a start date for the averaging window:',
     );
     if (picked == null) return;
 
@@ -110,7 +92,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Text(
-                _summaryPrompt ?? 'Averaging window:',
+                'Averaging window:',
                 style: const TextStyle(fontWeight: FontWeight.w500),
               ),
               const SizedBox(width: 8),
