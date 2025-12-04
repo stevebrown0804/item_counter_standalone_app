@@ -53,6 +53,11 @@ TODO: Time-zone specifying
     *Add a setting with key derived from "Specify time zone by alias"; default value is false (ie. unchecked)
 
 
+---UI stuff---
+TODO: Make the Transaction Viewer sheet more compact
+    Maybe move the "last # days" radio onto the first row, compress the input boxes vertically, remove space between the "All" row and the "Apply filter" button, etc.
+
+
 ---TBD---
 TODO: Give a way to choose other summary statistics (but we probably won't implement them atm)
 
