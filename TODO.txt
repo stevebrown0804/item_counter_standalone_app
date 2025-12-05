@@ -1,15 +1,16 @@
 --------------------------------------Personal use-------------------------------------------------
 TODO: Let timestamps be added to new transactions
 
-TODO: Let the user modify the timestamp, pill and quantity of a transaction, in the Transaction Viewer
-
 TODO: Make sure an older-format DB (ie. from the pill_counter_flutter_preliminary project or w/e its called) will be properly updated to the newer format, if uploaded via Device Explorer (in Android Studio)
     OR we could just take a copy of the old DB, update it by hand and insert that when we install the debug version of the app on our phone (assuming that we're going to start using the newer app).
 
 TODO: We should probably have "Delete transaction" remove that transaction's "Added: " string from the stack.
     (Or did the delete button invalidate that stack?  That would probably be an acceptable outcome too.)
+    We should also probably have it remove the cached "Added:" string from the DB, if it's the most recent transaction.
 
 TODO: When picking a start date for the averaging window, let's gray out days before any transactions exist.
+
+TODO (MAYBE): Move the "transaction editor" sheet into its own file
 
 
 ---------------------------------------Public use--------------------------------------------------
