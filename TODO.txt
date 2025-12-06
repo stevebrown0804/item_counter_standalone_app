@@ -1,5 +1,7 @@
 --------------------------------------Personal use-------------------------------------------------
-TODO: Let timestamps be added to new transactions
+TODO (IN PROGRESS): Let timestamps be added to new transactions
+    Step 1 (DONE): The UI
+    Step 2: The rest
 
 TODO: Make sure an older-format DB (ie. from the pill_counter_flutter_preliminary project or w/e its called) will be properly updated to the newer format, if uploaded via Device Explorer (in Android Studio)
     OR we could just take a copy of the old DB, update it by hand and insert that when we install the debug version of the app on our phone (assuming that we're going to start using the newer app).
@@ -12,6 +14,7 @@ TODO: When picking a start date for the averaging window, let's gray out days be
 
 TODO: Answer the question: "Do the date/time fields in the transaction editor validate the date/time?"
 
+TODO: Prevent the user from pressing the "Submit" button on the Add Pills sheet while all entries are still 0
 
 ---------------------------------------Public use--------------------------------------------------
 TODO (IN PROGRESS, AS WE FIND THEM): Replace remnants of "pill" (and related phrases) with "item", "item counter", etc.
