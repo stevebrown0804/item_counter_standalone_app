@@ -111,17 +111,75 @@ class _LogPillsSheetState extends State<_LogPillsSheet> {
                 },
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 20),
+            // --- Timestamp + pickers (flush right, buttons centered under field) ---
             Row(
-              mainAxisAlignment:
-              MainAxisAlignment.spaceBetween,
+              mainAxisAlignment: MainAxisAlignment.end,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Timestamp:'),
+                const SizedBox(width: 12),
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    SizedBox(
+                      width: 220, // width of the text box; buttons center under this  //TMP, I think
+                      child: TextField(
+                        enabled: false, // will become editable later when we wire picking
+                        controller: TextEditingController(text: 'Now'),
+                        textAlign: TextAlign.center,
+                        decoration: const InputDecoration(
+                          isDense: true,
+                          border: OutlineInputBorder(),
+                          contentPadding: EdgeInsets.symmetric(
+                            vertical: 6,
+                            horizontal: 8,
+                          ),
+                        ),
+                      ),
+                    ),
+                    //const SizedBox(height: 8),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TextButton(
+                          onPressed: () {
+                            // Time picker logic to be added later
+                          },
+                          child: const Text('Pick time'),
+                        ),
+                        const SizedBox(width: 12),
+                        TextButton(
+                          onPressed: () {
+                            // Date picker logic to be added later
+                          },
+                          child: const Text('Pick date'),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            // --- Existing Cancel / Submit row ---
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 TextButton(
-                  onPressed: () =>
-                      Navigator.of(context).pop(),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                    textStyle: const TextStyle(fontSize: 16),
+                  ),
+                  onPressed: () => Navigator.of(context).pop(),
                   child: const Text('Cancel'),
                 ),
                 ElevatedButton(
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                    textStyle: const TextStyle(fontSize: 16),
+                  ),
                   onPressed: () {
                     final map = <int, int>{};
                     final parts = <String>[];
