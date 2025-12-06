@@ -1,4 +1,4 @@
-part of '../main.dart';
+part of '../../main.dart';
 
 class _MainScreen extends StatefulWidget {
   const _MainScreen();
@@ -86,7 +86,6 @@ class _MainScreenState extends State<_MainScreen> {
     }
   }
 
-
   @override
   void initState() {
     super.initState();
@@ -126,6 +125,8 @@ class _MainScreenState extends State<_MainScreen> {
 
   Future<void> _persistBannerVisible(String message) async {
     await _db.upsertSettingString('last_added_banner_text', message);
+    await _db.upsertSettingString('last_added_banner_dismissed', '1' == '0' ? '1' : '0');
+    // Note: the original logic always wrote '0' here. Keeping behavior identical:
     await _db.upsertSettingString('last_added_banner_dismissed', '0');
   }
 
@@ -186,141 +187,31 @@ class _MainScreenState extends State<_MainScreen> {
     final pills = _store.pills;
     if (pills.isEmpty) return;
 
-    final qty = List<int>.filled(pills.length, 0);
-
-    await showModalBottomSheet(
+    final result = await showModalBottomSheet<_LogPillsSheetResult>(
       context: context,
       isScrollControlled: true,
       builder: (ctx) {
-        return StatefulBuilder(
-          builder: (ctx, setState) {
-            return SafeArea(
-              child: Padding(
-                padding: EdgeInsets.only(
-                  left: 12,
-                  right: 12,
-                  top: 12,
-                  bottom: MediaQuery.of(ctx).viewInsets.bottom + 12,
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text('Log pills',
-                        style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 8),
-                    Flexible(
-                      child: ListView.separated(
-                        shrinkWrap: true,
-                        itemCount: pills.length,
-                        separatorBuilder: (_, __) =>
-                        const Divider(height: 1),
-                        itemBuilder: (ctx, i) {
-                          final p = pills[i];
-                          return Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  p.name,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              IconButton(
-                                icon:
-                                const Icon(Icons.keyboard_arrow_down),
-                                onPressed: () => setState(() {
-                                  if (qty[i] > 0) qty[i]--;
-                                }),
-                              ),
-                              SizedBox(
-                                width: 48,
-                                child: TextField(
-                                  key: ValueKey('qty_$i'),
-                                  textAlign: TextAlign.center,
-                                  keyboardType: TextInputType.number,
-                                  decoration: const InputDecoration(
-                                    isDense: true,
-                                    contentPadding:
-                                    EdgeInsets.symmetric(vertical: 6),
-                                    border: OutlineInputBorder(),
-                                  ),
-                                  controller: TextEditingController(
-                                      text: qty[i].toString()),
-                                  onChanged: (s) {
-                                    final v = int.tryParse(s) ?? 0;
-                                    setState(() =>
-                                    qty[i] = v.clamp(0, 1000000));
-                                  },
-                                ),
-                              ),
-                              IconButton(
-                                icon:
-                                const Icon(Icons.keyboard_arrow_up),
-                                onPressed: () =>
-                                    setState(() => qty[i] = qty[i] + 1),
-                              ),
-                            ],
-                          );
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment:
-                      MainAxisAlignment.spaceBetween,
-                      children: [
-                        TextButton(
-                          onPressed: () =>
-                              Navigator.of(ctx).pop(),
-                          child: const Text('Cancel'),
-                        ),
-                        ElevatedButton(
-                          onPressed: () async {
-                            final map = <int, int>{};
-                            final parts = <String>[];
-                            for (var i = 0; i < pills.length; i++) {
-                              final q = qty[i];
-                              if (q > 0) {
-                                map[pills[i].id] = q;
-                                parts.add(
-                                    '${pills[i].name} x $q');
-                              }
-                            }
-                            if (map.isEmpty) {
-                              if (!mounted) return;
-                              Navigator.of(context).pop();
-                              return;
-                            }
-                            await _store.addBatch(map);
-
-                            if (!mounted) return;
-
-                            final message =
-                                'Added: ${parts.join(', ')}';
-
-                            if (mounted) {
-                              setState(() {
-                                _pushBannerMessage(message);
-                              });
-                            }
-
-                            await _persistBannerVisible(message);
-
-                            Navigator.of(context).pop();
-                          },
-                          child: const Text('Submit'),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
+        return _LogPillsSheet(
+          pills: pills,
         );
       },
     );
+
+    if (result == null || result.quantities.isEmpty) {
+      return;
+    }
+
+    await _store.addBatch(result.quantities);
+
+    if (!mounted) return;
+
+    final message = result.summary;
+
+    setState(() {
+      _pushBannerMessage(message);
+    });
+
+    await _persistBannerVisible(message);
   }
 
   @override

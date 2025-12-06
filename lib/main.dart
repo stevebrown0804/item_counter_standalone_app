@@ -16,8 +16,8 @@ import 'package:timezone/data/latest_all.dart' as tzdata;
 part 'ffi.dart';
 part 'store.dart';
 part 'db.dart';
-part 'ui/MainScreen.dart';
-part 'ui/SettingsScreen.dart';
+part 'ui/sheets/MainScreen.dart';
+part 'ui/sheets/SettingsScreen.dart';
 part 'ui/settings/TimeZoneSetting.dart';
 part 'ui/settings/AveragingWindow.dart';
 part 'ui/settings/SkipSecondConfirmation.dart';
@@ -27,6 +27,7 @@ part 'ui/settings/sheets/TransactionEditorSheet.dart';
 part 'ui/settings/ExportDatabase.dart';
 part 'ui/settings/DangerZoneHeader.dart';
 part 'ui/settings/DeleteOutdatedTransactions.dart';
+part 'ui/sheets/LogPillsSheet.dart';
 
 /// Filenames / view names must match your existing DB.
 const String kDbFileName = 'daily-pill-tracking.db';
@@ -45,7 +46,7 @@ Future<DateTime?> _pickLocalDateTime(
       required tz.Location loc,
       DateTime? initialLocal,
     })
-  async {
+async {
   final nowL = tz.TZDateTime.now(loc);
   final initial = initialLocal ?? nowL;
 
