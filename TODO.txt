@@ -16,6 +16,9 @@ TODO: Answer the question: "Do the date/time fields in the transaction editor va
 
 TODO: Prevent the user from pressing the "Submit" button on the Add Pills sheet while all entries are still 0
 
+TODO: Let the user hide items from the interface
+    A THOUGHT: This will probably come up when we add the "Add items to count" TODO; we could probably defer it until then
+
 ---------------------------------------Public use--------------------------------------------------
 TODO (IN PROGRESS, AS WE FIND THEM): Replace remnants of "pill" (and related phrases) with "item", "item counter", etc.
 
@@ -52,6 +55,8 @@ TODO: Time-zone specifying
             * When the user taps into the "Time Zone" input box, it presents a complete list of tz names
             * As the user enters characters, it refines that list to names matching the substring that the user as entered.  It continues like this until the user either taps "Submit" or taps the name (which then populates the input box), then taps "Submit."
     *Add a setting with key derived from "Specify time zone by alias"; default value is false (ie. unchecked)
+
+TODO (Once we've implemented Time-zone specifying and "Add item(s) to count"): Create a "new install" wizard that prompts the user to do those two things (or possibly import a DB or something)
 
 
 ---UI stuff---
