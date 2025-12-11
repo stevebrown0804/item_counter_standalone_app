@@ -9,8 +9,6 @@ TODO: We should probably have "Delete transaction" remove that transaction's "Ad
 
 TODO: Answer the question: "Do the date/time fields in the transaction editor validate the date/time?"
 
-TODO: Prevent the user from pressing the "Submit" button on the Add Pills sheet while all entries are still 0
-
 
 ---------------------------------------Public use--------------------------------------------------
 TODO (IN PROGRESS, AS WE FIND THEM): Replace remnants of "pill" (and related phrases) with "item", "item counter", etc.
