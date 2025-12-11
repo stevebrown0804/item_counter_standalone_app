@@ -69,19 +69,30 @@ class _Store extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> addBatch(Map<int, int> quantities) async {
+  Future<void> addBatch(
+      Map<int, int> quantities, {
+        String? overrideLocalTimestamp,
+      }) async {
     final entries = <_Entry>[];
     quantities.forEach((pillId, qty) {
       if (qty > 0) entries.add(_Entry(pillId, qty));
     });
     if (entries.isEmpty) return;
 
+    String? utcIso;
+    if (overrideLocalTimestamp != null) {
+      // Convert active-TZ local wall-clock time to UTC DB timestamp.
+      utcIso = await _db.localToUtcDbTimestamp(overrideLocalTimestamp);
+    }
+
     // Insert as a single logical batch and record the opaque undo token.
-    final token = await _db.insertBatchWithUndoToken(entries, null);
+    final token = await _db.insertBatchWithUndoToken(entries, utcIso);
     _breakRedoChain();
     _undoTokens.add(token);
 
     await load();
   }
+
+
 }
 // </editor-fold>

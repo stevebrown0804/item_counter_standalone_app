@@ -193,6 +193,7 @@ class _MainScreenState extends State<_MainScreen> {
       builder: (ctx) {
         return _LogPillsSheet(
           pills: pills,
+          activeTzName: _store.activeTz.tzName,
         );
       },
     );
@@ -201,7 +202,10 @@ class _MainScreenState extends State<_MainScreen> {
       return;
     }
 
-    await _store.addBatch(result.quantities);
+    await _store.addBatch(
+      result.quantities,
+      overrideLocalTimestamp: result.localTimestampOverride,
+    );
 
     if (!mounted) return;
 

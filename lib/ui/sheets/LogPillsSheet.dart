@@ -3,18 +3,25 @@ part of '../../main.dart';
 class _LogPillsSheetResult {
   final Map<int, int> quantities;
   final String summary;
+  /// Local wall-clock timestamp in the active time zone ("YYYY-MM-DD HH:MM:SS"),
+  /// or null if the user left it as "Now".
+  final String? localTimestampOverride;
 
   const _LogPillsSheetResult({
     required this.quantities,
     required this.summary,
+    required this.localTimestampOverride,
   });
 }
 
 class _LogPillsSheet extends StatefulWidget {
   final List<dynamic> pills;
+  /// IANA time zone name for the active app TZ, e.g. "America/Denver".
+  final String activeTzName;
 
   const _LogPillsSheet({
     required this.pills,
+    required this.activeTzName,
   });
 
   @override
@@ -24,6 +31,15 @@ class _LogPillsSheet extends StatefulWidget {
 class _LogPillsSheetState extends State<_LogPillsSheet> {
   late final List<int> _qty;
   late final TextEditingController _timestampCtrl;
+
+  tz.Location _activeLocation() {
+    try {
+      return tz.getLocation(widget.activeTzName);
+    } catch (_) {
+      // Fallback if something is misconfigured.
+      return tz.getLocation('Etc/UTC');
+    }
+  }
 
   @override
   void initState() {
@@ -76,9 +92,14 @@ class _LogPillsSheetState extends State<_LogPillsSheet> {
   }
 
   Future<void> _pickDate() async {
-    final now = DateTime.now();
+    final loc = _activeLocation();
     final current = _parseTimestamp(_timestampCtrl.text);
-    final initialDate = current ?? now;
+
+    // "Now" in the active app time zone, not the device zone.
+    final nowLocal = tz.TZDateTime.now(loc);
+    final initialDate = current != null
+        ? DateTime(current.year, current.month, current.day)
+        : DateTime(nowLocal.year, nowLocal.month, nowLocal.day);
 
     final picked = await showDatePicker(
       context: context,
@@ -94,7 +115,7 @@ class _LogPillsSheetState extends State<_LogPillsSheet> {
 
     if (base == null) {
       // Was "Now" (or unparsable): use picked date at midnight.
-      updated = DateTime(picked.year, picked.month, picked.day);
+      updated = DateTime(picked.year, picked.month, picked.day, 0, 0);
     } else {
       // Replace date, keep time.
       updated = DateTime(
@@ -112,12 +133,13 @@ class _LogPillsSheetState extends State<_LogPillsSheet> {
   }
 
   Future<void> _pickTime() async {
-    final now = DateTime.now();
+    final loc = _activeLocation();
     final current = _parseTimestamp(_timestampCtrl.text);
 
+    final nowLocal = tz.TZDateTime.now(loc);
     final initialTime = current != null
         ? TimeOfDay(hour: current.hour, minute: current.minute)
-        : TimeOfDay.fromDateTime(now);
+        : TimeOfDay(hour: nowLocal.hour, minute: nowLocal.minute);
 
     final picked = await showTimePicker(
       context: context,
@@ -128,12 +150,12 @@ class _LogPillsSheetState extends State<_LogPillsSheet> {
 
     DateTime updated;
     if (current == null) {
-      // Was "Now" (or unparsable): use today with chosen time.
-      final today = DateTime.now();
+      // Was "Now" (or unparsable): use "today" in the active TZ with chosen time.
+      final todayLocal = tz.TZDateTime.now(loc);
       updated = DateTime(
-        today.year,
-        today.month,
-        today.day,
+        todayLocal.year,
+        todayLocal.month,
+        todayLocal.day,
         picked.hour,
         picked.minute,
       );
@@ -317,12 +339,36 @@ class _LogPillsSheetState extends State<_LogPillsSheet> {
                       return;
                     }
 
+                    // Build local override timestamp if the user changed it from "Now".
+                    final tsText = _timestampCtrl.text.trim();
+                    String? localOverride;
+                    if (tsText != 'Now') {
+                      final parsed = _parseTimestamp(tsText);
+                      if (parsed == null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Invalid timestamp format. Use "YYYY-MM-DD HH:MM".'),
+                          ),
+                        );
+                        return;
+                      }
+                      String two(int n) => n.toString().padLeft(2, '0');
+                      final y = parsed.year.toString().padLeft(4, '0');
+                      final m = two(parsed.month);
+                      final d = two(parsed.day);
+                      final h = two(parsed.hour);
+                      final min = two(parsed.minute);
+                      // Backend expects "YYYY-MM-DD HH:MM:SS".
+                      localOverride = '$y-$m-$d $h:$min:00';
+                    }
+
                     final summary = 'Added: ${parts.join(', ')}';
 
                     Navigator.of(context).pop(
                       _LogPillsSheetResult(
                         quantities: map,
                         summary: summary,
+                        localTimestampOverride: localOverride,
                       ),
                     );
                   },
