@@ -7,8 +7,6 @@ TODO: We should probably have "Delete transaction" remove that transaction's "Ad
     (Or did the delete button invalidate that stack?  That would probably be an acceptable outcome too.)
     We should also probably have it remove the cached "Added:" string from the DB, if it's the most recent transaction.
 
-TODO: When picking a start date for the averaging window, let's gray out days before any transactions exist.
-
 TODO: Answer the question: "Do the date/time fields in the transaction editor validate the date/time?"
 
 TODO: Prevent the user from pressing the "Submit" button on the Add Pills sheet while all entries are still 0
