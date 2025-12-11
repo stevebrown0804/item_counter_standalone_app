@@ -153,7 +153,7 @@ async {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 4),
                   radioRow(_TxMode.today, const Text('Today')),
                   const Divider(),
                   radioRow(
@@ -163,7 +163,7 @@ async {
                           const Text('Last'),
                           const SizedBox(width: 8),
                           SizedBox(
-                            width: 72,
+                            width: 56,
                             child: TextField(
                               controller: lastDaysCtrl,
                               keyboardType: TextInputType.number,
@@ -232,7 +232,7 @@ async {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 6),
+                          const SizedBox(height: 4),
                           Column(
                             crossAxisAlignment:
                             CrossAxisAlignment.start,
@@ -277,7 +277,7 @@ async {
                                       ],
                                     ),
                                   ),
-                                  const SizedBox(width: 8),
+                                  const SizedBox(width: 4),
                                   TextButton(
                                     onPressed: () async {
                                       ss(() {
@@ -298,14 +298,14 @@ async {
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 6),
+                              const SizedBox(height: 4),
                             ],
                           ),
                         ],
                       )),
                   const Divider(),
                   radioRow(_TxMode.all, const Text('All')),
-                  const SizedBox(height: 8),
+                  //const SizedBox(height: 4),
                   Align(
                     alignment: Alignment.center,
                     child: ElevatedButton.icon(

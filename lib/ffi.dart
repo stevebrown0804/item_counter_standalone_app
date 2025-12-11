@@ -236,6 +236,12 @@ typedef _IcbRedoLogicalBatchDart = ffi.Pointer<ffi_helpers.Utf8> Function(
     ffi.Pointer<ffi.Void>,
     ffi.Pointer<ffi_helpers.Utf8>,
     );
+typedef _IcbReadOldestTxUtcNative = ffi.Pointer<ffi_helpers.Utf8> Function(
+    ffi.Pointer<ffi.Void>,
+    );
+typedef _IcbReadOldestTxUtcDart = ffi.Pointer<ffi_helpers.Utf8> Function(
+    ffi.Pointer<ffi.Void>,
+    );
 typedef _IcbComputeWindowFromPickedDateNative
 = ffi.Pointer<ffi_helpers.Utf8> Function(
     ffi.Pointer<ffi.Void>,
@@ -283,6 +289,7 @@ class _FfiBackend {
   static final _FfiBackend instance = _FfiBackend._internal();
 
   bool _initialized = false;
+  Future<void>? _initFuture;
   late final ffi.DynamicLibrary _lib;
   late final _IcbOpenDart _icbOpen;
   late final _IcbCloseDart _icbClose;
@@ -317,6 +324,8 @@ class _FfiBackend {
   late final _IcbUndoLogicalBatchDart _icbUndoLogicalBatchJson;
   late final _IcbRedoLogicalBatchDart _icbRedoLogicalBatchJson;
 
+  late final _IcbReadOldestTxUtcDart _icbReadOldestTxUtcJson;
+
   // New: compute averaging window from picked local date (TODO 3)
   late final _IcbComputeWindowFromPickedDateDart
   _icbComputeWindowFromPickedDateJson;
@@ -325,9 +334,23 @@ class _FfiBackend {
 
   bool get isInitialized => _initialized;
 
-  Future<void> init(String dbPath) async {
-    if (_initialized) return;
+  Future<void> init(String dbPath) {
+    // Already initialized: return a completed Future.
+    if (_initialized) {
+      return Future.value();
+    }
+    // Initialization is in progress: return the same Future.
+    final existing = _initFuture;
+    if (existing != null) {
+      return existing;
+    }
+    // Start initialization once.
+    final future = _doInit(dbPath);
+    _initFuture = future;
+    return future;
+  }
 
+  Future<void> _doInit(String dbPath) async {
     _lib = _openLibrary();
 
     _icbOpen = _lib.lookupFunction<_IcbOpenNative, _IcbOpenDart>('icb_open');
@@ -382,7 +405,6 @@ class _FfiBackend {
 
     _icbInsertManyAtUtcJson = _lib.lookupFunction<_IcbInsertManyAtUtcNative,
         _IcbInsertManyAtUtcDart>('icb_insert_many_at_utc_json');
-
 
     _icbQueryTxTodayJson = _lib.lookupFunction<_IcbQueryTxTodayNative,
         _IcbQueryTxTodayDart>('icb_query_transactions_today_json');
@@ -444,6 +466,12 @@ class _FfiBackend {
         _lib.lookupFunction<_IcbComputeWindowFromPickedDateNative,
             _IcbComputeWindowFromPickedDateDart>(
             'icb_compute_averaging_window_days_from_picked_date_json');
+
+    // New: read oldest transaction timestamp (UTC) from backend
+    _icbReadOldestTxUtcJson =
+        _lib.lookupFunction<_IcbReadOldestTxUtcNative,
+            _IcbReadOldestTxUtcDart>(
+            'icb_read_oldest_transaction_timestamp_utc_json');
 
     final cPath = dbPath.toNativeUtf8();
     try {
@@ -817,6 +845,33 @@ class _FfiBackend {
   }
 
   // ── Transactions ─────────────────────────
+  Future<DateTime?> readOldestTransactionUtc() async {
+    final h = _requireHandle();
+    final ptr = _icbReadOldestTxUtcJson(h);
+    final jsonStr = _jsonFromPtr(ptr);
+
+    final decoded = _decodeMap(jsonStr);
+    if (decoded['ok'] != true) {
+      final msg = decoded['error']?.toString() ?? 'unknown error';
+      throw StateError('Rust readOldestTransactionUtc failed: $msg');
+    }
+
+    final data = decoded['data'];
+    if (data == null) {
+      return null; // no transactions
+    }
+    if (data is! Map<String, dynamic>) {
+      throw StateError('Rust FFI readOldestTransactionUtc "data" is not object');
+    }
+
+    final tsStr = data['timestamp']?.toString() ?? '';
+    if (tsStr.isEmpty) {
+      return null;
+    }
+
+    // parseDbUtc: existing helper used in _decodeTxRows
+    return parseDbUtc(tsStr);
+  }
 
   List<_TxRow> _decodeTxRows(String jsonStr) {
     final list = _decodeList(jsonStr);

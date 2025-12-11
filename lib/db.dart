@@ -84,6 +84,37 @@ class _Db {
         .computeAveragingWindowDaysFromPickedLocalDate(localDateYmd);
   }
 
+  /// Oldest transaction date in the active time zone, truncated to a
+  /// calendar date (year-month-day). Returns null if there are no transactions.
+  Future<DateTime?> readOldestTransactionLocalDate() async {
+    await open();
+
+    // Oldest transaction in UTC from the Rust backend.
+    final oldestUtc = await _FfiBackend.instance.readOldestTransactionUtc();
+    if (oldestUtc == null) {
+      return null;
+    }
+
+    // Determine active time zone; default to Etc/UTC if unset or invalid.
+    final tzInfo = await readActiveTz();
+    var tzName = 'Etc/UTC';
+    if (tzInfo != null && tzInfo.tzName.isNotEmpty) {
+      tzName = tzInfo.tzName;
+    }
+
+    tz.Location loc;
+    try {
+      loc = tz.getLocation(tzName);
+    } catch (_) {
+      loc = tz.getLocation('Etc/UTC');
+    }
+
+    final local = tz.TZDateTime.from(oldestUtc, loc);
+    // Truncate to calendar date.
+    return DateTime(local.year, local.month, local.day);
+  }
+
+
   // ───────────────────────── Settings: skip second confirmation ─────────────────────────
 
   Future<bool> readSkipDeleteSecondConfirm() async {

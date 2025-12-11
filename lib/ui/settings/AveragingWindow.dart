@@ -25,19 +25,50 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
   }
 
   Future<void> _pickDate() async {
+    // Default range for the picker.
+    DateTime firstDate = DateTime(2000, 1, 1);
+    DateTime lastDate  = DateTime(2100, 12, 31);
+    DateTime initialDate = DateTime.now();
+
+    try {
+      // Oldest transaction date in the *active* time zone, truncated to Y-M-D.
+      final oldestLocal = await _db.readOldestTransactionLocalDate();
+      debugPrint('readOldestTransactionLocalDate -> $oldestLocal');
+
+      if (oldestLocal != null) {
+        // Strip time-of-day; showDatePicker only cares about Y/M/D.
+        firstDate = DateTime(
+          oldestLocal.year,
+          oldestLocal.month,
+          oldestLocal.day,
+        );
+        if (initialDate.isBefore(firstDate)) {
+          initialDate = firstDate;
+        }
+      }
+    } catch (e, st) {
+      debugPrint('ERROR reading oldest transaction date: $e\n$st');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to read oldest transaction date: $e'),
+          ),
+        );
+      }
+      // On error we keep the default 2000-01-01 bound.
+    }
+
     final picked = await showDatePicker(
       context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2000, 1, 1),
-      lastDate: DateTime(2100, 12, 31),
+      initialDate: initialDate,
+      firstDate: firstDate,
+      lastDate: lastDate,
       helpText: 'Choose a start date for the averaging window:',
     );
     if (picked == null) return;
 
     try {
       String two(int n) => n.toString().padLeft(2, '0');
-      // Local calendar date in "YYYY-MM-DD" for the backend to interpret
-      // in the active time zone. Backend decides how many days the window is.
       final localDate =
           '${picked.year}-${two(picked.month)}-${two(picked.day)}';
 
