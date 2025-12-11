@@ -11,8 +11,6 @@ TODO: Answer the question: "Do the date/time fields in the transaction editor va
 
 TODO: Prevent the user from pressing the "Submit" button on the Add Pills sheet while all entries are still 0
 
-TODO: Let the user hide items from the interface
-    A THOUGHT: This will probably come up when we add the "Add items to count" TODO; we could probably defer it until then
 
 ---------------------------------------Public use--------------------------------------------------
 TODO (IN PROGRESS, AS WE FIND THEM): Replace remnants of "pill" (and related phrases) with "item", "item counter", etc.
@@ -22,6 +20,7 @@ TODO: Add an "Add item(s) to count" button to the settings screen
     * It'll bring up a sheet with (LHS) "Item name" and (RHS) "View order"
         * When a new item is added, use the (highest view order #) + 1 as the new view order
         * If a view order if changed to equal an existing value, let the just-changed entry take on the new value and increment all higher-valued entries (until a unused number is reached)
+        * We want a way to hide items but leave them in this list; perhaps we could allow "view order == 0" or "== -1" or something; we might also just add another column with a boolean for 'hidden;'  TBD, I guess
     * Let's also add this to the main view, when it's empty
 
 TODO: Add a "Show time zone" checkbox to the Settings screen
