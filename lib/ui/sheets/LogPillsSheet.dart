@@ -23,11 +23,134 @@ class _LogPillsSheet extends StatefulWidget {
 
 class _LogPillsSheetState extends State<_LogPillsSheet> {
   late final List<int> _qty;
+  late final TextEditingController _timestampCtrl;
 
   @override
   void initState() {
     super.initState();
     _qty = List<int>.filled(widget.pills.length, 0);
+    _timestampCtrl = TextEditingController(text: 'Now');
+  }
+
+  @override
+  void dispose() {
+    _timestampCtrl.dispose();
+    super.dispose();
+  }
+
+  DateTime? _parseTimestamp(String text) {
+    if (text == 'Now') return null;
+
+    final parts = text.split(' ');
+    if (parts.length != 2) return null;
+
+    final dateParts = parts[0].split('-');
+    final timeParts = parts[1].split(':');
+    if (dateParts.length != 3 || timeParts.length != 2) return null;
+
+    final year = int.tryParse(dateParts[0]);
+    final month = int.tryParse(dateParts[1]);
+    final day = int.tryParse(dateParts[2]);
+    final hour = int.tryParse(timeParts[0]);
+    final minute = int.tryParse(timeParts[1]);
+
+    if (year == null ||
+        month == null ||
+        day == null ||
+        hour == null ||
+        minute == null) {
+      return null;
+    }
+
+    return DateTime(year, month, day, hour, minute);
+  }
+
+  String _formatTimestamp(DateTime dt) {
+    String two(int n) => n.toString().padLeft(2, '0');
+    final y = dt.year.toString().padLeft(4, '0');
+    final m = two(dt.month);
+    final d = two(dt.day);
+    final h = two(dt.hour);
+    final min = two(dt.minute);
+    return '$y-$m-$d $h:$min';
+  }
+
+  Future<void> _pickDate() async {
+    final now = DateTime.now();
+    final current = _parseTimestamp(_timestampCtrl.text);
+    final initialDate = current ?? now;
+
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: DateTime(2000, 1, 1),
+      lastDate: DateTime(2100, 12, 31),
+      helpText: 'Choose date of transaction',
+    );
+    if (picked == null) return;
+
+    final base = _parseTimestamp(_timestampCtrl.text);
+    late DateTime updated;
+
+    if (base == null) {
+      // Was "Now" (or unparsable): use picked date at midnight.
+      updated = DateTime(picked.year, picked.month, picked.day);
+    } else {
+      // Replace date, keep time.
+      updated = DateTime(
+        picked.year,
+        picked.month,
+        picked.day,
+        base.hour,
+        base.minute,
+      );
+    }
+
+    setState(() {
+      _timestampCtrl.text = _formatTimestamp(updated);
+    });
+  }
+
+  Future<void> _pickTime() async {
+    final now = DateTime.now();
+    final current = _parseTimestamp(_timestampCtrl.text);
+
+    final initialTime = current != null
+        ? TimeOfDay(hour: current.hour, minute: current.minute)
+        : TimeOfDay.fromDateTime(now);
+
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: initialTime,
+      helpText: 'Choose time of transaction',
+    );
+    if (picked == null) return;
+
+    DateTime updated;
+    if (current == null) {
+      // Was "Now" (or unparsable): use today with chosen time.
+      final today = DateTime.now();
+      updated = DateTime(
+        today.year,
+        today.month,
+        today.day,
+        picked.hour,
+        picked.minute,
+      );
+    } else {
+      // Keep date, change time.
+      updated = DateTime(
+        current.year,
+        current.month,
+        current.day,
+        picked.hour,
+        picked.minute,
+      );
+    }
+
+    setState(() {
+      _timestampCtrl.text = _formatTimestamp(updated);
+    });
   }
 
   @override
@@ -126,8 +249,8 @@ class _LogPillsSheetState extends State<_LogPillsSheet> {
                     SizedBox(
                       width: 220, // width of the text box; buttons center under this  //TMP, I think
                       child: TextField(
-                        enabled: false, // will become editable later when we wire picking
-                        controller: TextEditingController(text: 'Now'),
+                        controller: _timestampCtrl,
+                        enabled: _timestampCtrl.text != 'Now',
                         textAlign: TextAlign.center,
                         decoration: const InputDecoration(
                           isDense: true,
@@ -144,17 +267,13 @@ class _LogPillsSheetState extends State<_LogPillsSheet> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         TextButton(
-                          onPressed: () {
-                            // Time picker logic to be added later
-                          },
-                          child: const Text('Pick time'),
+                          onPressed: _pickDate,
+                          child: const Text('Pick date'),
                         ),
                         const SizedBox(width: 12),
                         TextButton(
-                          onPressed: () {
-                            // Date picker logic to be added later
-                          },
-                          child: const Text('Pick date'),
+                          onPressed: _pickTime,
+                          child: const Text('Pick time'),
                         ),
                       ],
                     ),
