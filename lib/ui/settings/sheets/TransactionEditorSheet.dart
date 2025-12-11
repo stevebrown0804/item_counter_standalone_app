@@ -34,8 +34,57 @@ Future<bool> openTransactionEditorSheet({
   }
   selectedPill ??= pills.isNotEmpty ? pills.first : null;
 
+  // Basic parser / normalizer for local date+time fields.
+  // Accepts:
+  //   dateText: "YYYY-MM-DD"
+  //   timeText: "HH:MM" or "HH:MM:SS"
+  // Returns a normalized "YYYY-MM-DD HH:MM:SS" string, or null if invalid.
+  String? _normalizeLocalDateTime(String dateText, String timeText) {
+    final dateParts = dateText.split('-');
+    if (dateParts.length != 3) return null;
+
+    final year  = int.tryParse(dateParts[0]);
+    final month = int.tryParse(dateParts[1]);
+    final day   = int.tryParse(dateParts[2]);
+
+    if (year == null || month == null || day == null) {
+      return null;
+    }
+
+    final timeParts = timeText.split(':');
+    if (timeParts.length < 2 || timeParts.length > 3) return null;
+
+    final hour   = int.tryParse(timeParts[0]);
+    final minute = int.tryParse(timeParts[1]);
+
+    if (hour == null || minute == null) {
+      return null;
+    }
+
+    int second = 0;
+    if (timeParts.length == 3) {
+      final s = int.tryParse(timeParts[2]);
+      if (s == null) return null;
+      second = s;
+    }
+
+    try {
+      final dt = DateTime(year, month, day, hour, minute, second);
+      String two(int n) => n.toString().padLeft(2, '0');
+      final y = dt.year.toString().padLeft(4, '0');
+      final m = two(dt.month);
+      final d = two(dt.day);
+      final h = two(dt.hour);
+      final min = two(dt.minute);
+      final sec = two(dt.second);
+      return '$y-$m-$d $h:$min:$sec';
+    } catch (_) {
+      return null;
+    }
+  }
+
   final result = await showModalBottomSheet<bool>(
-    context: context,
+  context: context,
     isScrollControlled: true,
     useSafeArea: true,
     shape: const RoundedRectangleBorder(
@@ -245,11 +294,24 @@ Future<bool> openTransactionEditorSheet({
                         return;
                       }
 
-                      final localTs = '$dateText $timeText';
+                      // Normalize and validate local date/time before calling backend.
+                      final normalizedLocalTs =
+                      _normalizeLocalDateTime(dateText, timeText);
+                      if (normalizedLocalTs == null) {
+                        ScaffoldMessenger.of(editCtx).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Invalid date or time. Use "YYYY-MM-DD" for the date and "HH:MM" or "HH:MM:SS" for the time.',
+                            ),
+                          ),
+                        );
+                        return;
+                      }
+
                       String utcTs;
                       try {
                         utcTs =
-                        await db.localToUtcDbTimestamp(localTs);
+                        await db.localToUtcDbTimestamp(normalizedLocalTs);
                       } catch (e) {
                         ScaffoldMessenger.of(editCtx).showSnackBar(
                           SnackBar(
