@@ -175,6 +175,80 @@ class _LogPillsSheetState extends State<_LogPillsSheet> {
     });
   }
 
+  bool get _hasAnyQuantity {
+    for (final q in _qty) {
+      if (q > 0) return true;
+    }
+    return false;
+  }
+
+  void _onSubmit() {
+    if (!_hasAnyQuantity) {
+      // This should not be reachable because the button is disabled in this state,
+      // but we surface it loudly if it ever happens.
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('You have not added any pills.')),
+      );
+      return;
+    }
+
+    final pills = widget.pills;
+
+    final map = <int, int>{};
+    final parts = <String>[];
+    for (var i = 0; i < pills.length; i++) {
+      final q = _qty[i];
+      if (q > 0) {
+        final p = pills[i];
+        final id = p.id as int;
+        final name = p.name as String;
+        map[id] = q;
+        parts.add('$name x $q');
+      }
+    }
+    if (map.isEmpty) {
+      // Extra guard: fail loudly instead of silently closing the sheet.
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('You have not added any pills.')),
+      );
+      return;
+    }
+
+    // Build local override timestamp if the user changed it from "Now".
+    final tsText = _timestampCtrl.text.trim();
+    String? localOverride;
+    if (tsText != 'Now') {
+      final parsed = _parseTimestamp(tsText);
+      if (parsed == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content:
+            Text('Invalid timestamp format. Use "YYYY-MM-DD HH:MM".'),
+          ),
+        );
+        return;
+      }
+      String two(int n) => n.toString().padLeft(2, '0');
+      final y = parsed.year.toString().padLeft(4, '0');
+      final m = two(parsed.month);
+      final d = two(parsed.day);
+      final h = two(parsed.hour);
+      final min = two(parsed.minute);
+      // Backend expects "YYYY-MM-DD HH:MM:SS".
+      localOverride = '$y-$m-$d $h:$min:00';
+    }
+
+    final summary = 'Added: ${parts.join(', ')}';
+
+    Navigator.of(context).pop(
+      _LogPillsSheetResult(
+        quantities: map,
+        summary: summary,
+        localTimestampOverride: localOverride,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final pills = widget.pills;
@@ -321,57 +395,7 @@ class _LogPillsSheetState extends State<_LogPillsSheet> {
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                     textStyle: const TextStyle(fontSize: 16),
                   ),
-                  onPressed: () {
-                    final map = <int, int>{};
-                    final parts = <String>[];
-                    for (var i = 0; i < pills.length; i++) {
-                      final q = _qty[i];
-                      if (q > 0) {
-                        final p = pills[i];
-                        final id = p.id as int;
-                        final name = p.name as String;
-                        map[id] = q;
-                        parts.add('$name x $q');
-                      }
-                    }
-                    if (map.isEmpty) {
-                      Navigator.of(context).pop();
-                      return;
-                    }
-
-                    // Build local override timestamp if the user changed it from "Now".
-                    final tsText = _timestampCtrl.text.trim();
-                    String? localOverride;
-                    if (tsText != 'Now') {
-                      final parsed = _parseTimestamp(tsText);
-                      if (parsed == null) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Invalid timestamp format. Use "YYYY-MM-DD HH:MM".'),
-                          ),
-                        );
-                        return;
-                      }
-                      String two(int n) => n.toString().padLeft(2, '0');
-                      final y = parsed.year.toString().padLeft(4, '0');
-                      final m = two(parsed.month);
-                      final d = two(parsed.day);
-                      final h = two(parsed.hour);
-                      final min = two(parsed.minute);
-                      // Backend expects "YYYY-MM-DD HH:MM:SS".
-                      localOverride = '$y-$m-$d $h:$min:00';
-                    }
-
-                    final summary = 'Added: ${parts.join(', ')}';
-
-                    Navigator.of(context).pop(
-                      _LogPillsSheetResult(
-                        quantities: map,
-                        summary: summary,
-                        localTimestampOverride: localOverride,
-                      ),
-                    );
-                  },
+                  onPressed: _hasAnyQuantity ? _onSubmit : null,
                   child: const Text('Submit'),
                 ),
               ],
