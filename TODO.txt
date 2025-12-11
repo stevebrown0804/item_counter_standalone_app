@@ -1,7 +1,4 @@
 --------------------------------------Personal use-------------------------------------------------
-TODO (IN PROGRESS): Let timestamps be added to new transactions
-    Step 1 (DONE): The UI
-    Step 2: The rest
 
 TODO: Make sure an older-format DB (ie. from the pill_counter_flutter_preliminary project or w/e its called) will be properly updated to the newer format, if uploaded via Device Explorer (in Android Studio)
     OR we could just take a copy of the old DB, update it by hand and insert that when we install the debug version of the app on our phone (assuming that we're going to start using the newer app).
