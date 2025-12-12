@@ -39,7 +39,7 @@ Future<bool> openTransactionEditorSheet({
   //   dateText: "YYYY-MM-DD"
   //   timeText: "HH:MM" or "HH:MM:SS"
   // Returns a normalized "YYYY-MM-DD HH:MM:SS" string, or null if invalid.
-  String? _normalizeLocalDateTime(String dateText, String timeText) {
+  String? normalizeLocalDateTime(String dateText, String timeText) {
     final dateParts = dateText.split('-');
     if (dateParts.length != 3) return null;
 
@@ -296,7 +296,7 @@ Future<bool> openTransactionEditorSheet({
 
                       // Normalize and validate local date/time before calling backend.
                       final normalizedLocalTs =
-                      _normalizeLocalDateTime(dateText, timeText);
+                      normalizeLocalDateTime(dateText, timeText);
                       if (normalizedLocalTs == null) {
                         ScaffoldMessenger.of(editCtx).showSnackBar(
                           const SnackBar(
