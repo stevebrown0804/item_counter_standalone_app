@@ -3,6 +3,8 @@
 TODO: Make sure an older-format DB (ie. from the pill_counter_flutter_preliminary project or w/e its called) will be properly updated to the newer format, if uploaded via Device Explorer (in Android Studio)
     OR we could just take a copy of the old DB, update it by hand and insert that when we install the debug version of the app on our phone (assuming that we're going to start using the newer app).
 
+TODO (In the backend project; adding here for the reminder): Rename the time_zones table in the DB to something like time_zone_aliases.  Update backend project's lib.rs as necessary.
+
 
 ---------------------------------------Public use--------------------------------------------------
 TODO (IN PROGRESS, AS WE FIND THEM): Replace remnants of "pill" (and related phrases) with "item", "item counter", etc.
@@ -15,10 +17,7 @@ TODO: Add an "Add item(s) to count" button to the settings screen
         * ALSO: We want a way to hide items but leave them in this list; perhaps we could allow "view order == 0" or "== -1" or something; we might also just add another column with a boolean for 'hidden;'  TBD, I guess
     * Let's also add this to the main view, when it's empty
 
-TODO: Add a "Show time zone" checkbox to the Settings screen
-    * Default value: True
-    * When it's checked, show the "Time zone: [Alias/name]" box beneath the app title on the main view
-    * When it's unchecked, hide that text
+TODO:
 
 
 ---Major initiatives---
@@ -44,10 +43,25 @@ TODO: Time-zone specifying
 
 TODO (Once we've implemented Time-zone specifying and "Add item(s) to count"): Create a "new install" wizard that prompts the user to do those two things (or possibly import a DB or something)
 
+TODO: UI minuteua (sp)
+    Add a button to the settings sheet with [the title of this TODO, however you spell that word]; it'll bring up a sheet of settings of various [again, title of this TODO].
+    eg.:
+        * checkbox: auto-return to main sheet after the user clicks 'Save' on the settings sheet
+            * Default value: false, I guess? *shrug*
+        * checkbox: 'Show time zone'
+              * Default value: True
+              * When it's checked, show the "Time zone: [Alias/name]" box beneath the app title on the main view
+              * When it's unchecked, hide that text
+        * sliders controlling the amount of vertical paddings between rows, maybe?  *shrug*
+        * (tbc as we think of things to add)
+
 
 ---UI stuff---
 TODO: Make the Transaction Viewer sheet more compact
     Maybe move the "last # days" radio onto the first row, compress the input boxes vertically, remove space between the "All" row and the "Apply filter" button, etc.
+
+TODO: Consolidate the 'save' buttons on the settings sheet.
+    I'm thinking that we could get away with having either 1 Save button or "1 per section" or some such.  TBD.
 
 
 ---TBD---
