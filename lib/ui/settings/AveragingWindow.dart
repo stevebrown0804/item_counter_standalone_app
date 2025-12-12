@@ -35,8 +35,19 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
       final oldestLocal = await _db.readOldestTransactionLocalDate();
       debugPrint('readOldestTransactionLocalDate -> $oldestLocal');
 
-      if (oldestLocal != null) {
-        // Strip time-of-day; showDatePicker only cares about Y/M/D.
+      final today = DateTime(
+        initialDate.year,
+        initialDate.month,
+        initialDate.day,
+      );
+
+      if (oldestLocal == null) {
+        // No transactions exist: only allow selecting today.
+        firstDate = today;
+        lastDate  = today;
+        initialDate = today;
+      } else {
+        // At least one transaction exists.
         firstDate = DateTime(
           oldestLocal.year,
           oldestLocal.month,
@@ -55,7 +66,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
           ),
         );
       }
-      // On error we keep the default 2000-01-01 bound.
+      // On error we keep the default bounds.
     }
 
     final picked = await showDatePicker(
