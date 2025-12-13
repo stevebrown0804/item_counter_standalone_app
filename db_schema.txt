@@ -78,12 +78,18 @@ lhs_column_header	"Item"
 rhs_column_header	"Avg. ({days} day(s))""
 
 
-CREATE TABLE time_zones (
-    id      INTEGER PRIMARY KEY,
-    alias   TEXT    NOT NULL
+CREATE TABLE time_zone_aliases (
+    id              INTEGER PRIMARY KEY,
+    alias           TEXT    NOT NULL
                     UNIQUE,
-    tz_name TEXT    NOT NULL
+    iana_tz_name    TEXT    NOT NULL
 );
+
+time_zone_aliases defaults:
+1	UTC	Etc/UTC
+2	GMT	Etc/UTC
+3	Z	Etc/UTC
+(The specific id values aren't really important, but the backend will add these 3 aliases in this order, if they're not already there.)
 
 
 ---------------------------------------------------------------------------------------------------
