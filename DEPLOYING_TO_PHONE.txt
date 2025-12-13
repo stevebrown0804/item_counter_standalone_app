@@ -1,0 +1,18 @@
+Preparatory)
+    On the phone (currently Pixel 8 Pro, [Android ver. TBD):
+        Settings → About phone → Build number → tap 7x to enable Developer options
+        Go to Settings->System->Developer Options; enabled "USB Debugging"
+        Plug the phone into the computer via USB then accept the “Allow USB debugging?” prompt on the phone
+        run 'flutter devices' on the computer; if the phone isn't listed, trying 'flutter doctor -v' (which will hopefully tell you what needs to be done)
+
+To deploy a debug version of an app:
+    In Android Studio:
+        Top toolbar device picker → select your phone.
+        Press Run ▶ (or Shift+F10).  (This installs a debug build)
+
+To build an apk and install it on the phone:
+    In a CLI, go to the project's root directory
+    `flutter build apk --release`
+    Make sure the phone is plugged into the computer (and possibly run `adb devices` to confirm that it's there) and that the phone's in developer mode
+    `adb install [relative path of the .apk file]`
+        eg. `adb install build/app/outputs/flutter-apk/app-release.apk`
