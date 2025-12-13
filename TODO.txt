@@ -17,8 +17,6 @@ TODO: Add an "Add item(s) to count" button to the settings screen
         * ALSO: We want a way to hide items but leave them in this list; perhaps we could allow "view order == 0" or "== -1" or something; we might also just add another column with a boolean for 'hidden;'  TBD, I guess
     * Let's also add this to the main view, when it's empty
 
-TODO:
-
 
 ---Major initiatives---
 TODO: UI customizing
@@ -43,8 +41,8 @@ TODO: Time-zone specifying
 
 TODO (Once we've implemented Time-zone specifying and "Add item(s) to count"): Create a "new install" wizard that prompts the user to do those two things (or possibly import a DB or something)
 
-TODO: UI minuteua (sp)
-    Add a button to the settings sheet with [the title of this TODO, however you spell that word]; it'll bring up a sheet of settings of various [again, title of this TODO].
+TODO: UI minutiae
+    Add a button to the settings sheet with label "UI minutiae"; it'll bring up a sheet of settings of various minutiae.
     eg.:
         * checkbox: auto-return to main sheet after the user clicks 'Save' on the settings sheet
             * Default value: false, I guess? *shrug*
