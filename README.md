@@ -17,7 +17,7 @@ If you're interested in using the app, you'll probably want to do the following:
 * Build a debug version (to an emulator is fine, although you'll probably want to deploy a debug version to the device that you'll use the app on, if only to create the directory structure)
 * Take a copy of the DB file from /data/data/com.example.item_counter_standalone_app
 * Add your preferred time zone(s) (and aliases to those time zones) to the time_zone_aliases table
-* Add whatever it is you want to count to the pills table.  (Note that the pill_types table and the type_id and the grams_protein_digestion_capacity columns of the pills table aren't currently being used in the app, although you _will_ have to add at least one entry to pill_types and use that value for every type_id field.  You could probably also remove the "not null" constraint on the type_id column.)
+* Add whatever it is you want to count to the items table.  (show_item == 1 => show; == 0 => don't show; NOTE: I haven't actually implemented this yet, but I will, soon enough.)
 * Copy the DB back to your phone
 * Create a release .apk file and deploy it to your phone
   * That is, from the project root:
