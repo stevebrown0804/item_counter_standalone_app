@@ -2,10 +2,12 @@
 
 An item counter.  I use it to (1) count my daily pill intake and (2) get a daily average of the # of pills taken.
 
-<img width="126" height="280" alt="Screenshot (Dec 13, 2025 6 17 05 PM)" src="https://github.com/user-attachments/assets/ffbf15ce-5883-4a63-9767-5f9749e867b8" />
-<img width="126" height="280" alt="Screenshot (Dec 13, 2025 7 28 02 PM)" src="https://github.com/user-attachments/assets/b69390de-4b65-4a61-b3c7-e8976d60cf69" />  
-<img width="126" height="280" alt="Screenshot (Dec 13, 2025 7 22 14 PM)" src="https://github.com/user-attachments/assets/77bdebbe-305e-4e42-a6ea-268aa9e6dcec" />
-<img width="126" height="280" alt="Screenshot (Dec 13, 2025 7 26 07 PM" src="https://github.com/user-attachments/assets/47061c24-1fa0-4a01-9e4e-8f2feb0b88e6" />
+<div>
+<img src="images/MainSheet.png" width="15%" />
+<img src="images/AddPillsBottomSheet.png" width="15%" />
+<img src="images/SettingsSheet.png" width="15%" />
+<img src="images/TransactionViewerSheet.png" width="15%" />
+</div>
 
 ---
 
