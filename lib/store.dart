@@ -34,7 +34,7 @@ class _Store extends ChangeNotifier {
     if (_undoTokens.isEmpty) return;
     final token = _undoTokens.removeLast();
 
-    // Backend will delete/recreate pill_transactions based on the batch.
+    // Backend will delete/recreate item_transactions based on the batch.
     await _db.undoLogicalBatch(token);
 
     // Keep token so we can redo the same logical batch.
