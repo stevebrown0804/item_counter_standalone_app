@@ -6,7 +6,7 @@ CREATE TABLE logical_batch_items (
     id             INTEGER  PRIMARY KEY AUTOINCREMENT,
     batch_id       INTEGER  NOT NULL,
     transaction_id INTEGER  NOT NULL,
-    pill_id        INTEGER  NOT NULL,
+    item_id        INTEGER  NOT NULL,
     quantity       INTEGER  NOT NULL,
     timestamp_utc  DATETIME NOT NULL,
     FOREIGN KEY (
