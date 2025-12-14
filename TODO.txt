@@ -5,7 +5,6 @@ TODO: Make use of pills.show_item (to show/hide items from the main sheet and 'a
 DB migration reminder: When we start with an DB from the old 'pill_counter_flutter_app' or w/e it's called:
     Rename the time_zones table to time_zone_aliases
     Change the tz_name column in that table to iana_tz_name
-
     Remove that FK constraint from the pills table
     Remove the type_id column from the pills table
     Delete the pill_types table
