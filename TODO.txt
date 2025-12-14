@@ -1,6 +1,12 @@
 --------------------------------------Personal use-------------------------------------------------
 
-TODO: Add 'Brand' (or 'Manufacturer') and 'Product' fields to the pills table; change the current string to 'display_string' or something.
+TODO: Change pills.name to display_string
+
+TODO: Make use of pills.show_item (to show/hide items from the main sheet and 'add pills' sheet)
+
+TODO: Rename the pills table to items
+
+TODO: Rename the pill_transactions table to item_transactions
 
 DB migration reminder: When we start with an DB from the old 'pill_counter_flutter_app' or w/e it's called:
     Rename the time_zones table to time_zone_aliases
