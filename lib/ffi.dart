@@ -35,7 +35,7 @@ typedef _IcbFreeStringDart = void Function(
 typedef _IcbListPillsNative = ffi.Pointer<ffi_helpers.Utf8> Function(
     ffi.Pointer<ffi.Void>,
     );
-typedef _IcbListPillsDart = ffi.Pointer<ffi_helpers.Utf8> Function(
+typedef _IcbListItemsDart = ffi.Pointer<ffi_helpers.Utf8> Function(
     ffi.Pointer<ffi.Void>,
     );
 typedef _IcbReadSkipConfirmNative = ffi.Pointer<ffi_helpers.Utf8> Function(
@@ -260,7 +260,7 @@ typedef _IcbComputeWindowFromPickedDateDart
 ///   - icb_read_daily_averages_json
 ///   - icb_read_averaging_window_days_json
 ///   - icb_set_averaging_window_days
-///   - icb_list_pills_json
+///   - icb_list_items_json
 ///   - icb_read_skip_delete_second_confirm_json
 ///   - icb_set_skip_delete_second_confirm
 ///   - icb_list_timezones_json
@@ -297,7 +297,7 @@ class _FfiBackend {
   late final _IcbJsonNoArgsDart _icbReadWindowDaysJson;
   late final _IcbSetWindowDaysDart _icbSetWindowDays;
   late final _IcbFreeStringDart _icbFreeString;
-  late final _IcbListPillsDart _icbListPillsJson;
+  late final _IcbListItemsDart _icbListPillsJson;
   late final _IcbReadSkipConfirmDart _icbReadSkipConfirmJson;
   late final _IcbSetSkipConfirmDart _icbSetSkipConfirm;
   late final _IcbListTimezonesDart _icbListTimezonesJson;
@@ -370,7 +370,7 @@ class _FfiBackend {
         _IcbFreeStringDart>('icb_free_string');
 
     _icbListPillsJson = _lib.lookupFunction<_IcbListPillsNative,
-        _IcbListPillsDart>('icb_list_pills_json');
+        _IcbListItemsDart>('icb_list_items_json');
 
     _icbReadSkipConfirmJson = _lib.lookupFunction<_IcbReadSkipConfirmNative,
         _IcbReadSkipConfirmDart>(
@@ -616,7 +616,7 @@ class _FfiBackend {
     final data = decoded['data'] as List<dynamic>? ?? const [];
     return data.map((e) {
       final m = e as Map<String, dynamic>;
-      final name = m['pill_name']?.toString() ?? '';
+      final name = m['item_name']?.toString() ?? '';
       final rawAvg = m['daily_avg'];
       final avg = (rawAvg is num)
           ? rawAvg.toDouble()
@@ -889,7 +889,7 @@ class _FfiBackend {
       final dt = parseDbUtc(tsStr);
 
       // pill name
-      final pillName = (m['pill_name'] ?? '').toString();
+      final pillName = (m['item_name'] ?? '').toString();
 
       // quantity
       final qtyRaw = m['quantity'];
