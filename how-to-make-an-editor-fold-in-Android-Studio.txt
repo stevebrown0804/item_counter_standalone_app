@@ -1,0 +1,5 @@
+Reminder:
+
+// <editor-fold desc="[text to show up, even when the region is folded]">
+[stuff to get folded]
+// </editor-fold>
