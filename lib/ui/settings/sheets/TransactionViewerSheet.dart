@@ -494,7 +494,7 @@ async {
                             }
 
                             // Refresh main averages and clear undo/redo history.
-                            await store.load();
+                            await store.refreshFromDatabase();
                             store.clearUndoRedo();
 
                             // 1b.iii. Close the "Added: ..." card on the main sheet and persist dismissal.

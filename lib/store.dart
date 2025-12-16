@@ -1,6 +1,5 @@
 part of 'main.dart';
 
-// <editor-fold desc="_Store, which holds everything not specific to the FFI, DB or UI">
 class _Store extends ChangeNotifier {
   _Store(this._db);
   final _Db _db;
@@ -11,13 +10,14 @@ class _Store extends ChangeNotifier {
   List<_Pill> _pills = const [];
   UnmodifiableListView<_Pill> get pills => UnmodifiableListView(_pills);
   _Tz? _activeTz;
-  _Tz get activeTz => _activeTz ?? _Tz('UTC', 'UTC');
+  _Tz get activeTz => _activeTz ?? _Tz('UTC', 'UTC');   //UTC is the fallback
 
-  // Undo/redo now track opaque batch tokens provided by Rust backend.
+  // Undo/redo uses 'batch tokens,' which are provided by the Rust backend
   final List<String> _undoTokens = [];
   bool get canUndo => _undoTokens.isNotEmpty;
   final List<String> _redoTokens = [];
   bool get canRedo => _redoTokens.isNotEmpty;
+
 
   void clearUndoRedo() {
     _undoTokens.clear();
@@ -30,34 +30,34 @@ class _Store extends ChangeNotifier {
     }
   }
 
-  Future<void> undoLast() async {
+  Future<void> undoLastOperation() async {
     if (_undoTokens.isEmpty) return;
     final token = _undoTokens.removeLast();
 
-    // Backend will delete/recreate item_transactions based on the batch.
     await _db.undoLogicalBatch(token);
 
-    // Keep token so we can redo the same logical batch.
+    // When we undo a transaction, we'll allow it to be re-done as well
     _redoTokens.add(token);
 
-    await load();
+    await refreshFromDatabase();
     notifyListeners();
   }
 
-  Future<void> redoLast() async {
+  Future<void> redoLastOperation() async {
     if (_redoTokens.isEmpty) return;
     final token = _redoTokens.removeLast();
 
     await _db.redoLogicalBatch(token);
 
-    // Move this batch back onto the undo stack.
+    // When we redo a transaction, we'll allow it to be re-undone as well
     _undoTokens.add(token);
 
-    await load();
+    await refreshFromDatabase();
     notifyListeners();
   }
 
-  Future<void> load() async {
+  Future<void> refreshFromDatabase() async {
+    //Refresh the values held by Store, from the DB
     _activeTz = await _db.readActiveTz() ?? _Tz('UTC', 'UTC');
     _days = await _db.readAveragingWindowDays();
     _pills = await _db.listPillsOrdered();
@@ -69,10 +69,11 @@ class _Store extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> addBatch(
+  Future<void> addBatchAndTrackUndo(
       Map<int, int> quantities, {
         String? overrideLocalTimestamp,
       }) async {
+    //Construct the batch
     final entries = <_Entry>[];
     quantities.forEach((pillId, qty) {
       if (qty > 0) entries.add(_Entry(pillId, qty));
@@ -81,18 +82,15 @@ class _Store extends ChangeNotifier {
 
     String? utcIso;
     if (overrideLocalTimestamp != null) {
-      // Convert active-TZ local wall-clock time to UTC DB timestamp.
+      // Convert active-TZ local wall-clock time to UTC DB timestamp
       utcIso = await _db.localToUtcDbTimestamp(overrideLocalTimestamp);
     }
 
-    // Insert as a single logical batch and record the opaque undo token.
+    // INSERT that batch and add its undo token to _undoTokens
     final token = await _db.insertBatchWithUndoToken(entries, utcIso);
     _breakRedoChain();
     _undoTokens.add(token);
 
-    await load();
+    await refreshFromDatabase();
   }
-
-
 }
-// </editor-fold>

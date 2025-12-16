@@ -334,7 +334,7 @@ Future<bool> openTransactionEditorSheet({
                         await db.deleteTransactionById(tx.id);
 
                         // Refresh main averages and clear undo/redo.
-                        await store.load();
+                        await store.refreshFromDatabase();
                         store.clearUndoRedo();
 
                         // Hide the "Added:" banner and mark dismissed.

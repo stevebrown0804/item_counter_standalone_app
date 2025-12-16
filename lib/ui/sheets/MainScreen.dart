@@ -98,7 +98,7 @@ class _MainScreenState extends State<_MainScreen> {
 
   Future<void> _init() async {
     try {
-      await _store.load();
+      await _store.refreshFromDatabase();
     } catch (e) {
       _error = e.toString();
     } finally {
@@ -146,7 +146,7 @@ class _MainScreenState extends State<_MainScreen> {
   Future<void> _handleUndoPressed() async {
     if (!_store.canUndo) return;
 
-    await _store.undoLast();
+    await _store.undoLastOperation();
 
     // Step back one banner in history (if any) and hide the card.
     if (_bannerIndex >= 0) {
@@ -164,7 +164,7 @@ class _MainScreenState extends State<_MainScreen> {
   Future<void> _handleRedoPressed() async {
     if (!_store.canRedo) return;
 
-    await _store.redoLast();
+    await _store.redoLastOperation();
 
     // Step forward one banner in history, if possible.
     if (_bannerStack.isNotEmpty) {
@@ -202,7 +202,7 @@ class _MainScreenState extends State<_MainScreen> {
       return;
     }
 
-    await _store.addBatch(
+    await _store.addBatchAndTrackUndo(
       result.quantities,
       overrideLocalTimestamp: result.localTimestampOverride,
     );
@@ -249,7 +249,7 @@ class _MainScreenState extends State<_MainScreen> {
                     builder: (_) => const SettingsScreen()),
               );
               if (!mounted) return;
-              await _store.load();
+              await _store.refreshFromDatabase();
               await _loadActiveTzDisplay();
               if (!mounted) return;
               setState(() {});
