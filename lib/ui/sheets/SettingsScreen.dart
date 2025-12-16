@@ -1,7 +1,68 @@
 part of '../../main.dart';
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  final GlobalKey<_SummaryStatisticRowState> _avgKey = GlobalKey<_SummaryStatisticRowState>();
+  final GlobalKey<_TzRowState> _tzKey = GlobalKey<_TzRowState>();
+  final GlobalKey<_SkipSecondConfirmationSettingState> _skipKey =
+  GlobalKey<_SkipSecondConfirmationSettingState>();
+
+  final Map<String, bool> _dirty = <String, bool>{};
+
+  bool get _hasUnsavedChanges => _dirty.values.any((v) => v);
+
+  void _setDirty(String key, bool isDirty) {
+    final prev = _dirty[key];
+    if (prev == isDirty) return;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      setState(() {
+        _dirty[key] = isDirty;
+      });
+    });
+  }
+
+  Future<void> _attemptLeaveSettings() async {
+    if (!_hasUnsavedChanges) {
+      if (mounted) Navigator.of(context).pop();
+      return;
+    }
+
+    final abandon = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Unsaved changes'),
+        content: const Text(
+          'There are unsaved changes. Are you sure you want to leave the Settings interface?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Abandon changes'),
+          ),
+        ],
+      ),
+    );
+
+    if (abandon != true) return;
+
+    _avgKey.currentState?.discardChanges();
+    _tzKey.currentState?.discardChanges();
+    _skipKey.currentState?.discardChanges();
+
+    if (mounted) Navigator.of(context).pop();
+  }
 
   Future<void> _exportDatabase(BuildContext context) async {
     try {
@@ -197,52 +258,73 @@ class SettingsScreen extends StatelessWidget {
   //NOTE: If you want to shuffle around the rows of the settings sheet, here's the place to do that
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
-      body: ListView(
-        children: [
-          const Divider(),
-          _ViewTransactionsRow(
-            onPressed: () {
-              Navigator.of(context).pop();
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                final s = _MainScreenState._lastMounted;
-                if (s != null) {
-                  doTransactionViewerSheet(
-                    context: s.context,
-                    db: s._db,
-                    store: s._store,
-                    parentSetState: s.setState,
-                    parentMounted: () => s.mounted,
-                  );
-
-                }
-              });
-            },
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) async {
+        if (didPop) return;
+        await _attemptLeaveSettings();
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Settings'),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () async => await _attemptLeaveSettings(),
           ),
-          const Divider(),
-          _ExportDatabaseRow(
-            onPressed: () {
-              Navigator.of(context).pop();
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                _exportDatabase(context);
-              });
-            },
-          ),
-          const Divider(),
-          const _SummaryStatisticRow(),
-          const Divider(),
-          const _TzRow(), //Time Zone row
-          const Divider(),
-          const _DangerZoneHeader(),
-          _DeleteOutdatedTransactions(
-            onPressed: () => _showDeleteOldTxDialog(context),
-          ),
-          const SizedBox(height: 8),
-          const Divider(),
-          const _SkipSecondConfirmationSetting(),
-          const Divider(),
-        ],
+        ),
+        body: ListView(
+          children: [
+            const Divider(),
+            _ViewTransactionsRow(
+              onPressed: () {
+                Navigator.of(context).pop();
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  final s = _MainScreenState._lastMounted;
+                  if (s != null) {
+                    doTransactionViewerSheet(
+                      context: s.context,
+                      db: s._db,
+                      store: s._store,
+                      parentSetState: s.setState,
+                      parentMounted: () => s.mounted,
+                    );
+                  }
+                });
+              },
+            ),
+            const Divider(),
+            _ExportDatabaseRow(
+              onPressed: () {
+                Navigator.of(context).pop();
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  _exportDatabase(context);
+                });
+              },
+            ),
+            const Divider(),
+            _SummaryStatisticRow(
+              key: _avgKey,
+              onDirtyChanged: (v) => _setDirty('avg_window', v),
+            ),
+            const Divider(),
+            _TzRow(
+              key: _tzKey,
+              onDirtyChanged: (v) => _setDirty('tz', v),
+            ), //Time Zone row
+            const Divider(),
+            const _DangerZoneHeader(),
+            _DeleteOutdatedTransactions(
+              onPressed: () => _showDeleteOldTxDialog(context),
+            ),
+            const SizedBox(height: 8),
+            const Divider(),
+            _SkipSecondConfirmationSetting(
+              key: _skipKey,
+              onDirtyChanged: (v) => _setDirty('skip_second_confirm', v),
+            ),
+            const Divider(),
+          ],
+        ),
       ),
     );
   }

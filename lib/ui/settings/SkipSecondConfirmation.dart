@@ -1,7 +1,12 @@
 part of '../../main.dart';
 
 class _SkipSecondConfirmationSetting extends StatefulWidget {
-  const _SkipSecondConfirmationSetting();
+  const _SkipSecondConfirmationSetting({
+    super.key,
+    required this.onDirtyChanged,
+  });
+
+  final void Function(bool) onDirtyChanged;
 
   @override
   State<_SkipSecondConfirmationSetting> createState() =>
@@ -15,9 +20,24 @@ class _SkipSecondConfirmationSettingState
   bool _current = false;
   bool _saving = false;
 
+  void _notifyDirty() {
+    if (_initial == null) return;
+    widget.onDirtyChanged(_initial != _current);
+  }
+
+  void discardChanges() {
+    if (_initial == null) return;
+    FocusScope.of(context).unfocus();
+    setState(() {
+      _current = _initial!;
+    });
+    _notifyDirty();
+  }
+
   @override
   void initState() {
     super.initState();
+    widget.onDirtyChanged(false);
     _load();
   }
 
@@ -28,6 +48,7 @@ class _SkipSecondConfirmationSettingState
       _initial = v;
       _current = v;
     });
+    _notifyDirty();
   }
 
   Future<void> _save() async {
@@ -36,6 +57,7 @@ class _SkipSecondConfirmationSettingState
       await _db.setSkipDeleteSecondConfirm(_current);
       if (!mounted) return;
       setState(() => _initial = _current);
+      _notifyDirty();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Preference saved.')),
       );
@@ -64,7 +86,10 @@ class _SkipSecondConfirmationSettingState
             children: [
               Checkbox(
                 value: _current,
-                onChanged: (v) => setState(() => _current = v ?? false),
+                onChanged: (v) {
+                  setState(() => _current = v ?? false);
+                  _notifyDirty();
+                },
               ),
               Expanded(
                 child: const Text(

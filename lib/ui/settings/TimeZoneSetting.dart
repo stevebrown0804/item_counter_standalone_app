@@ -1,7 +1,13 @@
 part of '../../main.dart';
 
 class _TzRow extends StatefulWidget {
-  const _TzRow();
+  const _TzRow({
+    super.key,
+    required this.onDirtyChanged,
+  });
+
+  final void Function(bool) onDirtyChanged;
+
   @override
   State<_TzRow> createState() => _TzRowState();
 }
@@ -14,9 +20,25 @@ class _TzRowState extends State<_TzRow> {
   bool _loading = true;
   bool _canSubmit = false;
 
+  void _setCanSubmit(bool v) {
+    if (_canSubmit == v) return;
+    setState(() => _canSubmit = v);
+    widget.onDirtyChanged(_canSubmit);
+  }
+
+  void discardChanges() {
+    FocusScope.of(context).unfocus();
+    _ctrl.clear();
+    setState(() {
+      _query = '';
+    });
+    _setCanSubmit(false);
+  }
+
   @override
   void initState() {
     super.initState();
+    widget.onDirtyChanged(false);
     _loadOptions();
   }
 
@@ -61,7 +83,10 @@ class _TzRowState extends State<_TzRow> {
       FocusScope.of(context).unfocus();
 
       _ctrl.clear();
-      setState(() => _canSubmit = false);
+      setState(() {
+        _query = '';
+      });
+      _setCanSubmit(false);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -97,26 +122,21 @@ class _TzRowState extends State<_TzRow> {
               },
               onSelected: (value) {
                 _ctrl.text = value;
+                _setCanSubmit(value.trim().isNotEmpty);
               },
               fieldViewBuilder:
                   (context, controller, focusNode, onFieldSubmitted) {
-                controller.text = _ctrl.text;
-                controller.addListener(() {
-                  _ctrl.text = controller.text;
-                  final next = controller.text.trim();
-                  final changed = next != _query;
-                  final canSubmitNow = next.isNotEmpty;
-                  if (changed || canSubmitNow != _canSubmit) {
-                    setState(() {
-                      _query = next;
-                      _canSubmit = canSubmitNow;
-                    });
-                  }
-                });
-
                 return TextField(
                   controller: controller,
                   focusNode: focusNode,
+                  onChanged: (text) {
+                    _ctrl.text = text;
+                    final next = text.trim();
+                    if (_query != next) {
+                      setState(() => _query = next);
+                    }
+                    _setCanSubmit(next.isNotEmpty);
+                  },
                   decoration: const InputDecoration(
                     hintText: 'e.g., MT/MST/MDT or MT',
                     isDense: true,
@@ -124,6 +144,7 @@ class _TzRowState extends State<_TzRow> {
                   ),
                 );
               },
+
               optionsViewBuilder: (context, onSelected, options) {
                 final q = _query.trim().toLowerCase();
                 return Align(

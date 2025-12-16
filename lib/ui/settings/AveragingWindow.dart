@@ -1,7 +1,13 @@
 part of '../../main.dart';
 
 class _SummaryStatisticRow extends StatefulWidget {
-  const _SummaryStatisticRow();
+  const _SummaryStatisticRow({
+    super.key,
+    required this.onDirtyChanged,
+  });
+
+  final void Function(bool) onDirtyChanged;
+
   @override
   State<_SummaryStatisticRow> createState() => _SummaryStatisticRowState();
 }
@@ -11,9 +17,22 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
   final TextEditingController _summaryStatisticTextInputBox = TextEditingController();
   bool _canSubmit = false;
 
+  void _setCanSubmit(bool v) {
+    if (_canSubmit == v) return;
+    setState(() => _canSubmit = v);
+    widget.onDirtyChanged(_canSubmit);
+  }
+
+  void discardChanges() {
+    FocusScope.of(context).unfocus();
+    _summaryStatisticTextInputBox.clear();
+    _setCanSubmit(false);
+  }
+
   @override
   void initState() {
     super.initState();
+    widget.onDirtyChanged(false);
   }
 
   @override
@@ -87,8 +106,8 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
       if (!mounted) return;
       setState(() {
         _summaryStatisticTextInputBox.text = days.toString();
-        _canSubmit = true;
       });
+      _setCanSubmit(true);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -115,10 +134,8 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
     );
 
     FocusScope.of(context).unfocus();
-    setState(() {
-      _summaryStatisticTextInputBox.clear();
-      _canSubmit = false;
-    });
+    _summaryStatisticTextInputBox.clear();
+    _setCanSubmit(false);
   }
 
   @override
@@ -143,8 +160,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
                   inputFormatters: [
                     FilteringTextInputFormatter.digitsOnly,
                   ],
-                  onChanged: (v) =>
-                      setState(() => _canSubmit = v.trim().isNotEmpty),
+                  onChanged: (v) => _setCanSubmit(v.trim().isNotEmpty),
                   decoration: const InputDecoration(
                     hintText: '#',
                     isDense: true,
