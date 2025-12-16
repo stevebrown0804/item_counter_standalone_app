@@ -38,3 +38,6 @@ A) I was using a spreadsheet to take daily averages of the # of pills I took eac
 
 Q) Who are you, anyhow?  
 A) Just some hobbyist.  Nothing to see here.
+
+Q) I LOVE YOUR APP (/CODE) AND I WANT TO GIVE YOU MONEY  
+A) Don't let me stop you! https://ko-fi.com/stevebrown0804
