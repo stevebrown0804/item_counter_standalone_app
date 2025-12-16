@@ -1,7 +1,5 @@
 --------------------------------------Personal use-------------------------------------------------
 
-TODO: Make use of items.show_item (to show/hide items from the main sheet and 'add pills' sheet)
-
 TODO: Have the settings sheet give a warning if the user tries to go back to the main sheet while there are uncommited changes
 
 
@@ -72,4 +70,6 @@ TODO: Give a way to choose other summary statistics (which we probably won't imp
 
 
 ---MAYBE---
+TODO (MAYBE): Migrate the show_item handling (currently done in the backend) to the Dart app, so that we can set show_item's value without having to do it via the DB directly.
+
 TODO (MAYBE): Let the user long-tap & drag them to rearrange the rows of the settings sheet
