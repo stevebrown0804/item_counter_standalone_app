@@ -1,0 +1,15 @@
+When we start with a DB from the old 'pill_counter_flutter_app' or w/e it's called:
+    Rename the time_zones table to time_zone_aliases
+    Change the tz_name column in that table to iana_tz_name
+    Remove that FK constraint from the pills table
+    Remove the type_id column from the pills table
+    Delete the pill_types table
+    Delete the grams-protein-digestion-potency column from the pills table
+    Add a show_item column to pills; non-null, integer type, default = 1
+    Rename pills.name to display_string
+    Rename pills table to items
+    Rename the pill_transactions table to item_transactions
+    Change the "pill_transactions" reference in the logged_days view to "item_transactions"
+    Change the FK constraint on the item_transactions table to refer to the (newly-named) items table
+    Change item_transactions.pill_id to item_id
+    Change logical_batch_items.pill_id to item_id
