@@ -1,6 +1,5 @@
 --------------------------------------Personal use-------------------------------------------------
 
-TODO: Have the settings sheet give a warning if the user tries to go back to the main sheet while there are uncommited changes
 
 
 ---------------------------------------Public use--------------------------------------------------
