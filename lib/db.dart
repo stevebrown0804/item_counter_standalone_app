@@ -1,8 +1,13 @@
 part of 'main.dart';
 
-// <editor-fold desc="DB and data-related classes/fns">
-// ───────────────────────── DB wrapper (sqflite + Rust FFI) ─────────────────────────
+DateTime parseDbUtc(String s) {
+  final base = s.replaceFirst(' ', 'T');
+  final iso = base.endsWith('+00:00') ? base.replaceFirst('+00:00', 'Z') : '${base}Z';
 
+  return DateTime.parse(iso).toUtc();
+}
+
+// ── the DB wrapper (sqflite + Rust FFI) ──
 class _Db {
   Database? _db;
 
@@ -11,11 +16,9 @@ class _Db {
     final dbDir = await getDatabasesPath();
     final full = p.join(dbDir, kDbFileName);
 
-    // Ensure Rust backend is also opened on the same DB file.
     await _FfiBackend.instance.init(full);
-
-    // We still open via sqflite for schema compatibility and export logic.
     _db = await openDatabase(full);
+
     return _db!;
   }
 
@@ -285,6 +288,7 @@ class _Db {
   }
 } // class _Db
 
+// <editor-fold desc="misc. DTOs">
 class _Pill {
   final int id;
   final String name;
@@ -303,7 +307,6 @@ class _Entry {
   _Entry(this.pillId, this.qty);
 }
 
-/// Single transaction row from the DB.
 class _TxRow {
   final int id;        // DB primary key
   final DateTime utc;  // stored in UTC
@@ -325,12 +328,6 @@ class _Tz {
   final String tzName; // IANA tz database name, e.g., "America/Denver"
   _Tz(this.alias, this.tzName);
 }
-
-DateTime parseDbUtc(String s) {
-  final base = s.replaceFirst(' ', 'T');
-  final iso =
-  base.endsWith('+00:00') ? base.replaceFirst('+00:00', 'Z') : '${base}Z';
-  return DateTime.parse(iso).toUtc();
-}
-
 // </editor-fold>
+
+

@@ -10,7 +10,7 @@ Future<bool> openTransactionEditorSheet({
   required tz.Location loc,
   required _TxRow tx,
 }) async {
-  // Convert original UTC timestamp to local so we can show/edit it.
+  // Convert original UTC timestamp to local so we can show/edit it
   final local = tz.TZDateTime.from(tx.utc, loc);
 
   String two(int n) => n < 10 ? '0$n' : '$n';
@@ -23,7 +23,7 @@ Future<bool> openTransactionEditorSheet({
   final timeCtrl = TextEditingController(text: fmtTime(local));
   final qtyCtrl = TextEditingController(text: tx.qty.toString());
 
-  // Resolve current pill from the store by name.
+  // Resolve current pill from the store by name
   final pills = store.pills;
   _Pill? selectedPill;
   for (final p in pills) {
@@ -324,20 +324,20 @@ Future<bool> openTransactionEditorSheet({
                       }
 
                       try {
-                        // Insert replacement transaction at chosen time.
+                        // Insert replacement transaction at chosen time
                         await db.insertManyAtUtcReturningIds(
                           [ _Entry(pill.id, qty) ],
                           utcTs,
                         );
 
-                        // Remove the original transaction.
+                        // Remove the original transaction
                         await db.deleteTransactionById(tx.id);
 
-                        // Refresh main averages and clear undo/redo.
+                        // Refresh main averages and clear undo/redo
                         await store.refreshFromDatabase();
                         store.clearUndoRedo();
 
-                        // Hide the "Added:" banner and mark dismissed.
+                        // Hide the "Added:" banner and mark dismissed
                         final main = _MainScreenState._lastMounted;
                         if (main != null && main.mounted) {
                           main.setState(() {

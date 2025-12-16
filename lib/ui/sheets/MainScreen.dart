@@ -17,7 +17,7 @@ class _MainScreenState extends State<_MainScreen> {
   String? _tzDisplay;
   String? _lastAdded;
 
-  // In-memory stack of "Added: ..." banner messages for this app session.
+  // In-memory stack of "Added: ..." banner messages for this app session
   final List<String> _bannerStack = <String>[];
 
   // Index of the currently active banner in _bannerStack, or -1 if none is active.
@@ -51,7 +51,7 @@ class _MainScreenState extends State<_MainScreen> {
       });
     } catch (e) {
       if (!mounted) return;
-      // Preserve any existing error; otherwise record this one.
+      // Preserve any existing error; otherwise record this one
       _error ??= 'Failed to load UI text: $e';
       setState(() {});
     }
@@ -113,7 +113,6 @@ class _MainScreenState extends State<_MainScreen> {
   }
 
   void _pushBannerMessage(String message) {
-    // Keep everything up to the current index (if any), drop the redo tail.
     final keepUpTo = _bannerIndex < 0 ? 0 : _bannerIndex + 1;
     if (keepUpTo < _bannerStack.length) {
       _bannerStack.removeRange(keepUpTo, _bannerStack.length);
@@ -125,8 +124,6 @@ class _MainScreenState extends State<_MainScreen> {
 
   Future<void> _persistBannerVisible(String message) async {
     await _db.upsertSettingString('last_added_banner_text', message);
-    await _db.upsertSettingString('last_added_banner_dismissed', '1' == '0' ? '1' : '0');
-    // Note: the original logic always wrote '0' here. Keeping behavior identical:
     await _db.upsertSettingString('last_added_banner_dismissed', '0');
   }
 
@@ -148,7 +145,7 @@ class _MainScreenState extends State<_MainScreen> {
 
     await _store.undoLastOperation();
 
-    // Step back one banner in history (if any) and hide the card.
+    // Step back one banner in history (if any) and hide the card
     if (_bannerIndex >= 0) {
       _bannerIndex--;
     }
@@ -157,7 +154,7 @@ class _MainScreenState extends State<_MainScreen> {
       _applyBannerIndex(); // This will typically null out _lastAdded.
     });
 
-    // Persist that the banner is currently not shown.
+    // Persist that the banner is currently not shown
     await _persistBannerHidden();
   }
 
@@ -166,7 +163,7 @@ class _MainScreenState extends State<_MainScreen> {
 
     await _store.redoLastOperation();
 
-    // Step forward one banner in history, if possible.
+    // Step forward one banner in history, if possible
     if (_bannerStack.isNotEmpty) {
       final nextIndex = _bannerIndex + 1;
       if (nextIndex >= 0 && nextIndex < _bannerStack.length) {

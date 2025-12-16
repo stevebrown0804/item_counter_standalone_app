@@ -1,7 +1,5 @@
 part of '../../main.dart';
 
-// <editor-fold desc="(Eventually:) Summary statistic row of the settings sheet">
-
 class _SummaryStatisticRow extends StatefulWidget {
   const _SummaryStatisticRow();
   @override
@@ -25,13 +23,13 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
   }
 
   Future<void> _pickDate() async {
-    // Default range for the picker.
+    // Default range for the picker.  Seems "reasonable" <---sarcasm
     DateTime firstDate = DateTime(2000, 1, 1);
     DateTime lastDate  = DateTime(2100, 12, 31);
     DateTime initialDate = DateTime.now();
 
     try {
-      // Oldest transaction date in the *active* time zone, truncated to Y-M-D.
+      // Oldest transaction date in the currently-active time zone, truncated to Y-M-D.
       final oldestLocal = await _db.readOldestTransactionLocalDate();
       debugPrint('readOldestTransactionLocalDate -> $oldestLocal');
 
@@ -42,12 +40,12 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
       );
 
       if (oldestLocal == null) {
-        // No transactions exist: only allow selecting today.
+        // No transactions exist -> only allow selecting today
         firstDate = today;
         lastDate  = today;
         initialDate = today;
       } else {
-        // At least one transaction exists.
+        // At least one transaction exists-> do "this"  <---those are air quotes, btw
         firstDate = DateTime(
           oldestLocal.year,
           oldestLocal.month,
@@ -66,7 +64,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
           ),
         );
       }
-      // On error we keep the default bounds.
+      //Error -> keep the default bounds
     }
 
     final picked = await showDatePicker(
@@ -148,7 +146,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
                   onChanged: (v) =>
                       setState(() => _canSubmit = v.trim().isNotEmpty),
                   decoration: const InputDecoration(
-                    hintText: '##',
+                    hintText: '#',
                     isDense: true,
                     border: OutlineInputBorder(),
                   ),
@@ -177,5 +175,3 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
     );
   }
 }
-
-// </editor-fold>

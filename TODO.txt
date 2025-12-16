@@ -2,10 +2,6 @@
 
 TODO: Replace remnants of "pill" (and related phrases) with "item", "item counter", etc.
 
-TODO: Take a pass at the code to remove the obviously-written-by-ChatGPT comments, etc.
-
-TODO: Look for some of those "distinctively ChatGPT-sounding" identifiers; rename them to make them at least vaguely self-explanatory.
-
 TODO: Make use of pills.show_item (to show/hide items from the main sheet and 'add pills' sheet)
 
 TODO: Have the settings sheet give a warning if the user tries to go back to the main sheet while there are uncommited changes

@@ -36,7 +36,7 @@ class _LogPillsSheetState extends State<_LogPillsSheet> {
     try {
       return tz.getLocation(widget.activeTzName);
     } catch (_) {
-      // Fallback if something is misconfigured.
+      // Fallback if something is misconfigured
       return tz.getLocation('Etc/UTC');
     }
   }
@@ -207,14 +207,14 @@ class _LogPillsSheetState extends State<_LogPillsSheet> {
       }
     }
     if (map.isEmpty) {
-      // Extra guard: fail loudly instead of silently closing the sheet.
+      // Extra guard: fail loudly instead of silently closing the sheet
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('You have not added any pills.')),
       );
       return;
     }
 
-    // Build local override timestamp if the user changed it from "Now".
+    // Build local override timestamp if the user changed it from "Now"
     final tsText = _timestampCtrl.text.trim();
     String? localOverride;
     if (tsText != 'Now') {
@@ -331,7 +331,7 @@ class _LogPillsSheetState extends State<_LogPillsSheet> {
               ),
             ),
             const SizedBox(height: 20),
-            // --- Timestamp + pickers (flush right, buttons centered under field) ---
+            // --- Timestamp + pickers ---
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               crossAxisAlignment: CrossAxisAlignment.start,

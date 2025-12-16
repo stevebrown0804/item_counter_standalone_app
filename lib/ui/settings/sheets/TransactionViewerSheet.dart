@@ -1,6 +1,33 @@
 part of '../../../main.dart';
 
-Future<void> openTransactionViewerSheet({
+Future<DateTime?> _pickLocalDateTime(
+    BuildContext context, {
+      required tz.Location loc,
+      DateTime? initialLocal,
+    })
+async {
+  final nowL = tz.TZDateTime.now(loc);
+  final initial = initialLocal ?? nowL;
+
+  final d = await showDatePicker(
+    context: context,
+    initialDate: DateTime(initial.year, initial.month, initial.day),
+    firstDate: DateTime(2000),
+    lastDate: DateTime(2100),
+  );
+  if (d == null) return null;
+
+  final t = await showTimePicker(
+    context: context,
+    initialTime: TimeOfDay.fromDateTime(initial),
+  );
+
+  if (t == null) return null;
+
+  return tz.TZDateTime(loc, d.year, d.month, d.day, t.hour, t.minute);
+}
+
+Future<void> doTransactionViewerSheet({
   required BuildContext context,
   required _Db db,
   required _Store store,
@@ -13,7 +40,7 @@ async {
   try {
     loc = tz.getLocation(tzName);
   } catch (_) {
-    loc = tz.getLocation('Etc/UTC');
+    loc = tz.getLocation('Etc/UTC');  //this is in a catch?  ok, ~I~ didn't write that line, that's for sure.🤭
   }
 
   _TxMode mode = _TxMode.today;
@@ -455,7 +482,7 @@ async {
                             }
                             final tx = items[idx];
 
-                            // 1. Ask for confirmation in a modal dialog.
+                            //Ask for confirmation in a modal dialog
                             final confirmed = await showDialog<bool>(
                               context: ctx,
                               builder: (dialogCtx) {
@@ -479,11 +506,11 @@ async {
                                 );
                               },
                             );
-                            // 1a. Cancel (or dismiss) → do nothing, stay on the sheet.
+                            // Cancel (or dismiss) → do nothing; stay on the sheet
                             if (confirmed != true) {
                               return;
                             }
-                            // 1b.i. Delete the transaction from the database.
+                            // Delete the transaction from the database
                             try {
                               await db.deleteTransactionById(tx.id);
                             } catch (e) {
@@ -493,11 +520,11 @@ async {
                               return;
                             }
 
-                            // Refresh main averages and clear undo/redo history.
+                            // Refresh main sheet's averages and clear the undo/redo history
                             await store.refreshFromDatabase();
                             store.clearUndoRedo();
 
-                            // 1b.iii. Close the "Added: ..." card on the main sheet and persist dismissal.
+                            //Close the "Added: ..." card on the main sheet and persist dismissal
                             final main = _MainScreenState._lastMounted;
                             if (main != null && main.mounted) {
                               main.setState(() {
@@ -508,7 +535,7 @@ async {
                                 '1',
                               );
                             }
-                            // 1b.ii. Refresh the list in this sheet and clear the selection.
+                            //Refresh the list in this sheet and clear the selection
                             await runQuery();
                             ss(() {
                               selectedIndex = null;

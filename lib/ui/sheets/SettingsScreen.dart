@@ -5,23 +5,22 @@ class SettingsScreen extends StatelessWidget {
 
   Future<void> _exportDatabase(BuildContext context) async {
     try {
+      //Construct the TZ alias string to affix to the DB export filename
       final s = _MainScreenState._lastMounted;
       final active = s?._store.activeTz;
       final tzName = active?.tzName ?? 'Etc/UTC';
       final alias = active?.alias ?? DateTime.now().timeZoneName;
 
-      var loc = tz.getLocation('Etc/UTC');
-      try {
-        loc = tz.getLocation(tzName);
-      } catch (_) {}
-      final now = tz.TZDateTime.now(loc);
-
+      //Construct the timestamp to affix to the filename, padding timestamp pieces to 2 digits
+      final now = tz.TZDateTime.now(tz.getLocation(tzName));
       String two(int n) => n.toString().padLeft(2, '0');
       final ts = '${now.year}-${two(now.month)}-${two(now.day)}_'
           '${two(now.hour)}-${two(now.minute)}-${two(now.second)}';
 
-      final fileName = 'daily-pill-tracking-DB-${ts}_($alias).db';
+      //Build the DB export filename from the kDbFileName defined in main.dart
+      final fileName = '${kDbFileName.replaceAll(RegExp(r'\.db$'), '')}-${ts}_($alias).db';
 
+      //Export and announce
       final dbDir = await getDatabasesPath();
       final liveDb = File(p.join(dbDir, kDbFileName));
       if (!await liveDb.exists()) {
@@ -33,14 +32,8 @@ class SettingsScreen extends StatelessWidget {
       final tmpPath = p.join(tmpDir, fileName);
 
       final tmpFile = File(tmpPath);
-      if (await tmpFile.exists()) {
-        try {
-          if (tmpFile.path != liveDb.path) {
-            try {
-              await tmpFile.delete();
-            } catch (_) {}
-          }
-        } catch (_) {}
+      if (await tmpFile.exists() && tmpFile.path != liveDb.path) {
+        await tmpFile.delete();
       }
       await liveDb.copy(tmpPath);
 
@@ -67,7 +60,7 @@ class SettingsScreen extends StatelessWidget {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Export failed: $e'),
-            duration: const Duration(seconds: 8),
+            duration: const Duration(seconds: 8),  //did we actually hard-code "8 seconds of waiting?" why, I wonder
           ),
         );
       }
@@ -201,7 +194,7 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-  //If you want to shuffle around the rows of the settings sheet, here's the place to do that
+  //NOTE: If you want to shuffle around the rows of the settings sheet, here's the place to do that
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -215,7 +208,7 @@ class SettingsScreen extends StatelessWidget {
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 final s = _MainScreenState._lastMounted;
                 if (s != null) {
-                  openTransactionViewerSheet(
+                  doTransactionViewerSheet(
                     context: s.context,
                     db: s._db,
                     store: s._store,

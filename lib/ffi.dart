@@ -1,9 +1,6 @@
 part of 'main.dart';
 
-// <editor-fold desc="FFI">
-// ───────────────────────── Rust FFI bridge ─────────────────────────
-
-// Native typedefs
+// <editor-fold desc="Native typedefs">
 typedef _IcbOpenNative = ffi.Pointer<ffi.Void> Function(
     ffi.Pointer<ffi_helpers.Utf8>,
     );
@@ -252,38 +249,8 @@ typedef _IcbComputeWindowFromPickedDateDart
     ffi.Pointer<ffi.Void>,
     ffi.Pointer<ffi_helpers.Utf8>,
     );
+// </editor-fold>
 
-/// Thin wrapper over the Rust item-counter-ffi library.
-///
-/// Rust side exports:
-///   - icb_open / icb_close
-///   - icb_read_daily_averages_json
-///   - icb_read_averaging_window_days_json
-///   - icb_set_averaging_window_days
-///   - icb_list_items_json
-///   - icb_read_skip_delete_second_confirm_json
-///   - icb_set_skip_delete_second_confirm
-///   - icb_list_timezones_json
-///   - icb_set_active_tz_by_alias
-///   - icb_read_active_tz_json
-///   - icb_local_to_utc_db_timestamp_json
-///   - icb_utc_db_to_local_timestamp_json
-///   - icb_insert_many_at_utc_json
-///   - icb_query_transactions_today_json
-///   - icb_query_transactions_last_n_days_json
-///   - icb_query_transactions_range_local_json
-///   - icb_query_transactions_all_json
-///   - icb_query_transactions_utc_range_json
-///   - icb_delete_transaction_by_id
-///   - icb_read_transaction_by_id_json
-///   - icb_count_transactions_older_than_days_json
-///   - icb_delete_transactions_older_than_days_json
-///   - icb_insert_batch_with_undo_token_json
-///   - icb_undo_logical_batch_json
-///   - icb_redo_logical_batch_json
-///   - icb_compute_averaging_window_days_from_picked_date_json
-///   - icb_delete_old_transactions_with_policy_json
-///   - icb_free_string
 class _FfiBackend {
   _FfiBackend._internal();
   static final _FfiBackend instance = _FfiBackend._internal();
@@ -319,32 +286,27 @@ class _FfiBackend {
   late final _IcbDeleteOldWithPolicyDart _icbDeleteOldWithPolicyJson;
   late final _IcbLocalToUtcDart _icbLocalToUtcJson;
   late final _IcbUtcToLocalDart _icbUtcToLocalJson;
-  late final _IcbInsertBatchWithUndoTokenDart
-  _icbInsertBatchWithUndoTokenJson;
+  late final _IcbInsertBatchWithUndoTokenDart _icbInsertBatchWithUndoTokenJson;
   late final _IcbUndoLogicalBatchDart _icbUndoLogicalBatchJson;
   late final _IcbRedoLogicalBatchDart _icbRedoLogicalBatchJson;
-
   late final _IcbReadOldestTxUtcDart _icbReadOldestTxUtcJson;
-
-  // New: compute averaging window from picked local date (TODO 3)
-  late final _IcbComputeWindowFromPickedDateDart
-  _icbComputeWindowFromPickedDateJson;
+  late final _IcbComputeWindowFromPickedDateDart _icbComputeWindowFromPickedDateJson;
 
   ffi.Pointer<ffi.Void>? _handle;
 
   bool get isInitialized => _initialized;
 
   Future<void> init(String dbPath) {
-    // Already initialized: return a completed Future.
+    // Already initialized -> return a completed Future
     if (_initialized) {
       return Future.value();
     }
-    // Initialization is in progress: return the same Future.
+    // Initialization is in progress -> return the same Future
     final existing = _initFuture;
     if (existing != null) {
       return existing;
     }
-    // Start initialization once.
+    // Otherwise -> start initialization
     final future = _doInit(dbPath);
     _initFuture = future;
     return future;
@@ -354,8 +316,7 @@ class _FfiBackend {
     _lib = _openLibrary();
 
     _icbOpen = _lib.lookupFunction<_IcbOpenNative, _IcbOpenDart>('icb_open');
-    _icbClose =
-        _lib.lookupFunction<_IcbCloseNative, _IcbCloseDart>('icb_close');
+    _icbClose = _lib.lookupFunction<_IcbCloseNative, _IcbCloseDart>('icb_close');
 
     _icbReadDailyAveragesJson = _lib.lookupFunction<_IcbJsonNoArgsNative,
         _IcbJsonNoArgsDart>('icb_read_daily_averages_json');
@@ -373,9 +334,7 @@ class _FfiBackend {
         _IcbListItemsDart>('icb_list_items_json');
 
     _icbReadSkipConfirmJson = _lib.lookupFunction<_IcbReadSkipConfirmNative,
-        _IcbReadSkipConfirmDart>(
-      'icb_read_skip_delete_second_confirm_json',
-    );
+        _IcbReadSkipConfirmDart>('icb_read_skip_delete_second_confirm_json');
 
     _icbSetSkipConfirm = _lib.lookupFunction<_IcbSetSkipConfirmNative,
         _IcbSetSkipConfirmDart>('icb_set_skip_delete_second_confirm');
@@ -389,19 +348,14 @@ class _FfiBackend {
     _icbReadActiveTzJson = _lib.lookupFunction<_IcbReadActiveTzNative,
         _IcbReadActiveTzDart>('icb_read_active_tz_json');
 
-    _icbListTzAliasGroupsJson =
-        _lib.lookupFunction<_IcbListTzAliasGroupsNative,
+    _icbListTzAliasGroupsJson = _lib.lookupFunction<_IcbListTzAliasGroupsNative,
             _IcbListTzAliasGroupsDart>('icb_list_tz_alias_groups_json');
 
-    _icbReadActiveTzDisplayJson =
-        _lib.lookupFunction<_IcbReadActiveTzDisplayNative,
+    _icbReadActiveTzDisplayJson = _lib.lookupFunction<_IcbReadActiveTzDisplayNative,
             _IcbReadActiveTzDisplayDart>('icb_read_active_tz_display_json');
 
-    _icbInterpretTzAliasInputJson =
-        _lib.lookupFunction<_IcbInterpretTzAliasInputNative,
-            _IcbInterpretTzAliasInputDart>(
-          'icb_interpret_tz_alias_input_json',
-        );
+    _icbInterpretTzAliasInputJson = _lib.lookupFunction<_IcbInterpretTzAliasInputNative,
+            _IcbInterpretTzAliasInputDart>('icb_interpret_tz_alias_input_json');
 
     _icbInsertManyAtUtcJson = _lib.lookupFunction<_IcbInsertManyAtUtcNative,
         _IcbInsertManyAtUtcDart>('icb_insert_many_at_utc_json');
@@ -409,15 +363,11 @@ class _FfiBackend {
     _icbQueryTxTodayJson = _lib.lookupFunction<_IcbQueryTxTodayNative,
         _IcbQueryTxTodayDart>('icb_query_transactions_today_json');
 
-    _icbQueryTxLastNDaysJson =
-        _lib.lookupFunction<_IcbQueryTxLastNDaysNative,
-            _IcbQueryTxLastNDaysDart>(
-            'icb_query_transactions_last_n_days_json');
+    _icbQueryTxLastNDaysJson = _lib.lookupFunction<_IcbQueryTxLastNDaysNative,
+            _IcbQueryTxLastNDaysDart>('icb_query_transactions_last_n_days_json');
 
-    _icbQueryTxRangeLocalJson =
-        _lib.lookupFunction<_IcbQueryTxRangeLocalNative,
-            _IcbQueryTxRangeLocalDart>(
-            'icb_query_transactions_range_local_json');
+    _icbQueryTxRangeLocalJson = _lib.lookupFunction<_IcbQueryTxRangeLocalNative,
+            _IcbQueryTxRangeLocalDart>('icb_query_transactions_range_local_json');
 
     _icbQueryTxAllJson = _lib.lookupFunction<_IcbQueryTxAllNative,
         _IcbQueryTxAllDart>('icb_query_transactions_all_json');
@@ -437,10 +387,8 @@ class _FfiBackend {
     _icbDeleteOlderJson = _lib.lookupFunction<_IcbDeleteOlderNative,
         _IcbDeleteOlderDart>('icb_delete_transactions_older_than_days_json');
 
-    _icbDeleteOldWithPolicyJson =
-        _lib.lookupFunction<_IcbDeleteOldWithPolicyNative,
-            _IcbDeleteOldWithPolicyDart>(
-            'icb_delete_old_transactions_with_policy_json');
+    _icbDeleteOldWithPolicyJson = _lib.lookupFunction<_IcbDeleteOldWithPolicyNative,
+            _IcbDeleteOldWithPolicyDart>('icb_delete_old_transactions_with_policy_json');
 
     _icbLocalToUtcJson = _lib.lookupFunction<_IcbLocalToUtcNative,
         _IcbLocalToUtcDart>('icb_local_to_utc_db_timestamp_json');
@@ -448,30 +396,21 @@ class _FfiBackend {
     _icbUtcToLocalJson = _lib.lookupFunction<_IcbUtcToLocalNative,
         _IcbUtcToLocalDart>('icb_utc_db_to_local_timestamp_json');
 
-    _icbInsertBatchWithUndoTokenJson =
-        _lib.lookupFunction<_IcbInsertBatchWithUndoTokenNative,
-            _IcbInsertBatchWithUndoTokenDart>(
-            'icb_insert_batch_with_undo_token_json');
+    _icbInsertBatchWithUndoTokenJson = _lib.lookupFunction<_IcbInsertBatchWithUndoTokenNative,
+            _IcbInsertBatchWithUndoTokenDart>('icb_insert_batch_with_undo_token_json');
 
-    _icbUndoLogicalBatchJson =
-        _lib.lookupFunction<_IcbUndoLogicalBatchNative,
+    _icbUndoLogicalBatchJson = _lib.lookupFunction<_IcbUndoLogicalBatchNative,
             _IcbUndoLogicalBatchDart>('icb_undo_logical_batch_json');
 
-    _icbRedoLogicalBatchJson =
-        _lib.lookupFunction<_IcbRedoLogicalBatchNative,
+    _icbRedoLogicalBatchJson = _lib.lookupFunction<_IcbRedoLogicalBatchNative,
             _IcbRedoLogicalBatchDart>('icb_redo_logical_batch_json');
 
-    // New: compute averaging window from picked local date (TODO 3)
-    _icbComputeWindowFromPickedDateJson =
-        _lib.lookupFunction<_IcbComputeWindowFromPickedDateNative,
-            _IcbComputeWindowFromPickedDateDart>(
-            'icb_compute_averaging_window_days_from_picked_date_json');
+    _icbComputeWindowFromPickedDateJson = _lib.lookupFunction<_IcbComputeWindowFromPickedDateNative,
+            _IcbComputeWindowFromPickedDateDart>('icb_compute_averaging_window_days_from_picked_date_json');
 
-    // New: read oldest transaction timestamp (UTC) from backend
-    _icbReadOldestTxUtcJson =
-        _lib.lookupFunction<_IcbReadOldestTxUtcNative,
-            _IcbReadOldestTxUtcDart>(
-            'icb_read_oldest_transaction_timestamp_utc_json');
+    _icbReadOldestTxUtcJson = _lib.lookupFunction<_IcbReadOldestTxUtcNative,
+            _IcbReadOldestTxUtcDart>('icb_read_oldest_transaction_timestamp_utc_json');
+
 
     final cPath = dbPath.toNativeUtf8();
     try {
@@ -565,19 +504,19 @@ class _FfiBackend {
     return data;
   }
 
-  Map<String, dynamic>? _decodeNullableMap(String jsonStr) {
-    final decoded = _decodeMap(jsonStr);
-    if (decoded['ok'] != true) {
-      final msg = decoded['error']?.toString() ?? 'unknown error';
-      throw StateError('Rust call failed: $msg');
-    }
-    final data = decoded['data'];
-    if (data == null) return null;
-    if (data is! Map<String, dynamic>) {
-      throw StateError('Rust FFI "data" is not an object');
-    }
-    return data;
-  }
+  // Map<String, dynamic>? _decodeNullableMap(String jsonStr) {
+  //   final decoded = _decodeMap(jsonStr);
+  //   if (decoded['ok'] != true) {
+  //     final msg = decoded['error']?.toString() ?? 'unknown error';
+  //     throw StateError('Rust call failed: $msg');
+  //   }
+  //   final data = decoded['data'];
+  //   if (data == null) return null;
+  //   if (data is! Map<String, dynamic>) {
+  //     throw StateError('Rust FFI "data" is not an object');
+  //   }
+  //   return data;
+  // }
 
   // ── Window days / averages ──
 
@@ -625,10 +564,8 @@ class _FfiBackend {
     }).toList();
   }
 
-  // Compute averaging window from picked local date
-  Future<int> computeAveragingWindowDaysFromPickedLocalDate(
-      String localDateYmd)
-  async {
+  // Compute averaging window from a local date picked via the date picker
+  Future<int> computeAveragingWindowDaysFromPickedLocalDate(String localDateYmd) async {
     final h = _requireHandle();
     final cDate = localDateYmd.toNativeUtf8();
     try {
@@ -651,7 +588,6 @@ class _FfiBackend {
   }
 
   // ── Pills ──
-
   Future<List<_Pill>> listPills() async {
     final jsonStr = _jsonFromNoArg(_icbListPillsJson);
     final decoded = _decodeMap(jsonStr);
@@ -670,8 +606,7 @@ class _FfiBackend {
     }).toList();
   }
 
-  // ── Settings: skip second confirmation ─────────────────────────
-
+  // ── Settings: skip second confirmation ───
   Future<bool> readSkipDeleteSecondConfirm() async {
     final jsonStr = _jsonFromNoArg(_icbReadSkipConfirmJson);
     final decoded = _decodeMap(jsonStr);
@@ -695,8 +630,7 @@ class _FfiBackend {
     }
   }
 
-  // ── Time zones ─────────────────────────
-
+  // ── Time zones ───
   Future<void> setActiveTzByAlias(String alias) async {
     final h = _requireHandle();
     final cAlias = alias.toNativeUtf8();
@@ -710,24 +644,23 @@ class _FfiBackend {
     }
   }
 
+  // Future<List<Map<String, dynamic>>> _listTimezonesRaw() async {
+  //   final jsonStr = _jsonFromNoArg(_icbListTimezonesJson);
+  //   final decoded = _decodeMap(jsonStr);
+  //   if (decoded['ok'] != true) {
+  //     final msg = decoded['error']?.toString() ?? 'unknown error';
+  //     throw StateError('Rust list_timezones failed: $msg');
+  //   }
+  //   final data = decoded['data'];
+  //   if (data is! List) return const <Map<String, dynamic>>[];
+  //   return data
+  //       .whereType<Map>()
+  //       .map<Map<String, dynamic>>(
+  //           (m) => m.map((k, v) => MapEntry(k.toString(), v)))
+  //       .toList();
+  // }
 
-  Future<List<Map<String, dynamic>>> _listTimezonesRaw() async {
-    final jsonStr = _jsonFromNoArg(_icbListTimezonesJson);
-    final decoded = _decodeMap(jsonStr);
-    if (decoded['ok'] != true) {
-      final msg = decoded['error']?.toString() ?? 'unknown error';
-      throw StateError('Rust list_timezones failed: $msg');
-    }
-    final data = decoded['data'];
-    if (data is! List) return const <Map<String, dynamic>>[];
-    return data
-        .whereType<Map>()
-        .map<Map<String, dynamic>>(
-            (m) => m.map((k, v) => MapEntry(k.toString(), v)))
-        .toList();
-  }
-
-  /// Returns display strings like "MT/MST/MDT" for the UI.
+  /// Returns display strings (ie. strings such as "MT/MST/MDT") for the UI to render
   Future<List<String>> listTzAliasStrings() async {
     final jsonStr = _jsonFromNoArg(_icbListTzAliasGroupsJson);
     final decoded = _decodeMap(jsonStr);
@@ -797,9 +730,7 @@ class _FfiBackend {
     }
   }
 
-
-  // ── Timestamps: local <-> UTC (DB format) ─────────────────────────
-
+  // ── Timestamps: local <-> UTC (aka the DB format) ──
   Future<String> localToUtcDbTimestamp(String localTs) async {
     final h = _requireHandle();
     final cLocal = localTs.toNativeUtf8();
@@ -844,7 +775,7 @@ class _FfiBackend {
     }
   }
 
-  // ── Transactions ─────────────────────────
+  // ── Transactions ──
   Future<DateTime?> readOldestTransactionUtc() async {
     final h = _requireHandle();
     final ptr = _icbReadOldestTxUtcJson(h);
@@ -901,10 +832,7 @@ class _FfiBackend {
     }).toList();
   }
 
-
-  Future<List<int>> insertManyAtUtcReturningIds(
-      List<_Entry> entries, String? utcIso)
-  async {
+  Future<List<int>> insertManyAtUtcReturningIds(List<_Entry> entries, String? utcIso) async {
     if (entries.isEmpty) return const [];
 
     final h = _requireHandle();
@@ -947,11 +875,7 @@ class _FfiBackend {
     }
   }
 
-  Future<List<_TxRow>> queryTransactionsUtcRange({
-    String? startUtc,
-    String? endUtc,
-  })
-  async {
+  Future<List<_TxRow>> queryTransactionsUtcRange({String? startUtc, String? endUtc,}) async {
     final h = _requireHandle();
 
     final startPtr = startUtc == null
@@ -988,11 +912,7 @@ class _FfiBackend {
     return _decodeTxRows(jsonStr);
   }
 
-  Future<List<_TxRow>> queryTransactionsRangeLocal({
-    String? startLocal,
-    String? endLocal,
-  })
-  async {
+  Future<List<_TxRow>> queryTransactionsRangeLocal({String? startLocal, String? endLocal,}) async {
     final h = _requireHandle();
 
     final startPtr = startLocal == null
@@ -1082,7 +1002,7 @@ class _FfiBackend {
     return int.tryParse(v?.toString() ?? '0') ?? 0;
   }
 
-  Future<int> deleteOldTransactionsWithPolicy(int days) async {
+  Future<int> deleteOldTransactionsWithPolicy(int days) async {  //'policy?'  *shrug*
     if (days <= 0) return 0;
     final h = _requireHandle();
     final ptr = _icbDeleteOldWithPolicyJson(h, days);
@@ -1099,11 +1019,8 @@ class _FfiBackend {
     return int.tryParse(v?.toString() ?? '0') ?? 0;
   }
 
-  // ── Logical batch insert / undo / redo ─────────────────────────
-
-  Future<String> insertBatchWithUndoToken(
-      List<_Entry> entries, String? utcIso)
-  async {
+  // ── Batch insert / undo / redo ─────────────────────────
+  Future<String> insertBatchWithUndoToken(List<_Entry> entries, String? utcIso) async {
     if (entries.isEmpty) {
       throw ArgumentError('entries must not be empty');
     }
@@ -1151,6 +1068,9 @@ class _FfiBackend {
   }
 
   Future<List<int>> undoLogicalBatch(String token) async {
+    //what does 'logical' mean, in this context, I wonder.🤔
+    // seems like an empty word, here.
+    //anyhow...
     final h = _requireHandle();
     final cTok = token.toNativeUtf8();
     try {
@@ -1192,5 +1112,3 @@ class _FfiBackend {
     }
   }
 }
-
-// </editor-fold>

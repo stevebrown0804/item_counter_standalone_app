@@ -29,45 +29,13 @@ part 'ui/settings/DangerZoneHeader.dart';
 part 'ui/settings/DeleteOutdatedTransactions.dart';
 part 'ui/sheets/LogPillsSheet.dart';
 
-/// Filenames / view names must match your existing DB.
+/// The DB's filename
 const String kDbFileName = 'daily-pill-tracking.db';
-const String kViewName = 'daily_avg_by_pill_UTC';
 
-/// Column names expected from the daily-avg view.
-const List<String> kShowColumns = ['pill_name', 'daily_avg'];
-
-// --- Transaction viewer types (top-level) ---
 enum _TxMode { today, lastNDays, range, all }
 // </editor-fold>
 
-// <editor-fold desc="Some fn; the _TxRow, ItemCounterApp and _DB classes">
-Future<DateTime?> _pickLocalDateTime(
-    BuildContext context, {
-      required tz.Location loc,
-      DateTime? initialLocal,
-    })
-async {
-  final nowL = tz.TZDateTime.now(loc);
-  final initial = initialLocal ?? nowL;
-
-  final d = await showDatePicker(
-    context: context,
-    initialDate: DateTime(initial.year, initial.month, initial.day),
-    firstDate: DateTime(2000),
-    lastDate: DateTime(2100),
-  );
-  if (d == null) return null;
-
-  final t = await showTimePicker(
-    context: context,
-    initialTime: TimeOfDay.fromDateTime(initial),
-  );
-
-  if (t == null) return null;
-
-  return tz.TZDateTime(loc, d.year, d.month, d.day, t.hour, t.minute);
-}
-
+// <editor-fold desc="the ItemCounterApp class; main()">
 class ItemCounterApp extends StatelessWidget {
   const ItemCounterApp({super.key});
   @override
@@ -79,9 +47,7 @@ class ItemCounterApp extends StatelessWidget {
   }
 }
 
-// </editor-fold>
 
-// <editor-fold desc="main()">
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
