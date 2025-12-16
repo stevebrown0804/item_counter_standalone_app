@@ -441,7 +441,7 @@ async {
                                         Expanded(
                                           flex: 44,
                                           child: Text(
-                                            it.pill,
+                                            it.item,
                                             softWrap: true,
                                           ),
                                         ),

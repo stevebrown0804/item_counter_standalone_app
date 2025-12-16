@@ -296,9 +296,9 @@ class _Item {
 }
 
 class _AvgRow {
-  final String pillName;
+  final String itemName;
   final double avg;
-  _AvgRow(this.pillName, this.avg);
+  _AvgRow(this.itemName, this.avg);
 }
 
 class _Entry {
@@ -310,10 +310,10 @@ class _Entry {
 class _TxRow {
   final int id;        // DB primary key
   final DateTime utc;  // stored in UTC
-  final String pill;
+  final String item;
   final int qty;
 
-  const _TxRow(this.id, this.utc, this.pill, this.qty);
+  const _TxRow(this.id, this.utc, this.item, this.qty);
 }
 
 class _TxnSnapshot {

@@ -376,7 +376,7 @@ class _MainScreenState extends State<_MainScreen> {
                             children: [
                               Expanded(
                                 child: Text(
-                                  r.pillName,
+                                  r.itemName,
                                   maxLines: 1,
                                   overflow:
                                   TextOverflow

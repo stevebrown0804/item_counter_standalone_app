@@ -27,7 +27,7 @@ Future<bool> openTransactionEditorSheet({
   final items = store.items;
   _Item? selectedItem;
   for (final p in items) {
-    if (p.name == tx.pill) {
+    if (p.name == tx.item) {
       selectedItem = p;
       break;
     }
