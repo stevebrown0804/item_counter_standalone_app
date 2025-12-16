@@ -7,8 +7,8 @@ class _Store extends ChangeNotifier {
   UnmodifiableListView<_AvgRow> get rows => UnmodifiableListView(_rows);
   int _days = 0;
   int get days => _days;
-  List<_Pill> _pills = const [];
-  UnmodifiableListView<_Pill> get pills => UnmodifiableListView(_pills);
+  List<_Item> _items = const [];
+  UnmodifiableListView<_Item> get items => UnmodifiableListView(_items);
   _Tz? _activeTz;
   _Tz get activeTz => _activeTz ?? _Tz('UTC', 'UTC');   //UTC is the fallback
 
@@ -60,7 +60,7 @@ class _Store extends ChangeNotifier {
     //Refresh the values held by Store, from the DB
     _activeTz = await _db.readActiveTz() ?? _Tz('UTC', 'UTC');
     _days = await _db.readAveragingWindowDays();
-    _pills = await _db.listPillsOrdered();
+    _items = await _db.listItemsOrdered();
 
     final list = await _db.readDailyAverages();
     _rows
@@ -75,8 +75,8 @@ class _Store extends ChangeNotifier {
       }) async {
     //Construct the batch
     final entries = <_Entry>[];
-    quantities.forEach((pillId, qty) {
-      if (qty > 0) entries.add(_Entry(pillId, qty));
+    quantities.forEach((itemId, qty) {
+      if (qty > 0) entries.add(_Entry(itemId, qty));
     });
     if (entries.isEmpty) return;
 

@@ -22,11 +22,11 @@ class _Db {
     return _db!;
   }
 
-  // ───────────────────────── Pills ─────────────────────────
+  // ───────────────────────── Items ─────────────────────────
 
-  Future<List<_Pill>> listPillsOrdered() async {
+  Future<List<_Item>> listItemsOrdered() async {
     await open(); // ensures FFI is initialized
-    return _FfiBackend.instance.listPills();
+    return _FfiBackend.instance.listItems();
   }
 
   // Generic settings helper: read a required string value by key.
@@ -289,10 +289,10 @@ class _Db {
 } // class _Db
 
 // <editor-fold desc="misc. DTOs">
-class _Pill {
+class _Item {
   final int id;
   final String name;
-  _Pill(this.id, this.name);
+  _Item(this.id, this.name);
 }
 
 class _AvgRow {
@@ -302,9 +302,9 @@ class _AvgRow {
 }
 
 class _Entry {
-  final int pillId;
+  final int itemId;
   final int qty;
-  _Entry(this.pillId, this.qty);
+  _Entry(this.itemId, this.qty);
 }
 
 class _TxRow {
@@ -317,10 +317,10 @@ class _TxRow {
 }
 
 class _TxnSnapshot {
-  final int pillId;
+  final int itemId;
   final int qty;
   final String utcIso; // "YYYY-MM-DD HH:MM:SS" UTC
-  _TxnSnapshot(this.pillId, this.qty, this.utcIso);
+  _TxnSnapshot(this.itemId, this.qty, this.utcIso);
 }
 
 class _Tz {

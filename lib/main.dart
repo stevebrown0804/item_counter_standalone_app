@@ -27,7 +27,7 @@ part 'ui/settings/sheets/TransactionEditorSheet.dart';
 part 'ui/settings/ExportDatabase.dart';
 part 'ui/settings/DangerZoneHeader.dart';
 part 'ui/settings/DeleteOutdatedTransactions.dart';
-part 'ui/sheets/LogPillsSheet.dart';
+part 'ui/sheets/AddItemsSheet.dart';
 
 /// The DB's filename
 const String kDbFileName = 'daily-pill-tracking.db';

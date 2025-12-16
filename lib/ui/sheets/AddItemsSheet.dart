@@ -1,34 +1,34 @@
 part of '../../main.dart';
 
-class _LogPillsSheetResult {
+class _LogItemsSheetResult {
   final Map<int, int> quantities;
   final String summary;
   /// Local wall-clock timestamp in the active time zone ("YYYY-MM-DD HH:MM:SS"),
   /// or null if the user left it as "Now".
   final String? localTimestampOverride;
 
-  const _LogPillsSheetResult({
+  const _LogItemsSheetResult({
     required this.quantities,
     required this.summary,
     required this.localTimestampOverride,
   });
 }
 
-class _LogPillsSheet extends StatefulWidget {
-  final List<dynamic> pills;
+class _LogItemsSheet extends StatefulWidget {
+  final List<dynamic> items;
   /// IANA time zone name for the active app TZ, e.g. "America/Denver".
   final String activeTzName;
 
-  const _LogPillsSheet({
-    required this.pills,
+  const _LogItemsSheet({
+    required this.items,
     required this.activeTzName,
   });
 
   @override
-  State<_LogPillsSheet> createState() => _LogPillsSheetState();
+  State<_LogItemsSheet> createState() => _LogItemsSheetState();
 }
 
-class _LogPillsSheetState extends State<_LogPillsSheet> {
+class _LogItemsSheetState extends State<_LogItemsSheet> {
   late final List<int> _qty;
   late final TextEditingController _timestampCtrl;
 
@@ -44,7 +44,7 @@ class _LogPillsSheetState extends State<_LogPillsSheet> {
   @override
   void initState() {
     super.initState();
-    _qty = List<int>.filled(widget.pills.length, 0);
+    _qty = List<int>.filled(widget.items.length, 0);
     _timestampCtrl = TextEditingController(text: 'Now');
   }
 
@@ -187,19 +187,19 @@ class _LogPillsSheetState extends State<_LogPillsSheet> {
       // This should not be reachable because the button is disabled in this state,
       // but we surface it loudly if it ever happens.
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('You have not added any pills.')),
+        const SnackBar(content: Text('You have not added any items.')),
       );
       return;
     }
 
-    final pills = widget.pills;
+    final items = widget.items;
 
     final map = <int, int>{};
     final parts = <String>[];
-    for (var i = 0; i < pills.length; i++) {
+    for (var i = 0; i < items.length; i++) {
       final q = _qty[i];
       if (q > 0) {
-        final p = pills[i];
+        final p = items[i];
         final id = p.id as int;
         final name = p.name as String;
         map[id] = q;
@@ -209,7 +209,7 @@ class _LogPillsSheetState extends State<_LogPillsSheet> {
     if (map.isEmpty) {
       // Extra guard: fail loudly instead of silently closing the sheet
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('You have not added any pills.')),
+        const SnackBar(content: Text('You have not added any items.')),
       );
       return;
     }
@@ -241,7 +241,7 @@ class _LogPillsSheetState extends State<_LogPillsSheet> {
     final summary = 'Added: ${parts.join(', ')}';
 
     Navigator.of(context).pop(
-      _LogPillsSheetResult(
+      _LogItemsSheetResult(
         quantities: map,
         summary: summary,
         localTimestampOverride: localOverride,
@@ -251,7 +251,7 @@ class _LogPillsSheetState extends State<_LogPillsSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final pills = widget.pills;
+    final items = widget.items;
 
     return SafeArea(
       child: Padding(
@@ -264,18 +264,18 @@ class _LogPillsSheetState extends State<_LogPillsSheet> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('Log pills',
+            const Text('Log items',
                 style: TextStyle(
                     fontSize: 16, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             Flexible(
               child: ListView.separated(
                 shrinkWrap: true,
-                itemCount: pills.length,
+                itemCount: items.length,
                 separatorBuilder: (_, __) =>
                 const Divider(height: 1),
                 itemBuilder: (ctx, i) {
-                  final p = pills[i];
+                  final p = items[i];
                   return Row(
                     children: [
                       Expanded(

@@ -23,16 +23,16 @@ Future<bool> openTransactionEditorSheet({
   final timeCtrl = TextEditingController(text: fmtTime(local));
   final qtyCtrl = TextEditingController(text: tx.qty.toString());
 
-  // Resolve current pill from the store by name
-  final pills = store.pills;
-  _Pill? selectedPill;
-  for (final p in pills) {
+  // Resolve current item from the store by name
+  final items = store.items;
+  _Item? selectedItem;
+  for (final p in items) {
     if (p.name == tx.pill) {
-      selectedPill = p;
+      selectedItem = p;
       break;
     }
   }
-  selectedPill ??= pills.isNotEmpty ? pills.first : null;
+  selectedItem ??= items.isNotEmpty ? items.first : null;
 
   // Basic parser / normalizer for local date+time fields.
   // Accepts:
@@ -207,19 +207,19 @@ Future<bool> openTransactionEditorSheet({
                     child: Text('Item:'),
                   ),
                   Expanded(
-                    child: DropdownButton<_Pill>(
+                    child: DropdownButton<_Item>(
                       isExpanded: true,
-                      value: selectedPill,
-                      items: pills
+                      value: selectedItem,
+                      items: items
                           .map(
-                            (p) => DropdownMenuItem<_Pill>(
+                            (p) => DropdownMenuItem<_Item>(
                           value: p,
                           child: Text(p.name),
                         ),
                       )
                           .toList(),
                       onChanged: (p) {
-                        selectedPill = p;
+                        selectedItem = p;
                       },
                     ),
                   ),
@@ -265,17 +265,17 @@ Future<bool> openTransactionEditorSheet({
                     onPressed: () async {
                       final dateText = dateCtrl.text.trim();
                       final timeText = timeCtrl.text.trim();
-                      final pill = selectedPill;
+                      final item = selectedItem;
                       final qtyText = qtyCtrl.text.trim();
 
                       if (dateText.isEmpty ||
                           timeText.isEmpty ||
-                          pill == null ||
+                          item == null ||
                           qtyText.isEmpty) {
                         ScaffoldMessenger.of(editCtx).showSnackBar(
                           const SnackBar(
                             content: Text(
-                              'Please fill in all fields.',
+                              'Some fields are missing.',
                             ),
                           ),
                         );
@@ -326,7 +326,7 @@ Future<bool> openTransactionEditorSheet({
                       try {
                         // Insert replacement transaction at chosen time
                         await db.insertManyAtUtcReturningIds(
-                          [ _Entry(pill.id, qty) ],
+                          [ _Entry(item.id, qty) ],
                           utcTs,
                         );
 

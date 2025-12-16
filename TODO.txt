@@ -2,11 +2,9 @@
 
 TODO: Replace remnants of "pill" (and related phrases) with "item", "item counter", etc.
 
-TODO: Make use of pills.show_item (to show/hide items from the main sheet and 'add pills' sheet)
+TODO: Make use of items.show_item (to show/hide items from the main sheet and 'add pills' sheet)
 
 TODO: Have the settings sheet give a warning if the user tries to go back to the main sheet while there are uncommited changes
-
-
 
 
 ---------------------------------------Public use--------------------------------------------------
@@ -57,7 +55,7 @@ TODO: UI minutiae
 
 
 ---UI stuff---
-TODO: Make the Transaction Viewer sheet more compact
+TODO (MAYBE): Make the Transaction Viewer sheet more compact
     Maybe move the "last # days" radio onto the first row, compress the input boxes vertically, remove space between the "All" row and the "Apply filter" button, etc.
 
 TODO: Consolidate the 'save' buttons on the settings sheet.
@@ -65,7 +63,7 @@ TODO: Consolidate the 'save' buttons on the settings sheet.
 
 
 ---TBD---
-TODO: Give a way to choose other summary statistics (but we probably won't implement them atm)
+TODO: Give a way to choose other summary statistics (which we probably won't implement, but maybe someone else will want to)
 
     ChatGPT describes the current summary statistic as:
     "In plain terms, the statistic is:

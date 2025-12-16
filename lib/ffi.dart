@@ -29,7 +29,7 @@ typedef _IcbFreeStringNative = ffi.Void Function(
 typedef _IcbFreeStringDart = void Function(
     ffi.Pointer<ffi_helpers.Utf8>,
     );
-typedef _IcbListPillsNative = ffi.Pointer<ffi_helpers.Utf8> Function(
+typedef _IcbListItemsNative = ffi.Pointer<ffi_helpers.Utf8> Function(
     ffi.Pointer<ffi.Void>,
     );
 typedef _IcbListItemsDart = ffi.Pointer<ffi_helpers.Utf8> Function(
@@ -264,7 +264,7 @@ class _FfiBackend {
   late final _IcbJsonNoArgsDart _icbReadWindowDaysJson;
   late final _IcbSetWindowDaysDart _icbSetWindowDays;
   late final _IcbFreeStringDart _icbFreeString;
-  late final _IcbListItemsDart _icbListPillsJson;
+  late final _IcbListItemsDart _icbListItemsJson;
   late final _IcbReadSkipConfirmDart _icbReadSkipConfirmJson;
   late final _IcbSetSkipConfirmDart _icbSetSkipConfirm;
   late final _IcbListTimezonesDart _icbListTimezonesJson;
@@ -330,7 +330,7 @@ class _FfiBackend {
     _icbFreeString = _lib.lookupFunction<_IcbFreeStringNative,
         _IcbFreeStringDart>('icb_free_string');
 
-    _icbListPillsJson = _lib.lookupFunction<_IcbListPillsNative,
+    _icbListItemsJson = _lib.lookupFunction<_IcbListItemsNative,
         _IcbListItemsDart>('icb_list_items_json');
 
     _icbReadSkipConfirmJson = _lib.lookupFunction<_IcbReadSkipConfirmNative,
@@ -587,13 +587,13 @@ class _FfiBackend {
     }
   }
 
-  // ── Pills ──
-  Future<List<_Pill>> listPills() async {
-    final jsonStr = _jsonFromNoArg(_icbListPillsJson);
+  // ── Items ──
+  Future<List<_Item>> listItems() async {
+    final jsonStr = _jsonFromNoArg(_icbListItemsJson);
     final decoded = _decodeMap(jsonStr);
     if (decoded['ok'] != true) {
       final msg = decoded['error']?.toString() ?? 'unknown error';
-      throw StateError('Rust listPills failed: $msg');
+      throw StateError('Rust listItems failed: $msg');
     }
     final data = decoded['data'] as List<dynamic>? ?? const [];
     return data.map((e) {
@@ -602,7 +602,7 @@ class _FfiBackend {
       final name = m['name']?.toString() ?? '';
       final displayOrder = m['display_order'];
       // Rust side may send null; we do not use display_order on Dart side.
-      return _Pill(id, name);
+      return _Item(id, name);
     }).toList();
   }
 
@@ -819,8 +819,8 @@ class _FfiBackend {
       final tsStr = (m['timestamp_utc'] ?? '').toString();
       final dt = parseDbUtc(tsStr);
 
-      // pill name
-      final pillName = (m['item_name'] ?? '').toString();
+      // item name
+      final itemName = (m['item_name'] ?? '').toString();
 
       // quantity
       final qtyRaw = m['quantity'];
@@ -828,7 +828,7 @@ class _FfiBackend {
           ? qtyRaw.toInt()
           : int.tryParse(qtyRaw?.toString() ?? '0') ?? 0;
 
-      return _TxRow(id, dt, pillName, qty);
+      return _TxRow(id, dt, itemName, qty);
     }).toList();
   }
 
@@ -842,7 +842,7 @@ class _FfiBackend {
     final qtyPtr = ffi_helpers.malloc<ffi.Int64>(len);
 
     for (var i = 0; i < len; i++) {
-      idsPtr[i] = entries[i].pillId;
+      idsPtr[i] = entries[i].itemId;
       qtyPtr[i] = entries[i].qty;
     }
 
@@ -961,11 +961,11 @@ class _FfiBackend {
     if (data is! Map<String, dynamic>) {
       throw StateError('Rust FFI readTransactionById "data" is not object');
     }
-    final pillId = (data['pill_id'] as num).toInt();
+    final itemId = (data['item_id'] as num).toInt();
     final qty = (data['quantity'] as num).toInt();
     final ts = (data['timestamp_utc'] ?? '').toString();
     if (ts.isEmpty) return null;
-    return _TxnSnapshot(pillId, qty, ts);
+    return _TxnSnapshot(itemId, qty, ts);
   }
 
   Future<int> countTransactionsOlderThanDays(int days) async {
@@ -1032,7 +1032,7 @@ class _FfiBackend {
     final qtyPtr = ffi_helpers.malloc<ffi.Int64>(len);
 
     for (var i = 0; i < len; i++) {
-      idsPtr[i] = entries[i].pillId;
+      idsPtr[i] = entries[i].itemId;
       qtyPtr[i] = entries[i].qty;
     }
 

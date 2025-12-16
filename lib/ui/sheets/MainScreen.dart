@@ -181,15 +181,15 @@ class _MainScreenState extends State<_MainScreen> {
   }
 
   Future<void> _openAddSheet() async {
-    final pills = _store.pills;
-    if (pills.isEmpty) return;
+    final items = _store.items;
+    if (items.isEmpty) return;
 
-    final result = await showModalBottomSheet<_LogPillsSheetResult>(
+    final result = await showModalBottomSheet<_LogItemsSheetResult>(
       context: context,
       isScrollControlled: true,
       builder: (ctx) {
-        return _LogPillsSheet(
-          pills: pills,
+        return _LogItemsSheet(
+          items: items,
           activeTzName: _store.activeTz.tzName,
         );
       },
@@ -342,7 +342,7 @@ class _MainScreenState extends State<_MainScreen> {
                   children: [
                     Expanded(
                       child: Text(
-                        _lhsColumnHeader ?? 'Pill',
+                        _lhsColumnHeader ?? 'Item',
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                         ),

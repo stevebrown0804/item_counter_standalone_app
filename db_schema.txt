@@ -15,7 +15,6 @@ CREATE TABLE logical_batch_items (
     REFERENCES logical_batches (id)
 );
 
-FK reminder: We had an FK on transaction_id but it led to Undo button presses going (mostly) silently ignored.  (...and now it's gone.)
 
 
 CREATE TABLE logical_batches (
@@ -44,10 +43,12 @@ CREATE TABLE item_transactions (
 
 
 CREATE TABLE items (
-    id              INTEGER PRIMARY KEY AUTOINCREMENT,
-    display_string  TEXT UNIQUE NOT NULL,
-    display_order   INTEGER,
-    show_item       INTEGER NOT NULL DEFAULT (1)
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    display_string TEXT    UNIQUE
+                           NOT NULL,
+    display_order  INTEGER,
+    show_item      INTEGER NOT NULL
+                           DEFAULT (1)
 );
 
 
@@ -68,10 +69,10 @@ rhs_column_header	"Avg. ({days} day(s))""
 
 
 CREATE TABLE time_zone_aliases (
-    id              INTEGER PRIMARY KEY,
-    alias           TEXT    NOT NULL
-                    UNIQUE,
-    iana_tz_name    TEXT    NOT NULL
+    id           INTEGER PRIMARY KEY,
+    alias        TEXT    NOT NULL
+                         UNIQUE,
+    iana_tz_name TEXT    NOT NULL
 );
 
 time_zone_aliases defaults:
@@ -83,46 +84,6 @@ time_zone_aliases defaults:
 
 ---------------------------------------------------------------------------------------------------
 View queries:
-
-CREATE VIEW daily_avg_by_pill_UTC AS
-WITH cfg AS (
-        SELECT CAST ( (
-                   SELECT value
-                     FROM settings
-                    WHERE key = 'avg_window_days'
-               )
-               AS INTEGER) AS n
-    ),
-    global AS (
-        SELECT DATE('now') AS today,
-               MIN(DATE(timestamp_utc) ) AS min_date
-          FROM pill_transactions
-    ),
-    window AS (
-        SELECT g.today,-- Effective start = max(oldest_tx_date, today-(n-1))
-               MAX(g.min_date, DATE(JULIANDAY(g.today) - (c.n - 1) ) ) AS start_date,
-               CASE WHEN g.min_date IS NULL THEN 0 ELSE CAST (JULIANDAY(g.today) - JULIANDAY(MAX(g.min_date, DATE(JULIANDAY(g.today) - (c.n - 1) ) ) ) AS INTEGER) + 1 END AS days
-          FROM global g
-               CROSS JOIN
-               cfg c
-    )
-    SELECT p.id AS pill_id,
-           p.display_order AS display_order,
-           p.name AS pill_name,
-           CASE WHEN w.days = 0 THEN 0 ELSE ROUND(1.0 * COALESCE(SUM(CASE WHEN DATE(pt.timestamp_utc) BETWEEN w.start_date AND w.today THEN pt.quantity ELSE 0 END), 0) / w.days, 2) END AS daily_avg
-      FROM pills p
-           CROSS JOIN
-           window w
-           LEFT JOIN
-           pill_transactions pt ON pt.pill_id = p.id
-     GROUP BY p.id,
-              p.display_order,
-              p.name,
-              w.days
-     ORDER BY p.display_order,
-              p.id;
-
-
 
 CREATE VIEW logged_days AS
 WITH cfg AS (
@@ -136,30 +97,21 @@ WITH cfg AS (
     global AS (
         SELECT DATE('now') AS today,
                MIN(DATE(timestamp_utc) ) AS min_date
-          FROM pill_transactions
+          FROM item_transactions
     ),
     window AS (
         SELECT g.today,
                g.min_date,
                c.n,-- N-day inclusive start: today - (n-1) days
                DATE(JULIANDAY(g.today) - (c.n - 1) ) AS n_start,
-               CASE WHEN g.min_date IS NULL THEN 0 ELSE CAST (JULIANDAY(g.today) - JULIANDAY(MAX(g.min_date, DATE(JULIANDAY(g.today) - (c.n - 1) ) ) ) AS INTEGER) + 1 END AS days
+               CASE
+                   WHEN g.min_date IS NULL THEN 0
+                   ELSE CAST (JULIANDAY(g.today) - JULIANDAY(MAX(g.min_date, DATE(JULIANDAY(g.today) - (c.n - 1) ) ) ) AS INTEGER) + 1
+               END AS days
           FROM global g
                CROSS JOIN
                cfg c
     )
     SELECT days AS number_of_days
       FROM window;
-
-
-
-CREATE VIEW [Transactions_(Mtn Time)] AS
-    SELECT datetime(pt.timestamp_utc, '-6 hours') AS local_timestamp,
-           pt.pill_id,
-           pills.name AS pill_name,
-           pt.quantity
-      FROM pill_transactions pt
-           JOIN
-           pills ON pt.pill_id = pills.id
-     ORDER BY pt.timestamp_utc DESC;
 
