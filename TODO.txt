@@ -1,5 +1,7 @@
 --------------------------------------Personal use-------------------------------------------------
 
+TODO: It's just come to my attention that this app could indeed be hosting a WASM module, which means that the whole "FFI" piece is truly not necessary at this point.🤭  Alright ChatGPT, thanks for the update.  (And for "totally not leading me on about the importance of an FFI" for all this time.)
+    Anyhow, let's rebuild the rust backend as a wasm module, host it in this app, and use it THAT way.
 
 
 ---------------------------------------Public use--------------------------------------------------
