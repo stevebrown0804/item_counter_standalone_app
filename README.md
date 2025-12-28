@@ -17,7 +17,7 @@ If you're interested in using the app, you'll probably want to do the following:
 * Build a debug version (to an emulator is fine, although you'll probably want to deploy a debug version to the device that you'll use the app on, if only to create the directory structure)
 * Take a copy of the DB file from /data/data/com.example.item_counter_standalone_app
 * Add your preferred time zone(s) (and aliases to those time zones) to the time_zone_aliases table
-* Add whatever it is you want to count to the items table.  (with display_order, 1 = the top of the list; values should probably be unique (although that's not enforced by the DB atm); with show_item: show_item == 1 => show; == 0 => don't show.)
+* Add whatever it is you want to count to the items table.  (with display_order == 1 being the top of the list; values should probably be unique (although that's not enforced by the DB atm); with show_item: show_item == 1 => show; == 0 => don't show.)
 * Copy the DB back to your phone
 * Create a release .apk file and deploy it to your phone
   * That is, from the project root:
