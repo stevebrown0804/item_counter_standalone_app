@@ -11,7 +11,7 @@ An item counter.  I use it to (1) count my daily pill intake and (2) get a daily
 
 ---
 
-Phase 1, where I built it for my own personal use
+Phase 1, where I built it for my own personal use (on an Android phone)
 
 If you're interested in using the app, you'll probably want to do the following:
 * Build a debug version (to an emulator is fine, although you'll probably want to deploy a debug version to the device that you'll use the app on, if only to create the directory structure)
@@ -31,13 +31,15 @@ Phase 2, where I make the app more accessible to others
 
 * TBC! We'll write this up once we've made the project a bit less 'specific to my own uses.'
 
+---
 
-## FAQ!  
-Q) Why?!  
-A) I was using a spreadsheet to take daily averages of the # of pills I took each day, and figured I'd try making an app out of it.  And here's that app!  btw I use those averages to project when my current supply of pills will run out, how many bottles to bring when I travel, etc.
+### FAQ!  
+
+Q) Why?   
+A) I was using a spreadsheet to take daily averages of the # of pills I took each day, and figured I'd try making an app out of it.  And here's that app!  btw I use those averages to project when my current supply of pills will run out, etc.
 
 Q) Who are you, anyhow?  
-A) Just some hobbyist.  Nothing to see here.
+A) Just some hobbyist, by which I mean I've never programmed for a paycheck.  Honestly, I'm better at the "translating app design to prose" part than the "generating code to satify that prose" part...which, nowadays, is less of a hold-up than it once was.
 
-Q) I LOVE YOUR APP (/CODE) AND I WANT TO GIVE YOU MONEY  
-A) Don't let me stop you! https://ko-fi.com/stevebrown0804
+Q) Do you accept tips?  
+A) Yep! https://ko-fi.com/stevebrown0804
