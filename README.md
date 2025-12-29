@@ -36,10 +36,12 @@ Phase 2, where I make the app more accessible to others
 ### FAQ!  
 
 Q) Why?   
-A) I was using a spreadsheet to take daily averages of the # of pills I took each day, and figured I'd try making an app out of it.  And here's that app!  btw I use those averages to project when my current supply of pills will run out, etc.
+A) I was using a spreadsheet to take daily averages of the # of pills I took each day, and figured I'd try making an app out of it.  
+And here's that app!  
+btw I use those daily averages to project when my current supply of pills will run out, etc.
 
 Q) Who are you, anyhow?  
-A) Just some hobbyist, by which I mean I've never programmed for a paycheck.  Honestly, I'm better at the "translating app design to prose" part than the "generating code to satify that prose" part...which, nowadays, is less of a hold-up than it once was.
+A) Just some hobbyist, by which I mean I've never programmed for a paycheck.  Honestly, I'm better at the "translating software design to prose" part than the "generating code to satify that prose" part...which, nowadays, is less of a hold-up than it once was.
 
 Q) Do you accept tips?  
-A) Yep! https://ko-fi.com/stevebrown0804
+A) Of course! https://ko-fi.com/stevebrown0804
