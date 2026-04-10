@@ -1,4 +1,4 @@
-Preparatory)
+Preparatory steps:
     On the phone (currently Pixel 8 Pro, [Android ver. TBD):
         Settings → About phone → Build number → tap 7x to enable Developer options
         Go to Settings->System->Developer Options; enabled "USB Debugging"
