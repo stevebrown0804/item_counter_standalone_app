@@ -5,13 +5,48 @@ TODO (Once we've implemented the backend project as a WASM module): Create a bra
 
 ---------------------------------------Public use--------------------------------------------------
 
----Minor initiatives---
 TODO: Add an "Add item(s) to count" button to the settings screen
     * It'll bring up a sheet with (LHS) "Item name" and (RHS) "View order"
         * When a new item is added, use the (highest view order #) + 1 as the new view order
         * If a view order if changed to equal an existing value, let the just-changed entry take on the new value and increment all higher-valued entries (until a unused number is reached)
         * ALSO: We want a way to hide items but leave them in this list; perhaps we could allow "view order == 0" or "== -1" or something; we might also just add another column with a boolean for 'hidden;'  TBD, I guess
     * Let's also add this to the main view, when it's empty
+
+TODO: Take a look at the DB-creation code; make sure it has everything that it needs for the app to do its thing.
+    FOLLOW-UP: Turns out, the schema isn't really the issue; the problem is that the backend is only selectively sending data to/from the dart app, via the FFI;  we'll want to broaden that channel of communication.
+
+TODO (MAYBE): Migrate the show_item handling (currently done in the backend) to the Dart app, so that we can set show_item's value without having to do it via the DB directly.
+
+TODO: pinning dates (TBC)
+    options:
+        (neither) "start date to define a duration" -- start date and end date then both slide fwd each day, leaving the duration the same (default)
+        (start date only) "pinning the start date" -- duration grows each day
+        (both) "Pinning a date range" -- useful?  who's to say!
+        (end date only) <joke>"Pinning a final date" -- start date does what, exactly? grows forward, shortening the duration until it reaches a negative number and the app explodes?  c'mon now.
+
+TODO: setting sheet behavior tidying (TBC)
+
+TODO: Try using TextPainter to get the maximum width of things like 2 (or possibly 3- or 4-) digit numbers and using that to determine the width of the input boxes.
+
+TODO: Man....there are a lot of hard-coded values in this code.  And every one of them makes me think, "How much will this suck for someone with an unusual desktop size/scaling factor/font/etc.?  c'mon now."
+    Anyhow, let's work on getting rid of hard-coded constants and replacing them with "formulas based on information from the OS."
+
+TODO: Add a "use timezones or do not....there is no try" (wording to be adjusted later) option to the Settings sheet
+    True -- use the existing timezone functionality
+    False -- hide the timezone-related stuff, I guess
+
+TODO: Add a statement about "Current averaging window" (although we probably shouldn't say anything specific to the summary statistic, if we've planning to let it be changed)
+    Have it say stuff like:
+        (for 'a duration'): "[# days ago] days ago through today"
+        (for 'a pinned start date'): "[pinned start date] through today"
+        (for a 'pinned duration'): "[pinned start date] through [pinned end date]"
+    * We should probably also state this on the home screen...at least, if it's at all unusual (ie. pinned durations).  Maybe change the header of the averages column?  We'll think about this.
+
+
+
+
+---Minor initiatives---
+
 
 
 ---Major initiatives---
@@ -70,6 +105,6 @@ TODO: Give a way to choose other summary statistics (which we probably won't imp
 
 
 ---MAYBE---
-TODO (MAYBE): Migrate the show_item handling (currently done in the backend) to the Dart app, so that we can set show_item's value without having to do it via the DB directly.
+
 
 TODO (MAYBE): Let the user long-tap & drag them to rearrange the rows of the settings sheet
