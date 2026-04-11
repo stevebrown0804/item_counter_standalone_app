@@ -282,60 +282,76 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onPressed: () async => await _attemptLeaveSettings(),
           ),
         ),
-        body: ListView(
-          children: [
-            const Divider(),
-            _ViewTransactionsRow(
-              onPressed: () {
-                Navigator.of(context).pop();
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  final s = _MainScreenState._lastMounted;
-                  if (s != null) {
-                    doTransactionViewerSheet(
-                      context: s.context,
-                      db: s._db,
-                      store: s._store,
-                      parentSetState: s.setState,
-                      parentMounted: () => s.mounted,
-                    );
-                  }
-                });
-              },
+        body: CustomScrollView(
+          slivers: [
+            SliverToBoxAdapter(
+              child: Column(
+                children: [
+                  const Divider(),
+                  _ViewTransactionsRow(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        final s = _MainScreenState._lastMounted;
+                        if (s != null) {
+                          doTransactionViewerSheet(
+                            context: s.context,
+                            db: s._db,
+                            store: s._store,
+                            parentSetState: s.setState,
+                            parentMounted: () => s.mounted,
+                          );
+                        }
+                      });
+                    },
+                  ),
+                  const Divider(),
+                  _SummaryStatisticRow(
+                    key: _avgKey,
+                    onDirtyChanged: (v) => _setDirty('avg_window', v),
+                  ),
+                  const Divider(),
+                  _TzRow(
+                    key: _tzKey,
+                    onDirtyChanged: (v) => _setDirty('tz', v),
+                  ),
+                  const Divider(),
+                  _ExportDatabaseRow(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        _exportDatabase(context);
+                      });
+                    },
+                  ),
+                  const Divider(),
+                ],
+              ),
             ),
-            const Divider(),
-            _SummaryStatisticRow(
-              key: _avgKey,
-              onDirtyChanged: (v) => _setDirty('avg_window', v),
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: Column(
+                children: [
+                  const Spacer(),
+                  const Divider(),
+                  const _DangerZoneHeader(),
+                  _DeleteOutdatedTransactions(
+                    onPressed: () => _showDeleteOldTxDialog(context),
+                  ),
+                  const SizedBox(height: 8),
+                  const Divider(),
+                  _SkipSecondConfirmationSetting(
+                    key: _skipKey,
+                    onDirtyChanged: (v) => _setDirty('skip_second_confirm', v),
+                  ),
+                  const Divider(),
+                ],
+              ),
             ),
-            const Divider(),
-            _TzRow(
-              key: _tzKey,
-              onDirtyChanged: (v) => _setDirty('tz', v),
-            ),
-            const Divider(),
-            _ExportDatabaseRow(
-              onPressed: () {
-                Navigator.of(context).pop();
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  _exportDatabase(context);
-                });
-              },
-            ),
-            const Divider(),
-            const _DangerZoneHeader(),
-            _DeleteOutdatedTransactions(
-              onPressed: () => _showDeleteOldTxDialog(context),
-            ),
-            const SizedBox(height: 8),
-            const Divider(),
-            _SkipSecondConfirmationSetting(
-              key: _skipKey,
-              onDirtyChanged: (v) => _setDirty('skip_second_confirm', v),
-            ),
-            const Divider(),
           ],
         ),
       ),
     );
   }
+
 }

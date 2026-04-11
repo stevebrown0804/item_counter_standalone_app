@@ -7,16 +7,21 @@ class _DangerZoneHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
-      child: Text(
-        'Danger Zone',
-        style: TextStyle(
-          color: Colors.red,
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
+    return const SizedBox(
+      width: double.infinity,
+      child: Padding(
+        padding: EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
+        child: Text(
+          'Danger Zone',
+          textAlign: TextAlign.left,
+          style: TextStyle(
+            color: Colors.red,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ),
     );
   }
+
 }
