@@ -10,7 +10,8 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  final GlobalKey<_SummaryStatisticRowState> _avgKey = GlobalKey<_SummaryStatisticRowState>();
+  final GlobalKey<_SummaryStatisticRowState> _avgKey = GlobalKey<
+      _SummaryStatisticRowState>();
   final GlobalKey<_TzRowState> _tzKey = GlobalKey<_TzRowState>();
   final GlobalKey<_SkipSecondConfirmationSettingState> _skipKey =
   GlobalKey<_SkipSecondConfirmationSettingState>();
@@ -39,22 +40,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     final abandon = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Unsaved changes'),
-        content: const Text(
-          'There are unsaved changes. Are you sure you want to leave the Settings interface?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel'),
+      builder: (ctx) =>
+          AlertDialog(
+            title: const Text('Unsaved changes'),
+            content: const Text(
+              'There are unsaved changes. Are you sure you want to leave the Settings interface?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(ctx).pop(true),
+                child: const Text('Abandon changes'),
+              ),
+            ],
           ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Abandon changes'),
-          ),
-        ],
-      ),
     );
 
     if (abandon != true) return;
@@ -72,7 +74,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final s = _MainScreenState._lastMounted;
       final active = s?._store.activeTz;
       final tzName = active?.tzName ?? 'Etc/UTC';
-      final alias = active?.alias ?? DateTime.now().timeZoneName;
+      final alias = active?.alias ?? DateTime
+          .now()
+          .timeZoneName;
 
       //Construct the timestamp to affix to the filename, padding timestamp pieces to 2 digits
       final now = tz.TZDateTime.now(tz.getLocation(tzName));
@@ -81,7 +85,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           '${two(now.hour)}-${two(now.minute)}-${two(now.second)}';
 
       //Build the DB export filename from the kDbFileName defined in main.dart
-      final fileName = '${kDbFileName.replaceAll(RegExp(r'\.db$'), '')}-${ts}_($alias).db';
+      final fileName = '${kDbFileName.replaceAll(
+          RegExp(r'\.db$'), '')}-${ts}_($alias).db';
 
       //Export and announce
       final dbDir = await getDatabasesPath();
@@ -123,7 +128,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Export failed: $e'),
-            duration: const Duration(seconds: 8),  //did we actually hard-code "8 seconds of waiting?" why, I wonder
+            duration: const Duration(
+                seconds: 8), //did we actually hard-code "8 seconds of waiting?" why, I wonder
           ),
         );
       }
@@ -139,30 +145,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (!context.mounted) return;
     await showDialog<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete older transactions?'),
-        content: Text(
-          'This will permanently delete $count transactions older than $days days. '
-              'This cannot be undone.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
+      builder: (ctx) =>
+          AlertDialog(
+            title: const Text('Delete older transactions?'),
+            content: Text(
+              'This will permanently delete $count transactions older than $days days. '
+                  'This cannot be undone.',
             ),
-            onPressed: () async {
-              Navigator.of(ctx).pop();
-              await _handleDeleteOldTx(context, days);
-            },
-            child: const Text('Proceed'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                ),
+                onPressed: () async {
+                  Navigator.of(ctx).pop();
+                  await _handleDeleteOldTx(context, days);
+                },
+                child: const Text('Proceed'),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 
@@ -188,70 +195,71 @@ class _SettingsScreenState extends State<SettingsScreen> {
       context: context,
       builder: (ctx) {
         return StatefulBuilder(
-          builder: (ctx, setState) => AlertDialog(
-            backgroundColor: Colors.red,
-            title: const Text(
-              'Really delete transactions?',
-              style: TextStyle(color: Colors.white),
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
+          builder: (ctx, setState) =>
+              AlertDialog(
+                backgroundColor: Colors.red,
+                title: const Text(
+                  'Really delete transactions?',
+                  style: TextStyle(color: Colors.white),
+                ),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: Colors.white),
-                          foregroundColor: Colors.white,
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(color: Colors.white),
+                              foregroundColor: Colors.white,
+                            ),
+                            onPressed: () => Navigator.of(ctx).pop(),
+                            child: const Text('Abort!'),
+                          ),
                         ),
-                        onPressed: () => Navigator.of(ctx).pop(),
-                        child: const Text('Abort!'),
-                      ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: OutlinedButton(
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(color: Colors.white),
+                              foregroundColor: Colors.white,
+                              backgroundColor: Colors.transparent,
+                            ),
+                            onPressed: () async {
+                              if (skipNext) {
+                                await db.setSkipDeleteSecondConfirm(true);
+                              }
+                              final deleted =
+                              await db.deleteOldTransactionsWithPolicy(days);
+                              if (!context.mounted) return;
+                              Navigator.of(ctx).pop();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                    content: Text(
+                                        'Deleted $deleted transactions older than $days days.')),
+                              );
+                            },
+                            child: const Text('Proceed'),
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: OutlinedButton(
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: Colors.white),
-                          foregroundColor: Colors.white,
-                          backgroundColor: Colors.transparent,
-                        ),
-                        onPressed: () async {
-                          if (skipNext) {
-                            await db.setSkipDeleteSecondConfirm(true);
-                          }
-                          final deleted =
-                          await db.deleteOldTransactionsWithPolicy(days);
-                          if (!context.mounted) return;
-                          Navigator.of(ctx).pop();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                                content: Text(
-                                    'Deleted $deleted transactions older than $days days.')),
-                          );
-                        },
-                        child: const Text('Proceed'),
+                    const SizedBox(height: 12),
+                    CheckboxListTile(
+                      value: skipNext,
+                      onChanged: (v) => setState(() => skipNext = v ?? false),
+                      controlAffinity: ListTileControlAffinity.leading,
+                      activeColor: Colors.white,
+                      checkColor: Colors.red,
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text(
+                        'Skip this step next time.\n(This can be undone in Settings.)',
+                        style: TextStyle(color: Colors.white),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
-                CheckboxListTile(
-                  value: skipNext,
-                  onChanged: (v) => setState(() => skipNext = v ?? false),
-                  controlAffinity: ListTileControlAffinity.leading,
-                  activeColor: Colors.white,
-                  checkColor: Colors.red,
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text(
-                    'Skip this step next time.\n(This can be undone in Settings.)',
-                    style: TextStyle(color: Colors.white),
-                  ),
-                ),
-              ],
-            ),
-          ),
+              ),
         );
       },
     );
@@ -295,15 +303,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               },
             ),
             const Divider(),
-            _ExportDatabaseRow(
-              onPressed: () {
-                Navigator.of(context).pop();
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  _exportDatabase(context);
-                });
-              },
-            ),
-            const Divider(),
             _SummaryStatisticRow(
               key: _avgKey,
               onDirtyChanged: (v) => _setDirty('avg_window', v),
@@ -312,7 +311,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
             _TzRow(
               key: _tzKey,
               onDirtyChanged: (v) => _setDirty('tz', v),
-            ), //Time Zone row
+            ),
+            const Divider(),
+            _ExportDatabaseRow(
+              onPressed: () {
+                Navigator.of(context).pop();
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  _exportDatabase(context);
+                });
+              },
+            ),
             const Divider(),
             const _DangerZoneHeader(),
             _DeleteOutdatedTransactions(
