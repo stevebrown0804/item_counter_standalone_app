@@ -1,3 +1,5 @@
+// // /ui/settings/sheets/AveragingWindow.dart
+
 part of '../../main.dart';
 
 class _SummaryStatisticRow extends StatefulWidget {

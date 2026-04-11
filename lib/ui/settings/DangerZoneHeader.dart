@@ -1,3 +1,5 @@
+// /ui/settings/sheets/DangerZoneHeader.dart
+
 part of '../../main.dart';
 
 class _DangerZoneHeader extends StatelessWidget {

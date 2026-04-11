@@ -1,3 +1,5 @@
+// ffi.dart
+
 part of 'main.dart';
 
 // <editor-fold desc="Native typedefs">
@@ -600,9 +602,22 @@ class _FfiBackend {
       final m = e as Map<String, dynamic>;
       final id = (m['id'] as num).toInt();
       final name = m['name']?.toString() ?? '';
-      final displayOrder = m['display_order'];
-      // Rust side may send null; we do not use display_order on Dart side.
-      return _Item(id, name);
+
+      final rawDisplayOrder = m['display_order'];
+      final int? displayOrder = rawDisplayOrder == null
+          ? null
+          : (rawDisplayOrder is num)
+          ? rawDisplayOrder.toInt()
+          : int.tryParse(rawDisplayOrder.toString());
+
+      final rawShowItem = m['show_item'];
+      final bool showItem = (rawShowItem is bool)
+          ? rawShowItem
+          : (rawShowItem is num)
+          ? rawShowItem != 0
+          : rawShowItem?.toString().toLowerCase() == 'true';
+
+      return _Item(id, name, displayOrder, showItem);
     }).toList();
   }
 

@@ -1,3 +1,5 @@
+// /ui/settings/sheets/DeleteOutdatedTransactions.dart
+
 part of '../../main.dart';
 
 class _DeleteOutdatedTransactions extends StatelessWidget {

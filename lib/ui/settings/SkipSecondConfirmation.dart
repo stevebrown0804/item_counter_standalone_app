@@ -1,3 +1,5 @@
+// /ui/settings/sheets/SkipSecondConfirmation.dart
+
 part of '../../main.dart';
 
 class _SkipSecondConfirmationSetting extends StatefulWidget {

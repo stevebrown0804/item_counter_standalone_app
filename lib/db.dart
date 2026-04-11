@@ -1,3 +1,5 @@
+// db.dart
+
 part of 'main.dart';
 
 DateTime parseDbUtc(String s) {
@@ -292,7 +294,10 @@ class _Db {
 class _Item {
   final int id;
   final String name;
-  _Item(this.id, this.name);
+  final int? displayOrder;
+  final bool showItem;
+
+  _Item(this.id, this.name, this.displayOrder, this.showItem);
 }
 
 class _AvgRow {
