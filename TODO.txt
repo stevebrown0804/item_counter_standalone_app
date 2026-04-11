@@ -1,8 +1,3 @@
---------------------------------------Personal use-------------------------------------------------
-
-TODO (Once we've implemented the backend project as a WASM module): Create a branch where we remove the FFI stuff and slot in a WASM module.  See which one's shorter (or simpler).
-
-
 ---------------------------------------Public use--------------------------------------------------
 
 TODO (IN PROGRESS): Add an "Add item(s) to count" button to the settings screen
@@ -116,3 +111,10 @@ TODO: Give a way to choose other summary statistics (which we probably won't imp
 ---MAYBE---
 
 TODO (MAYBE): Let the user long-tap & drag them to rearrange the rows of the settings sheet
+
+
+
+
+--------------------------------------Personal use-------------------------------------------------
+
+TODO (Once we've implemented the backend project as a WASM module): Create a branch where we remove the FFI stuff and slot in a WASM module.  See which one's shorter (or simpler).
