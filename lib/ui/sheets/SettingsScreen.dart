@@ -316,6 +316,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     onDirtyChanged: (v) => _setDirty('tz', v),
                   ),
                   const Divider(),
+                  _EditCountableItemsRow(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        final s = _MainScreenState._lastMounted;
+                        if (s != null) {
+                          doEditCountableItemsSheet(context: s.context);
+                        }
+                      });
+                    },
+                  ),
+                  const Divider(),
                   _ExportDatabaseRow(
                     onPressed: () {
                       Navigator.of(context).pop();

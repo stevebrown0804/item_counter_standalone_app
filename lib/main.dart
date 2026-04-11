@@ -26,6 +26,7 @@ part 'ui/settings/SkipSecondConfirmation.dart';
 part 'ui/settings/ViewTransactionsButton.dart';
 part 'ui/settings/sheets/TransactionViewerSheet.dart';
 part 'ui/settings/sheets/TransactionEditorSheet.dart';
+part 'ui/settings/sheets/EditCountableItems.dart';
 part 'ui/settings/ExportDatabase.dart';
 part 'ui/settings/DangerZoneHeader.dart';
 part 'ui/settings/DeleteOutdatedTransactions.dart';
