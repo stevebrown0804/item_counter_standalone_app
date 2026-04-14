@@ -9,6 +9,11 @@ TODO (IN PROGRESS): Add an "Add item(s) to count" button to the settings screen
 
     RELATED TODO: Migrate the show_item handling (currently done in the backend) to the Dart app, so that we can set show_item's value without having to do it via the DB directly.
 
+TODO: Database importing
+    * Add the ability to importing a database (from the Downloads folder, for example) into the app and having it overwrite the current DB's contents with the imported version.
+        * We'd probably want to check the existing data (in the import version) to make sure it lines up with the schema
+    * It seems like this is a step that we'll want to write eventually anyhow; we've thrown around the idea of importing an DB on initial install, without actually calling it "importing," but it seems like we've already been thinking about doing this.
+
 TODO: Take a look at the DB-creation code; make sure it has everything that it needs for the app to do its thing.
     FOLLOW-UP: Turns out, the schema isn't really the issue; the problem is that the backend is only selectively sending data to/from the dart app, via the FFI;  we'll want to broaden that channel of communication.
 
@@ -49,6 +54,7 @@ TODO: Time-zone specifying
             * When the user taps into the "Time Zone" input box, it presents a complete list of tz names
             * As the user enters characters, it refines that list to names matching the substring that the user as entered.  It continues like this until the user either taps "Submit" or taps the name (which then populates the input box), then taps "Submit."
     *Add a setting with key derived from "Specify time zone by alias"; default value is false (ie. unchecked)
+
 
 
 
