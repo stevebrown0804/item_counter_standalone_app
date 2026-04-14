@@ -328,13 +328,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     },
                   ),
                   const Divider(),
-                  _ExportDatabaseRow(
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        _exportDatabase(context);
-                      });
-                    },
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _ExportDatabaseRow(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            _exportDatabase(context);
+                          });
+                        },
+                      ),
+                      const SizedBox(width: 12),
+                      _ImportDatabaseRow(
+                        onPressed: () {},
+                      ),
+                    ],
                   ),
                   const Divider(),
                 ],

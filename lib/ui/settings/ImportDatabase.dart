@@ -1,9 +1,9 @@
-// /ui/settings/ExportDatabase.dart
+// /ui/settings/ImportDatabase.dart
 
 part of '../../main.dart';
 
-class _ExportDatabaseRow extends StatelessWidget {
-  const _ExportDatabaseRow({
+class _ImportDatabaseRow extends StatelessWidget {
+  const _ImportDatabaseRow({
     required this.onPressed,
   });
 
@@ -15,8 +15,8 @@ class _ExportDatabaseRow extends StatelessWidget {
       child: Align(
         alignment: Alignment.center,
         child: OutlinedButton.icon(
-          icon: const Icon(Icons.download),
-          label: const Text('Export database'),
+          icon: const Icon(Icons.upload),
+          label: const Text('Import database'),
           onPressed: onPressed,
         ),
       ),
