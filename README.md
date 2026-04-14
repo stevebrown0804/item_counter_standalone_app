@@ -29,7 +29,7 @@ If you're interested in using the app, you'll probably want to do the following:
 
 Phase 2, where I make the app more accessible to others
 
-* 2026-04-10 This phase is in progress now!🥳  Check the TODO.txt file if you want to see what I'm planning to do.  (The 'upper' section, that is.  The "Minor initiatives" and lower sections are TODOs that I wrote up the last time I was working on the project; we'll evaluate them to see if we still want to do them, eventually.)
+* 2026-04-10 This phase is in progress now!🥳  Check the TODO.txt file if you want to see what I'm planning to do.  (The 'Public use' section, anyhow; the "Minor initiatives" and lower sections are TODOs that I wrote up the last time I was working on the project; we'll evaluate them to see if we still want to do them, eventually.)
 
 ---
 
