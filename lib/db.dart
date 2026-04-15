@@ -12,23 +12,57 @@ DateTime parseDbUtc(String s) {
 // ── the DB wrapper (sqflite + Rust FFI) ──
 class _Db {
   Database? _db;
+  Future<Database>? _openFuture;
+
+  Future<T> _timed<T>(String label, Future<T> Function() action) async {
+    final sw = Stopwatch()..start();
+    debugPrint('[DB] START $label');
+    try {
+      final result = await action();
+      debugPrint('[DB] END   $label (${sw.elapsedMilliseconds} ms)');
+      return result;
+    } catch (e, st) {
+      debugPrint('[DB] FAIL  $label after ${sw.elapsedMilliseconds} ms: $e');
+      debugPrint('$st');
+      rethrow;
+    }
+  }
 
   Future<Database> open() async {
     if (_db != null) return _db!;
-    final dbDir = await getDatabasesPath();
-    final full = p.join(dbDir, kDbFileName);
 
-    await _FfiBackend.instance.init(full);
-    _db = await openDatabase(full);
+    final existing = _openFuture;
+    if (existing != null) {
+      return existing;
+    }
 
-    return _db!;
+    final future = () async {
+      final dbDir = await getDatabasesPath();
+      final full = p.join(dbDir, kDbFileName);
+
+      await _FfiBackend.instance.init(full);
+      final opened = await openDatabase(full);
+
+      _db = opened;
+      return opened;
+    }();
+
+    _openFuture = future;
+
+    try {
+      return await future;
+    } finally {
+      _openFuture = null;
+    }
   }
 
   // ───────────────────────── Items ─────────────────────────
 
   Future<List<_Item>> listItemsOrdered() async {
-    await open(); // ensures FFI is initialized
-    return _FfiBackend.instance.listItems();
+    return _timed('listItemsOrdered()', () async {
+      await open();
+      return _FfiBackend.instance.listItems();
+    });
   }
 
   // Generic settings helper: read a required string value by key.
@@ -71,8 +105,10 @@ class _Db {
   // ───────────────────────── Settings: averaging window ─────────────────────────
 
   Future<int> readAveragingWindowDays() async {
-    await open();
-    return _FfiBackend.instance.readAveragingWindowDays();
+    return _timed('readAveragingWindowDays()', () async {
+      await open();
+      return _FfiBackend.instance.readAveragingWindowDays();
+    });
   }
 
   Future<void> setAveragingWindowDays(int days) async {
@@ -152,8 +188,10 @@ class _Db {
   // ───────────────────────── Averages ─────────────────────────
 
   Future<List<_AvgRow>> readDailyAverages() async {
-    await open();
-    return _FfiBackend.instance.readDailyAverages();
+    return _timed('readDailyAverages()', () async {
+      await open();
+      return _FfiBackend.instance.readDailyAverages();
+    });
   }
 
   // ───────────────────────── Time zones ─────────────────────────
@@ -170,8 +208,10 @@ class _Db {
   }
 
   Future<_Tz?> readActiveTz() async {
-    await open();
-    return _FfiBackend.instance.readActiveTz();
+    return _timed('readActiveTz()', () async {
+      await open();
+      return _FfiBackend.instance.readActiveTz();
+    });
   }
 
   /// Returns the full alias string (e.g., "MT/MST/MDT") for the active time zone.
