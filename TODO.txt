@@ -1,21 +1,37 @@
 ---------------------------------------Public use--------------------------------------------------
 
-TODO (IN PROGRESS): Add an "Add item(s) to count" button to the settings screen
-    * It'll bring up a sheet with (LHS) "Item name" and (RHS) "View order"
-        * When a new item is added, use the (highest view order #) + 1 as the new view order
-        * If a view order if changed to equal an existing value, let the just-changed entry take on the new value and increment all higher-valued entries (until a unused number is reached)
-        * ALSO: We want a way to hide items but leave them in this list; perhaps we could allow "view order == 0" or "== -1" or something; we might also just add another column with a boolean for 'hidden;'  TBD, I guess
-    * Let's also add this to the main view, when it's empty
+TODO(IN PROGRESS): Database importing
+    * Add the ability to importing a database (from the Downloads folder, for example) into the app and having it overwrite the current DB's contents with the imported version (or merge with it...although that seems like a "later" feature).
+        * We'll probably want to check the existing data (in the DB-to-be-imported) to make sure it lines up with the schema
+    * Give the UI checkboxes for:
+        * Import settings
+        * Import items
+        * Import item transactions
+        * Import time zones
+        * (...and not import the other tables, as they're either session-specific data or system stuff.)
 
-    RELATED TODO: Migrate the show_item handling (currently done in the backend) to the Dart app, so that we can set show_item's value without having to do it via the DB directly.
+            Per ChatGPT:
+            "item_transactions depends on items, because of item_id
+            settings may depend on time_zone_aliases, because time_zone_id points into that table
+            [So] this [import] order would be sensible:
+                time zones
+                settings
+                items
+                item transactions"
 
-TODO: Database importing
-    * Add the ability to importing a database (from the Downloads folder, for example) into the app and having it overwrite the current DB's contents with the imported version.
-        * We'd probably want to check the existing data (in the import version) to make sure it lines up with the schema
-    * It seems like this is a step that we'll want to write eventually anyhow; we've thrown around the idea of importing an DB on initial install, without actually calling it "importing," but it seems like we've already been thinking about doing this.
+TODO (PENDING): Add an "Edit countable items" button to the settings screen and implement it
+    * It'll bring up a sheet with columns for "Item name", "View order" and "Show items"
+    * If/when we add a "new DB wizard," we'll probably want to give a similar UI but minus the "Show items" column (as only TRUE jerks add items but then make them invisible when they first start using an app).
+        * Maybe we could hide the show_items column, but give the option to show it, if the user is indeed a "TRUE jerk."
 
-TODO: Take a look at the DB-creation code; make sure it has everything that it needs for the app to do its thing.
-    FOLLOW-UP: Turns out, the schema isn't really the issue; the problem is that the backend is only selectively sending data to/from the dart app, via the FFI;  we'll want to broaden that channel of communication.
+    Related-and-possibly-prerequisite TODO: Migrate the show_item handling (currently done in the backend) to the Dart app, so that we can set show_item's value without having to do it via the DB directly.
+
+TODO: Item metadata
+    * Create a table to hold key/value pairs
+    * Create a UI for defining those pairs
+        * atm I'm thinking "one set of keys that applies to the entire item set" (...although that's making me think about ways to allow multiple item sets.🤔  we'll think about that later, though.)
+         * eg. Manufacturer, Product Name
+    * FUTURE: If we've implementing DB importing then we'll want to add this table as an option for importing
 
 TODO: pinning dates (TBC)
     options:
@@ -43,7 +59,10 @@ TODO: Add a statement about "Current averaging window" (although we probably sho
     * We should probably also state this on the home screen...at least, if it's at all unusual (ie. pinned durations).  Maybe change the header of the averages column?  We'll think about this.
 
 TODO: Add a checkbox on the settings screen for "Clicking a save button returns you to the home screen"
-    Implement!
+    * Implement!
+    * We might reword it from just "save button" to any UI interaction: save buttons, a date successfully picked, etc.
+
+    sub-TODO: Consolidate save buttons!  Let's have one...or at least one per "some kind of region within the settings sheet" or something.
 
 TODO: Time-zone specifying
     * Add a "Specify time zone by alias" checkbox
@@ -55,17 +74,19 @@ TODO: Time-zone specifying
             * As the user enters characters, it refines that list to names matching the substring that the user as entered.  It continues like this until the user either taps "Submit" or taps the name (which then populates the input box), then taps "Submit."
     *Add a setting with key derived from "Specify time zone by alias"; default value is false (ie. unchecked)
 
-TODO: Answer the question, "Should we re-implement the backend in Dart?"
-    * Arguments against:  Changes to the backend are few and far-between, as far as I can tell.  If we don't make any more changes to the back-end, it'll be a waste.
-    * Arguments for:  Every change brings a little upheaval, and it would be FAR easier to diagnose that upheaval if the code were in the same project (or, at least, a smaller collection of files) as the app.
+TODO (EVENTUALLY): Answer the question, "Should we still consider re-implement the backend in Dart, now that we've consolidated the backend's files down to 2, making passing lib.rs to ChatGPT much easier?"
+    * Initial thoughts: Let's reevaluate this question after we've made another change to the backend and had to suffer through troubleshooting what went wrong.  If that 'suffering' turns out to not be very 'suffer-y' after all then let's delete this TODO.
 
-     A THOUGHT: If we were to consolidate the backend into fewer files (ideally into one file), would that basically address our concerns?  I kinda feel like it would.
+TODO (Before writing an "Edit the settings" UI): Have the backend send the entirety of the settings table to the app.
+    * atm it's selective about what it sends; let's change that behavior from "selective" to "generous."
 
 
+
+
+
+[REMINDER: From here down we have TODOs written during the first pass of app development; they may or may not still apply.  We'll get around to evaluating them 'eventually.']
 
 ---Minor initiatives---
-
-
 
 
 ---Major initiatives---
@@ -100,9 +121,6 @@ TODO: UI minutiae
 
 TODO (MAYBE): Make the Transaction Viewer sheet more compact
     Maybe move the "last # days" radio onto the first row, compress the input boxes vertically, remove space between the "All" row and the "Apply filter" button, etc.
-
-TODO: Consolidate the 'save' buttons on the settings sheet.
-    I'm thinking that we could get away with having either 1 Save button or "1 per section" or some such.  TBD.
 
 
 
