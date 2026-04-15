@@ -55,7 +55,11 @@ TODO: Time-zone specifying
             * As the user enters characters, it refines that list to names matching the substring that the user as entered.  It continues like this until the user either taps "Submit" or taps the name (which then populates the input box), then taps "Submit."
     *Add a setting with key derived from "Specify time zone by alias"; default value is false (ie. unchecked)
 
+TODO: Answer the question, "Should we re-implement the backend in Dart?"
+    * Arguments against:  Changes to the backend are few and far-between, as far as I can tell.  If we don't make any more changes to the back-end, it'll be a waste.
+    * Arguments for:  Every change brings a little upheaval, and it would be FAR easier to diagnose that upheaval if the code were in the same project (or, at least, a smaller collection of files) as the app.
 
+     A THOUGHT: If we were to consolidate the backend into fewer files (ideally into one file), would that basically address our concerns?  I kinda feel like it would.
 
 
 
