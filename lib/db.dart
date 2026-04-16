@@ -28,6 +28,18 @@ class _Db {
     }
   }
 
+  Future<String> _dbPath() async {
+    final dbDir = await getDatabasesPath();
+    return p.join(dbDir, kDbFileName);
+  }
+
+  Future<void> _ensureFfiReady() async {
+    await _timed('ensureFfiReady()', () async {
+      final full = await _dbPath();
+      await _FfiBackend.instance.init(full);
+    });
+  }
+
   Future<Database> open() async {
     if (_db != null) return _db!;
 
@@ -36,16 +48,13 @@ class _Db {
       return existing;
     }
 
-    final future = () async {
-      final dbDir = await getDatabasesPath();
-      final full = p.join(dbDir, kDbFileName);
-
+    final future = _timed('openDatabase()', () async {
+      final full = await _dbPath();
       await _FfiBackend.instance.init(full);
       final opened = await openDatabase(full);
-
       _db = opened;
       return opened;
-    }();
+    });
 
     _openFuture = future;
 
@@ -60,7 +69,7 @@ class _Db {
 
   Future<List<_Item>> listItemsOrdered() async {
     return _timed('listItemsOrdered()', () async {
-      await open();
+      await _ensureFfiReady();
       return _FfiBackend.instance.listItems();
     });
   }
@@ -101,18 +110,17 @@ class _Db {
     );
   }
 
-
   // ───────────────────────── Settings: averaging window ─────────────────────────
 
   Future<int> readAveragingWindowDays() async {
     return _timed('readAveragingWindowDays()', () async {
-      await open();
+      await _ensureFfiReady();
       return _FfiBackend.instance.readAveragingWindowDays();
     });
   }
 
   Future<void> setAveragingWindowDays(int days) async {
-    await open();
+    await _ensureFfiReady();
     await _FfiBackend.instance.setAveragingWindowDays(days);
   }
 
@@ -120,7 +128,7 @@ class _Db {
   /// string "YYYY-MM-DD" in the active time zone.
   Future<int> computeAveragingWindowDaysFromPickedLocalDate(
       String localDateYmd) async {
-    await open();
+    await _ensureFfiReady();
     return _FfiBackend.instance
         .computeAveragingWindowDaysFromPickedLocalDate(localDateYmd);
   }
@@ -128,7 +136,7 @@ class _Db {
   /// Oldest transaction date in the active time zone, truncated to a
   /// calendar date (year-month-day). Returns null if there are no transactions.
   Future<DateTime?> readOldestTransactionLocalDate() async {
-    await open();
+    await _ensureFfiReady();
 
     // Oldest transaction in UTC from the Rust backend.
     final oldestUtc = await _FfiBackend.instance.readOldestTransactionUtc();
@@ -155,33 +163,32 @@ class _Db {
     return DateTime(local.year, local.month, local.day);
   }
 
-
   // ───────────────────────── Settings: skip second confirmation ─────────────────────────
 
   Future<bool> readSkipDeleteSecondConfirm() async {
-    await open();
+    await _ensureFfiReady();
     return _FfiBackend.instance.readSkipDeleteSecondConfirm();
   }
 
   Future<void> setSkipDeleteSecondConfirm(bool skip) async {
-    await open();
+    await _ensureFfiReady();
     await _FfiBackend.instance.setSkipDeleteSecondConfirm(skip);
   }
 
   // ───────────────────────── Transactions: archive/delete ─────────────────────────
 
   Future<int> deleteTransactionsOlderThanDays(int days) async {
-    await open();
+    await _ensureFfiReady();
     return _FfiBackend.instance.deleteTransactionsOlderThanDays(days);
   }
 
   Future<int> countTransactionsOlderThanDays(int days) async {
-    await open();
+    await _ensureFfiReady();
     return _FfiBackend.instance.countTransactionsOlderThanDays(days);
   }
 
   Future<int> deleteOldTransactionsWithPolicy(int days) async {
-    await open();
+    await _ensureFfiReady();
     return _FfiBackend.instance.deleteOldTransactionsWithPolicy(days);
   }
 
@@ -189,7 +196,7 @@ class _Db {
 
   Future<List<_AvgRow>> readDailyAverages() async {
     return _timed('readDailyAverages()', () async {
-      await open();
+      await _ensureFfiReady();
       return _FfiBackend.instance.readDailyAverages();
     });
   }
@@ -198,18 +205,18 @@ class _Db {
 
   /// Returns display strings like "MT/MST/MDT" grouped by tz_name.
   Future<List<String>> listTzAliasStrings() async {
-    await open();
+    await _ensureFfiReady();
     return _FfiBackend.instance.listTzAliasStrings();
   }
 
   Future<void> setActiveTzByAlias(String alias) async {
-    await open();
+    await _ensureFfiReady();
     await _FfiBackend.instance.setActiveTzByAlias(alias);
   }
 
   Future<_Tz?> readActiveTz() async {
     return _timed('readActiveTz()', () async {
-      await open();
+      await _ensureFfiReady();
       return _FfiBackend.instance.readActiveTz();
     });
   }
@@ -217,12 +224,12 @@ class _Db {
   /// Returns the full alias string (e.g., "MT/MST/MDT") for the active time zone.
   /// Falls back to "UTC" if not configured.
   Future<String> readActiveTzAliasString() async {
-    await open();
+    await _ensureFfiReady();
     return _FfiBackend.instance.readActiveTzAliasString();
   }
 
   Future<String> interpretTzAliasInput(String rawInput) async {
-    await open();
+    await _ensureFfiReady();
     return _FfiBackend.instance.interpretTzAliasInput(rawInput);
   }
 
@@ -231,14 +238,14 @@ class _Db {
   /// Convert a local wall-clock timestamp (in the active time zone)
   /// to a UTC DB timestamp "YYYY-MM-DD HH:MM:SS".
   Future<String> localToUtcDbTimestamp(String localTs) async {
-    await open();
+    await _ensureFfiReady();
     return _FfiBackend.instance.localToUtcDbTimestamp(localTs);
   }
 
   /// Convert a UTC DB timestamp "YYYY-MM-DD HH:MM:SS" to local wall-clock
   /// time in the active time zone, also as "YYYY-MM-DD HH:MM:SS".
   Future<String> utcDbToLocalTimestamp(String utcTs) async {
-    await open();
+    await _ensureFfiReady();
     return _FfiBackend.instance.utcDbToLocalTimestamp(utcTs);
   }
 
@@ -247,17 +254,17 @@ class _Db {
   /// Insert entries (at a given UTC timestamp, or now if null) and return their new row IDs.
   Future<List<int>> insertManyAtUtcReturningIds(
       List<_Entry> entries, String? utcIso) async {
-    await open();
+    await _ensureFfiReady();
     return _FfiBackend.instance.insertManyAtUtcReturningIds(entries, utcIso);
   }
 
   Future<_TxnSnapshot?> readTransactionById(int id) async {
-    await open();
+    await _ensureFfiReady();
     return _FfiBackend.instance.readTransactionById(id);
   }
 
   Future<void> deleteTransactionById(int id) async {
-    await open();
+    await _ensureFfiReady();
     await _FfiBackend.instance.deleteTransactionById(id);
   }
 
@@ -267,7 +274,7 @@ class _Db {
     String? startUtc,
     String? endUtc,
   }) async {
-    await open();
+    await _ensureFfiReady();
     return _FfiBackend.instance.queryTransactionsUtcRange(
       startUtc: startUtc,
       endUtc: endUtc,
@@ -275,12 +282,12 @@ class _Db {
   }
 
   Future<List<_TxRow>> queryTransactionsToday() async {
-    await open();
+    await _ensureFfiReady();
     return _FfiBackend.instance.queryTransactionsToday();
   }
 
   Future<List<_TxRow>> queryTransactionsLastNDays(int days) async {
-    await open();
+    await _ensureFfiReady();
     return _FfiBackend.instance.queryTransactionsLastNDays(days);
   }
 
@@ -288,7 +295,7 @@ class _Db {
     String? startLocal,
     String? endLocal,
   }) async {
-    await open();
+    await _ensureFfiReady();
     return _FfiBackend.instance.queryTransactionsRangeLocal(
       startLocal: startLocal,
       endLocal: endLocal,
@@ -296,7 +303,7 @@ class _Db {
   }
 
   Future<List<_TxRow>> queryTransactionsAll() async {
-    await open();
+    await _ensureFfiReady();
     return _FfiBackend.instance.queryTransactionsAll();
   }
 
@@ -304,17 +311,17 @@ class _Db {
 
   Future<String> insertBatchWithUndoToken(
       List<_Entry> entries, String? utcIso) async {
-    await open();
+    await _ensureFfiReady();
     return _FfiBackend.instance.insertBatchWithUndoToken(entries, utcIso);
   }
 
   Future<List<int>> undoLogicalBatch(String token) async {
-    await open();
+    await _ensureFfiReady();
     return _FfiBackend.instance.undoLogicalBatch(token);
   }
 
   Future<List<int>> redoLogicalBatch(String token) async {
-    await open();
+    await _ensureFfiReady();
     return _FfiBackend.instance.redoLogicalBatch(token);
   }
 
@@ -374,5 +381,3 @@ class _Tz {
   _Tz(this.alias, this.tzName);
 }
 // </editor-fold>
-
-
