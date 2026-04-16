@@ -538,19 +538,6 @@ class _FfiBackend {
     return data;
   }
 
-  // Map<String, dynamic>? _decodeNullableMap(String jsonStr) {
-  //   final decoded = _decodeMap(jsonStr);
-  //   if (decoded['ok'] != true) {
-  //     final msg = decoded['error']?.toString() ?? 'unknown error';
-  //     throw StateError('Rust call failed: $msg');
-  //   }
-  //   final data = decoded['data'];
-  //   if (data == null) return null;
-  //   if (data is! Map<String, dynamic>) {
-  //     throw StateError('Rust FFI "data" is not an object');
-  //   }
-  //   return data;
-  // }
 
   // ── Window days / averages ──
 
@@ -690,22 +677,6 @@ class _FfiBackend {
       ffi_helpers.malloc.free(cAlias);
     }
   }
-
-  // Future<List<Map<String, dynamic>>> _listTimezonesRaw() async {
-  //   final jsonStr = _jsonFromNoArg(_icbListTimezonesJson);
-  //   final decoded = _decodeMap(jsonStr);
-  //   if (decoded['ok'] != true) {
-  //     final msg = decoded['error']?.toString() ?? 'unknown error';
-  //     throw StateError('Rust list_timezones failed: $msg');
-  //   }
-  //   final data = decoded['data'];
-  //   if (data is! List) return const <Map<String, dynamic>>[];
-  //   return data
-  //       .whereType<Map>()
-  //       .map<Map<String, dynamic>>(
-  //           (m) => m.map((k, v) => MapEntry(k.toString(), v)))
-  //       .toList();
-  // }
 
   /// Returns display strings (ie. strings such as "MT/MST/MDT") for the UI to render
   Future<List<String>> listTzAliasStrings() async {
