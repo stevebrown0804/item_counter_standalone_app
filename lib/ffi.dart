@@ -299,133 +299,157 @@ class _FfiBackend {
   bool get isInitialized => _initialized;
 
   Future<void> init(String dbPath) {
-    // Already initialized -> return a completed Future
+    final sw = Stopwatch()..start();
+    debugPrint('[FFI] init() called. _initialized=$_initialized, _initFuture=${_initFuture != null}');
+
     if (_initialized) {
+      debugPrint('[FFI] init() returning immediately because _initialized=true (${sw.elapsedMilliseconds} ms)');
       return Future.value();
     }
-    // Initialization is in progress -> return the same Future
+
     final existing = _initFuture;
     if (existing != null) {
+      debugPrint('[FFI] init() returning existing _initFuture (${sw.elapsedMilliseconds} ms)');
       return existing;
     }
-    // Otherwise -> start initialization
+
+    debugPrint('[FFI] init() creating new _doInit future');
     final future = _doInit(dbPath);
     _initFuture = future;
     return future;
   }
 
   Future<void> _doInit(String dbPath) async {
-    _lib = _openLibrary();
+    final sw = Stopwatch()..start();
+    debugPrint('[FFI] _doInit() START dbPath=$dbPath');
 
-    _icbOpen = _lib.lookupFunction<_IcbOpenNative, _IcbOpenDart>('icb_open');
-    _icbClose = _lib.lookupFunction<_IcbCloseNative, _IcbCloseDart>('icb_close');
-
-    _icbReadDailyAveragesJson = _lib.lookupFunction<_IcbJsonNoArgsNative,
-        _IcbJsonNoArgsDart>('icb_read_daily_averages_json');
-
-    _icbReadWindowDaysJson = _lib.lookupFunction<_IcbJsonNoArgsNative,
-        _IcbJsonNoArgsDart>('icb_read_averaging_window_days_json');
-
-    _icbSetWindowDays = _lib.lookupFunction<_IcbSetWindowDaysNative,
-        _IcbSetWindowDaysDart>('icb_set_averaging_window_days');
-
-    _icbFreeString = _lib.lookupFunction<_IcbFreeStringNative,
-        _IcbFreeStringDart>('icb_free_string');
-
-    _icbListItemsJson = _lib.lookupFunction<_IcbListItemsNative,
-        _IcbListItemsDart>('icb_list_items_json');
-
-    _icbReadSkipConfirmJson = _lib.lookupFunction<_IcbReadSkipConfirmNative,
-        _IcbReadSkipConfirmDart>('icb_read_skip_delete_second_confirm_json');
-
-    _icbSetSkipConfirm = _lib.lookupFunction<_IcbSetSkipConfirmNative,
-        _IcbSetSkipConfirmDart>('icb_set_skip_delete_second_confirm');
-
-    _icbListTimezonesJson = _lib.lookupFunction<_IcbListTimezonesNative,
-        _IcbListTimezonesDart>('icb_list_timezones_json');
-
-    _icbSetActiveTzByAlias = _lib.lookupFunction<_IcbSetActiveTzNative,
-        _IcbSetActiveTzDart>('icb_set_active_tz_by_alias');
-
-    _icbReadActiveTzJson = _lib.lookupFunction<_IcbReadActiveTzNative,
-        _IcbReadActiveTzDart>('icb_read_active_tz_json');
-
-    _icbListTzAliasGroupsJson = _lib.lookupFunction<_IcbListTzAliasGroupsNative,
-            _IcbListTzAliasGroupsDart>('icb_list_tz_alias_groups_json');
-
-    _icbReadActiveTzDisplayJson = _lib.lookupFunction<_IcbReadActiveTzDisplayNative,
-            _IcbReadActiveTzDisplayDart>('icb_read_active_tz_display_json');
-
-    _icbInterpretTzAliasInputJson = _lib.lookupFunction<_IcbInterpretTzAliasInputNative,
-            _IcbInterpretTzAliasInputDart>('icb_interpret_tz_alias_input_json');
-
-    _icbInsertManyAtUtcJson = _lib.lookupFunction<_IcbInsertManyAtUtcNative,
-        _IcbInsertManyAtUtcDart>('icb_insert_many_at_utc_json');
-
-    _icbQueryTxTodayJson = _lib.lookupFunction<_IcbQueryTxTodayNative,
-        _IcbQueryTxTodayDart>('icb_query_transactions_today_json');
-
-    _icbQueryTxLastNDaysJson = _lib.lookupFunction<_IcbQueryTxLastNDaysNative,
-            _IcbQueryTxLastNDaysDart>('icb_query_transactions_last_n_days_json');
-
-    _icbQueryTxRangeLocalJson = _lib.lookupFunction<_IcbQueryTxRangeLocalNative,
-            _IcbQueryTxRangeLocalDart>('icb_query_transactions_range_local_json');
-
-    _icbQueryTxAllJson = _lib.lookupFunction<_IcbQueryTxAllNative,
-        _IcbQueryTxAllDart>('icb_query_transactions_all_json');
-
-    _icbQueryTxRangeJson = _lib.lookupFunction<_IcbQueryTxRangeNative,
-        _IcbQueryTxRangeDart>('icb_query_transactions_utc_range_json');
-
-    _icbDeleteTxById = _lib.lookupFunction<_IcbDeleteTxByIdNative,
-        _IcbDeleteTxByIdDart>('icb_delete_transaction_by_id');
-
-    _icbReadTxByIdJson = _lib.lookupFunction<_IcbReadTxByIdNative,
-        _IcbReadTxByIdDart>('icb_read_transaction_by_id_json');
-
-    _icbCountOlderJson = _lib.lookupFunction<_IcbCountOlderNative,
-        _IcbCountOlderDart>('icb_count_transactions_older_than_days_json');
-
-    _icbDeleteOlderJson = _lib.lookupFunction<_IcbDeleteOlderNative,
-        _IcbDeleteOlderDart>('icb_delete_transactions_older_than_days_json');
-
-    _icbDeleteOldWithPolicyJson = _lib.lookupFunction<_IcbDeleteOldWithPolicyNative,
-            _IcbDeleteOldWithPolicyDart>('icb_delete_old_transactions_with_policy_json');
-
-    _icbLocalToUtcJson = _lib.lookupFunction<_IcbLocalToUtcNative,
-        _IcbLocalToUtcDart>('icb_local_to_utc_db_timestamp_json');
-
-    _icbUtcToLocalJson = _lib.lookupFunction<_IcbUtcToLocalNative,
-        _IcbUtcToLocalDart>('icb_utc_db_to_local_timestamp_json');
-
-    _icbInsertBatchWithUndoTokenJson = _lib.lookupFunction<_IcbInsertBatchWithUndoTokenNative,
-            _IcbInsertBatchWithUndoTokenDart>('icb_insert_batch_with_undo_token_json');
-
-    _icbUndoLogicalBatchJson = _lib.lookupFunction<_IcbUndoLogicalBatchNative,
-            _IcbUndoLogicalBatchDart>('icb_undo_logical_batch_json');
-
-    _icbRedoLogicalBatchJson = _lib.lookupFunction<_IcbRedoLogicalBatchNative,
-            _IcbRedoLogicalBatchDart>('icb_redo_logical_batch_json');
-
-    _icbComputeWindowFromPickedDateJson = _lib.lookupFunction<_IcbComputeWindowFromPickedDateNative,
-            _IcbComputeWindowFromPickedDateDart>('icb_compute_averaging_window_days_from_picked_date_json');
-
-    _icbReadOldestTxUtcJson = _lib.lookupFunction<_IcbReadOldestTxUtcNative,
-            _IcbReadOldestTxUtcDart>('icb_read_oldest_transaction_timestamp_utc_json');
-
-
-    final cPath = dbPath.toNativeUtf8();
     try {
-      final h = _icbOpen(cPath);
-      if (h == ffi.Pointer<ffi.Void>.fromAddress(0)) {
-        throw StateError('icb_open returned null (failed to open Rust backend)');
-      }
-      _handle = h;
-    } finally {
-      ffi_helpers.malloc.free(cPath);
-    }
+      final swOpenLib = Stopwatch()..start();
+      _lib = _openLibrary();
+      debugPrint('[FFI] _openLibrary() done in ${swOpenLib.elapsedMilliseconds} ms');
 
-    _initialized = true;
+      final swSymbols = Stopwatch()..start();
+
+      _icbOpen = _lib.lookupFunction<_IcbOpenNative, _IcbOpenDart>('icb_open');
+      _icbClose = _lib.lookupFunction<_IcbCloseNative, _IcbCloseDart>('icb_close');
+
+      _icbReadDailyAveragesJson = _lib.lookupFunction<_IcbJsonNoArgsNative,
+          _IcbJsonNoArgsDart>('icb_read_daily_averages_json');
+
+      _icbReadWindowDaysJson = _lib.lookupFunction<_IcbJsonNoArgsNative,
+          _IcbJsonNoArgsDart>('icb_read_averaging_window_days_json');
+
+      _icbSetWindowDays = _lib.lookupFunction<_IcbSetWindowDaysNative,
+          _IcbSetWindowDaysDart>('icb_set_averaging_window_days');
+
+      _icbFreeString = _lib.lookupFunction<_IcbFreeStringNative,
+          _IcbFreeStringDart>('icb_free_string');
+
+      _icbListItemsJson = _lib.lookupFunction<_IcbListItemsNative,
+          _IcbListItemsDart>('icb_list_items_json');
+
+      _icbReadSkipConfirmJson = _lib.lookupFunction<_IcbReadSkipConfirmNative,
+          _IcbReadSkipConfirmDart>('icb_read_skip_delete_second_confirm_json');
+
+      _icbSetSkipConfirm = _lib.lookupFunction<_IcbSetSkipConfirmNative,
+          _IcbSetSkipConfirmDart>('icb_set_skip_delete_second_confirm');
+
+      _icbListTimezonesJson = _lib.lookupFunction<_IcbListTimezonesNative,
+          _IcbListTimezonesDart>('icb_list_timezones_json');
+
+      _icbSetActiveTzByAlias = _lib.lookupFunction<_IcbSetActiveTzNative,
+          _IcbSetActiveTzDart>('icb_set_active_tz_by_alias');
+
+      _icbReadActiveTzJson = _lib.lookupFunction<_IcbReadActiveTzNative,
+          _IcbReadActiveTzDart>('icb_read_active_tz_json');
+
+      _icbListTzAliasGroupsJson = _lib.lookupFunction<_IcbListTzAliasGroupsNative,
+          _IcbListTzAliasGroupsDart>('icb_list_tz_alias_groups_json');
+
+      _icbReadActiveTzDisplayJson = _lib.lookupFunction<_IcbReadActiveTzDisplayNative,
+          _IcbReadActiveTzDisplayDart>('icb_read_active_tz_display_json');
+
+      _icbInterpretTzAliasInputJson = _lib.lookupFunction<_IcbInterpretTzAliasInputNative,
+          _IcbInterpretTzAliasInputDart>('icb_interpret_tz_alias_input_json');
+
+      _icbInsertManyAtUtcJson = _lib.lookupFunction<_IcbInsertManyAtUtcNative,
+          _IcbInsertManyAtUtcDart>('icb_insert_many_at_utc_json');
+
+      _icbQueryTxTodayJson = _lib.lookupFunction<_IcbQueryTxTodayNative,
+          _IcbQueryTxTodayDart>('icb_query_transactions_today_json');
+
+      _icbQueryTxLastNDaysJson = _lib.lookupFunction<_IcbQueryTxLastNDaysNative,
+          _IcbQueryTxLastNDaysDart>('icb_query_transactions_last_n_days_json');
+
+      _icbQueryTxRangeLocalJson = _lib.lookupFunction<_IcbQueryTxRangeLocalNative,
+          _IcbQueryTxRangeLocalDart>('icb_query_transactions_range_local_json');
+
+      _icbQueryTxAllJson = _lib.lookupFunction<_IcbQueryTxAllNative,
+          _IcbQueryTxAllDart>('icb_query_transactions_all_json');
+
+      _icbQueryTxRangeJson = _lib.lookupFunction<_IcbQueryTxRangeNative,
+          _IcbQueryTxRangeDart>('icb_query_transactions_utc_range_json');
+
+      _icbDeleteTxById = _lib.lookupFunction<_IcbDeleteTxByIdNative,
+          _IcbDeleteTxByIdDart>('icb_delete_transaction_by_id');
+
+      _icbReadTxByIdJson = _lib.lookupFunction<_IcbReadTxByIdNative,
+          _IcbReadTxByIdDart>('icb_read_transaction_by_id_json');
+
+      _icbCountOlderJson = _lib.lookupFunction<_IcbCountOlderNative,
+          _IcbCountOlderDart>('icb_count_transactions_older_than_days_json');
+
+      _icbDeleteOlderJson = _lib.lookupFunction<_IcbDeleteOlderNative,
+          _IcbDeleteOlderDart>('icb_delete_transactions_older_than_days_json');
+
+      _icbDeleteOldWithPolicyJson = _lib.lookupFunction<_IcbDeleteOldWithPolicyNative,
+          _IcbDeleteOldWithPolicyDart>('icb_delete_old_transactions_with_policy_json');
+
+      _icbLocalToUtcJson = _lib.lookupFunction<_IcbLocalToUtcNative,
+          _IcbLocalToUtcDart>('icb_local_to_utc_db_timestamp_json');
+
+      _icbUtcToLocalJson = _lib.lookupFunction<_IcbUtcToLocalNative,
+          _IcbUtcToLocalDart>('icb_utc_db_to_local_timestamp_json');
+
+      _icbInsertBatchWithUndoTokenJson = _lib.lookupFunction<_IcbInsertBatchWithUndoTokenNative,
+          _IcbInsertBatchWithUndoTokenDart>('icb_insert_batch_with_undo_token_json');
+
+      _icbUndoLogicalBatchJson = _lib.lookupFunction<_IcbUndoLogicalBatchNative,
+          _IcbUndoLogicalBatchDart>('icb_undo_logical_batch_json');
+
+      _icbRedoLogicalBatchJson = _lib.lookupFunction<_IcbRedoLogicalBatchNative,
+          _IcbRedoLogicalBatchDart>('icb_redo_logical_batch_json');
+
+      _icbComputeWindowFromPickedDateJson = _lib.lookupFunction<_IcbComputeWindowFromPickedDateNative,
+          _IcbComputeWindowFromPickedDateDart>('icb_compute_averaging_window_days_from_picked_date_json');
+
+      _icbReadOldestTxUtcJson = _lib.lookupFunction<_IcbReadOldestTxUtcNative,
+          _IcbReadOldestTxUtcDart>('icb_read_oldest_transaction_timestamp_utc_json');
+
+      debugPrint('[FFI] symbol lookup done in ${swSymbols.elapsedMilliseconds} ms');
+
+      final cPath = dbPath.toNativeUtf8();
+      try {
+        final swOpen = Stopwatch()..start();
+        debugPrint('[FFI] calling icb_open(...)');
+        final h = _icbOpen(cPath);
+        debugPrint('[FFI] icb_open(...) returned in ${swOpen.elapsedMilliseconds} ms');
+
+        if (h == ffi.Pointer<ffi.Void>.fromAddress(0)) {
+          throw StateError('icb_open returned null (failed to open Rust backend)');
+        }
+        _handle = h;
+      } finally {
+        ffi_helpers.malloc.free(cPath);
+      }
+
+      _initialized = true;
+      debugPrint('[FFI] _doInit() END success in ${sw.elapsedMilliseconds} ms');
+    } catch (e, st) {
+      debugPrint('[FFI] _doInit() THREW after ${sw.elapsedMilliseconds} ms: $e');
+      debugPrint('$st');
+      rethrow;
+    }
   }
 
   ffi.DynamicLibrary _openLibrary() {
@@ -458,15 +482,23 @@ class _FfiBackend {
   }
 
   String _jsonFromNoArg(_IcbJsonNoArgsDart f) {
+    final sw = Stopwatch()..start();
     final h = _requireHandle();
+    debugPrint('[FFI] _jsonFromNoArg() START');
     final ptr = f(h);
+    debugPrint('[FFI] _jsonFromNoArg() native call returned in ${sw.elapsedMilliseconds} ms');
+
     if (ptr == ffi.Pointer<ffi_helpers.Utf8>.fromAddress(0)) {
       throw StateError('Rust FFI returned null JSON pointer');
     }
+
     try {
-      return ptr.toDartString();
+      final s = ptr.toDartString();
+      debugPrint('[FFI] _jsonFromNoArg() toDartString done in ${sw.elapsedMilliseconds} ms');
+      return s;
     } finally {
       _icbFreeString(ptr);
+      debugPrint('[FFI] _jsonFromNoArg() END total ${sw.elapsedMilliseconds} ms');
     }
   }
 
@@ -698,15 +730,29 @@ class _FfiBackend {
   }
 
   Future<_Tz?> readActiveTz() async {
+    final sw = Stopwatch()..start();
+    debugPrint('[FFI] readActiveTz() START');
+
     final jsonStr = _jsonFromNoArg(_icbReadActiveTzJson);
+    debugPrint('[FFI] readActiveTz() after native/json string ${sw.elapsedMilliseconds} ms');
+
     final decoded = _decodeMap(jsonStr);
+    debugPrint('[FFI] readActiveTz() after decodeMap ${sw.elapsedMilliseconds} ms');
+
     if (decoded['ok'] != true) {
+      debugPrint('[FFI] readActiveTz() returning null because ok != true (${sw.elapsedMilliseconds} ms)');
       return null;
     }
+
     final data = decoded['data'] as Map<String, dynamic>? ?? const {};
     final alias = data['alias']?.toString();
     final tzName = data['tz_name']?.toString() ?? 'UTC';
-    if (alias == null || alias.isEmpty) return null;
+    if (alias == null || alias.isEmpty) {
+      debugPrint('[FFI] readActiveTz() returning null because alias missing (${sw.elapsedMilliseconds} ms)');
+      return null;
+    }
+
+    debugPrint('[FFI] readActiveTz() END total ${sw.elapsedMilliseconds} ms');
     return _Tz(alias, tzName);
   }
 
