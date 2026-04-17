@@ -325,6 +325,37 @@ class _Db {
     return _FfiBackend.instance.redoLogicalBatch(token);
   }
 
+  // ───────────────────────── Schema introspection ─────────────────────────
+
+  Future<List<_SchemaObject>> readSchemaObjects() async {
+    final db = await open();
+    final rows = await db.rawQuery('''
+SELECT
+  type,
+  name,
+  tbl_name,
+  sql
+FROM sqlite_master
+WHERE type IN ('table', 'view')
+  AND name NOT LIKE 'sqlite_%'
+ORDER BY
+  CASE type
+    WHEN 'table' THEN 0
+    WHEN 'view' THEN 1
+    ELSE 2
+  END,
+  name
+''');
+
+    return rows.map((row) {
+      final type = row['type']?.toString() ?? '';
+      final name = row['name']?.toString() ?? '';
+      final tableName = row['tbl_name']?.toString() ?? '';
+      final sql = row['sql']?.toString() ?? '';
+      return _SchemaObject(type, name, tableName, sql);
+    }).toList();
+  }
+
   // ───────────────────────── sqflite escape hatch ─────────────────────────
 
   // Only kept for cases where we truly do not have an FFI helper yet.
@@ -373,6 +404,15 @@ class _TxnSnapshot {
   final int qty;
   final String utcIso; // "YYYY-MM-DD HH:MM:SS" UTC
   _TxnSnapshot(this.itemId, this.qty, this.utcIso);
+}
+
+class _SchemaObject {
+  final String type;
+  final String name;
+  final String tableName;
+  final String sql;
+
+  _SchemaObject(this.type, this.name, this.tableName, this.sql);
 }
 
 class _Tz {
