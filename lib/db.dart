@@ -34,10 +34,7 @@ class _Db {
   }
 
   Future<void> _ensureFfiReady() async {
-    await _timed('ensureFfiReady()', () async {
-      final full = await _dbPath();
-      await _FfiBackend.instance.init(full);
-    });
+    await open();
   }
 
   Future<Database> open() async {
@@ -50,8 +47,9 @@ class _Db {
 
     final future = _timed('openDatabase()', () async {
       final full = await _dbPath();
-      await _FfiBackend.instance.init(full);
       final opened = await openDatabase(full);
+      await _ensureSchema(opened);
+      await _FfiBackend.instance.init(full);
       _db = opened;
       return opened;
     });
@@ -63,6 +61,135 @@ class _Db {
     } finally {
       _openFuture = null;
     }
+  }
+
+  Future<void> _ensureSchema(Database db) async {
+    await db.execute('PRAGMA foreign_keys = ON');
+
+    await db.execute('''
+CREATE TABLE IF NOT EXISTS items (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    display_string  TEXT UNIQUE NOT NULL,
+    display_order   INTEGER UNIQUE,
+    show_item       INTEGER NOT NULL DEFAULT (1)
+)
+''');
+
+    await db.execute('''
+CREATE TABLE IF NOT EXISTS item_transactions (
+    id            INTEGER  PRIMARY KEY,
+    item_id       INTEGER  NOT NULL,
+    quantity      INTEGER  NOT NULL CHECK (quantity > 0),
+    timestamp_utc DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (item_id) REFERENCES items (id)
+)
+''');
+
+    await db.execute('''
+CREATE TABLE IF NOT EXISTS settings (
+    key   TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+)
+''');
+
+    await db.execute('''
+CREATE TABLE IF NOT EXISTS time_zone_aliases (
+    id           INTEGER PRIMARY KEY,
+    alias        TEXT NOT NULL UNIQUE,
+    iana_tz_name TEXT NOT NULL
+)
+''');
+
+    await db.execute('''
+CREATE TABLE IF NOT EXISTS logical_batches (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    token      TEXT NOT NULL,
+    undone     INTEGER NOT NULL DEFAULT 0,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+)
+''');
+
+    await db.execute('''
+CREATE TABLE IF NOT EXISTS logical_batch_items (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    batch_id       INTEGER NOT NULL,
+    transaction_id INTEGER NOT NULL,
+    item_id        INTEGER NOT NULL,
+    quantity       INTEGER NOT NULL,
+    timestamp_utc  DATETIME NOT NULL,
+    FOREIGN KEY (batch_id) REFERENCES logical_batches(id)
+)
+''');
+
+    await db.execute('''
+CREATE VIEW IF NOT EXISTS logged_days AS
+WITH cfg AS (
+        SELECT CAST((
+                   SELECT value
+                     FROM settings
+                    WHERE key = 'avg_window_days'
+               ) AS INTEGER) AS n
+    ),
+    global AS (
+        SELECT DATE('now') AS today,
+               MIN(DATE(timestamp_utc)) AS min_date
+          FROM item_transactions
+    ),
+    window AS (
+        SELECT g.today,
+               g.min_date,
+               c.n,
+               DATE(JULIANDAY(g.today) - (c.n - 1)) AS n_start,
+               CASE
+                   WHEN g.min_date IS NULL THEN 0
+                   ELSE CAST(
+                       JULIANDAY(g.today) - JULIANDAY(MAX(g.min_date, DATE(JULIANDAY(g.today) - (c.n - 1))))
+                       AS INTEGER
+                   ) + 1
+               END AS days
+          FROM global g
+          CROSS JOIN cfg c
+    )
+    SELECT days AS number_of_days
+      FROM window
+''');
+
+    await _ensureSettingDefault(db, 'avg_window_days', '30');
+    await _ensureSettingDefault(db, 'skip_delete_transactions_second_dialog_confirmation', '0');
+    await _ensureSettingDefault(db, 'time_zone_id', '0');
+    await _ensureSettingDefault(db, 'appbar_title', 'Item Counter');
+    await _ensureSettingDefault(db, 'lhs_column_header', 'Item');
+    await _ensureSettingDefault(db, 'rhs_column_header', 'Avg. {days} day(s)');
+    await _ensureSettingDefault(db, 'last_added_banner_text', '');
+    await _ensureSettingDefault(db, 'last_added_banner_dismissed', '0');
+
+    await db.rawInsert(
+      'INSERT OR IGNORE INTO time_zone_aliases (alias, iana_tz_name) VALUES (?, ?)',
+      ['UTC', 'Etc/UTC'],
+    );
+    await db.rawInsert(
+      'INSERT OR IGNORE INTO time_zone_aliases (alias, iana_tz_name) VALUES (?, ?)',
+      ['GMT', 'Etc/UTC'],
+    );
+    await db.rawInsert(
+      'INSERT OR IGNORE INTO time_zone_aliases (alias, iana_tz_name) VALUES (?, ?)',
+      ['Z', 'Etc/UTC'],
+    );
+  }
+
+  Future<void> _ensureSettingDefault(Database db, String key, String value) async {
+    final rows = await db.rawQuery(
+      'SELECT value FROM settings WHERE key = ?1',
+      [key],
+    );
+    if (rows.isNotEmpty) {
+      return;
+    }
+    await db.insert(
+      'settings',
+      {'key': key, 'value': value},
+      conflictAlgorithm: ConflictAlgorithm.ignore,
+    );
   }
 
   // ───────────────────────── Items ─────────────────────────

@@ -443,16 +443,6 @@ class _FfiBackend {
           throw StateError('icb_open returned null (failed to open Rust backend)');
         }
 
-        final swSchema = Stopwatch()..start();
-        debugPrint('[FFI] calling icb_init_schema(...)');
-        final schemaRc = _icbInitSchema(h);
-        debugPrint('[FFI] icb_init_schema(...) returned in ${swSchema.elapsedMilliseconds} ms');
-
-        if (schemaRc != 0) {
-          _icbClose(h);
-          throw StateError('icb_init_schema returned error code $schemaRc');
-        }
-
         _handle = h;
       } finally {
         ffi_helpers.malloc.free(cPath);
