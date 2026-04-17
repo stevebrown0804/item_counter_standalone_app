@@ -11,6 +11,8 @@ typedef _IcbOpenDart = ffi.Pointer<ffi.Void> Function(
     );
 typedef _IcbCloseNative = ffi.Void Function(ffi.Pointer<ffi.Void>);
 typedef _IcbCloseDart = void Function(ffi.Pointer<ffi.Void>);
+typedef _IcbInitSchemaNative = ffi.Int32 Function(ffi.Pointer<ffi.Void>);
+typedef _IcbInitSchemaDart = int Function(ffi.Pointer<ffi.Void>);
 typedef _IcbJsonNoArgsNative = ffi.Pointer<ffi_helpers.Utf8> Function(
     ffi.Pointer<ffi.Void>,
     );
@@ -262,6 +264,7 @@ class _FfiBackend {
   late final ffi.DynamicLibrary _lib;
   late final _IcbOpenDart _icbOpen;
   late final _IcbCloseDart _icbClose;
+  late final _IcbInitSchemaDart _icbInitSchema;
   late final _IcbJsonNoArgsDart _icbReadDailyAveragesJson;
   late final _IcbJsonNoArgsDart _icbReadWindowDaysJson;
   late final _IcbSetWindowDaysDart _icbSetWindowDays;
@@ -332,6 +335,7 @@ class _FfiBackend {
 
       _icbOpen = _lib.lookupFunction<_IcbOpenNative, _IcbOpenDart>('icb_open');
       _icbClose = _lib.lookupFunction<_IcbCloseNative, _IcbCloseDart>('icb_close');
+      _icbInitSchema = _lib.lookupFunction<_IcbInitSchemaNative, _IcbInitSchemaDart>('icb_init_schema');
 
       _icbReadDailyAveragesJson = _lib.lookupFunction<_IcbJsonNoArgsNative,
           _IcbJsonNoArgsDart>('icb_read_daily_averages_json');
@@ -438,6 +442,17 @@ class _FfiBackend {
         if (h == ffi.Pointer<ffi.Void>.fromAddress(0)) {
           throw StateError('icb_open returned null (failed to open Rust backend)');
         }
+
+        final swSchema = Stopwatch()..start();
+        debugPrint('[FFI] calling icb_init_schema(...)');
+        final schemaRc = _icbInitSchema(h);
+        debugPrint('[FFI] icb_init_schema(...) returned in ${swSchema.elapsedMilliseconds} ms');
+
+        if (schemaRc != 0) {
+          _icbClose(h);
+          throw StateError('icb_init_schema returned error code $schemaRc');
+        }
+
         _handle = h;
       } finally {
         ffi_helpers.malloc.free(cPath);
