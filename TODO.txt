@@ -1,10 +1,6 @@
 ---------------------------------------Public use--------------------------------------------------
 
-TODO (BEFORE "database importing"): Implement schema.rs in dart.
-    *Let's do it one fn at a time (of which there are 3, in schema.rs).  Implement, test, (x3), remove ffi calls, remove backend code.
-    * Heck, we might even just port init_schema....or we might do all 3 at once.  I'm not sure which will work better.🤔 Or we might port everything called by ItemCounterBackend::open(). hmm....
-
-TODO(ON HOLD FOR A MOMENT): Database importing
+TODO(RESUME NEXT TIME!): Database importing
     * Add the ability to importing a database (from the Downloads folder, for example) into the app and having it overwrite the current DB's contents with the imported version (or merge with it...although that seems like a "later" feature).
         * We'll probably want to check the existing data (in the DB-to-be-imported) to make sure it lines up with the schema
     * Give the UI checkboxes for:
