@@ -682,8 +682,38 @@ ORDER BY display_order, p.id
   }
 
   Future<void> setActiveTzByAlias(String alias) async {
-    await _ensureFfiReady();
-    await _FfiBackend.instance.setActiveTzByAlias(alias);
+    final db = await open();
+
+    final rows = await db.rawQuery(
+      'SELECT id FROM time_zone_aliases WHERE UPPER(alias) = UPPER(?) LIMIT 1',
+      [alias],
+    );
+
+    if (rows.isEmpty || rows.first['id'] == null) {
+      throw ArgumentError('Unknown time zone alias: $alias');
+    }
+
+    final rawId = rows.first['id'];
+    final id = (rawId is num)
+        ? rawId.toInt()
+        : int.parse(rawId.toString());
+
+    final updated = await db.update(
+      'settings',
+      {'value': id.toString()},
+      where: 'key = ?',
+      whereArgs: ['time_zone_id'],
+    );
+
+    if (updated == 0) {
+      await db.insert(
+        'settings',
+        {
+          'key': 'time_zone_id',
+          'value': id.toString(),
+        },
+      );
+    }
   }
 
   Future<_Tz?> readActiveTz() async {

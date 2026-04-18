@@ -17,14 +17,6 @@ typedef _IcbFreeStringNative = ffi.Void Function(
 typedef _IcbFreeStringDart = void Function(
     ffi.Pointer<ffi_helpers.Utf8>,
     );
-typedef _IcbSetActiveTzNative = ffi.Int32 Function(
-    ffi.Pointer<ffi.Void>,
-    ffi.Pointer<ffi_helpers.Utf8>,
-    );
-typedef _IcbSetActiveTzDart = int Function(
-    ffi.Pointer<ffi.Void>,
-    ffi.Pointer<ffi_helpers.Utf8>,
-    );
 typedef _IcbInsertManyAtUtcNative = ffi.Pointer<ffi_helpers.Utf8> Function(
     ffi.Pointer<ffi.Void>,
     ffi.Pointer<ffi.Int64>,
@@ -83,7 +75,6 @@ class _FfiBackend {
   late final _IcbOpenDart _icbOpen;
   late final _IcbCloseDart _icbClose;
   late final _IcbFreeStringDart _icbFreeString;
-  late final _IcbSetActiveTzDart _icbSetActiveTzByAlias;
   late final _IcbInsertManyAtUtcDart _icbInsertManyAtUtcJson;
   late final _IcbInsertBatchWithUndoTokenDart _icbInsertBatchWithUndoTokenJson;
   late final _IcbUndoLogicalBatchDart _icbUndoLogicalBatchJson;
@@ -128,7 +119,6 @@ class _FfiBackend {
       _icbOpen = _lib.lookupFunction<_IcbOpenNative, _IcbOpenDart>('icb_open');
       _icbClose = _lib.lookupFunction<_IcbCloseNative, _IcbCloseDart>('icb_close');
       _icbFreeString = _lib.lookupFunction<_IcbFreeStringNative, _IcbFreeStringDart>('icb_free_string');
-      _icbSetActiveTzByAlias = _lib.lookupFunction<_IcbSetActiveTzNative, _IcbSetActiveTzDart>('icb_set_active_tz_by_alias');
       _icbInsertManyAtUtcJson = _lib.lookupFunction<_IcbInsertManyAtUtcNative, _IcbInsertManyAtUtcDart>('icb_insert_many_at_utc_json');
       _icbInsertBatchWithUndoTokenJson = _lib.lookupFunction<_IcbInsertBatchWithUndoTokenNative, _IcbInsertBatchWithUndoTokenDart>('icb_insert_batch_with_undo_token_json');
       _icbUndoLogicalBatchJson = _lib.lookupFunction<_IcbUndoLogicalBatchNative, _IcbUndoLogicalBatchDart>('icb_undo_logical_batch_json');
@@ -207,19 +197,6 @@ class _FfiBackend {
       throw StateError('Rust FFI JSON is not an object');
     }
     return decoded;
-  }
-
-  Future<void> setActiveTzByAlias(String alias) async {
-    final h = _requireHandle();
-    final cAlias = alias.toNativeUtf8();
-    try {
-      final rc = _icbSetActiveTzByAlias(h, cAlias);
-      if (rc != 0) {
-        throw StateError('Rust setActiveTzByAlias returned error $rc');
-      }
-    } finally {
-      ffi_helpers.malloc.free(cAlias);
-    }
   }
 
   Future<List<int>> insertManyAtUtcReturningIds(List<_Entry> entries, String? utcIso) async {
