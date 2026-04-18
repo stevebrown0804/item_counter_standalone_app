@@ -817,8 +817,12 @@ LIMIT 1
   }
 
   Future<void> deleteTransactionById(int id) async {
-    await _ensureFfiReady();
-    await _FfiBackend.instance.deleteTransactionById(id);
+    final db = await open();
+    await db.delete(
+      'item_transactions',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
   }
 
   /// Query transactions by optional UTC range; null bounds are open.

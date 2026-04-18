@@ -55,14 +55,6 @@ typedef _IcbInsertManyAtUtcDart = ffi.Pointer<ffi_helpers.Utf8> Function(
     int,
     ffi.Pointer<ffi_helpers.Utf8>,
     );
-typedef _IcbDeleteTxByIdNative = ffi.Int32 Function(
-    ffi.Pointer<ffi.Void>,
-    ffi.Int64,
-    );
-typedef _IcbDeleteTxByIdDart = int Function(
-    ffi.Pointer<ffi.Void>,
-    int,
-    );
 typedef _IcbInsertBatchWithUndoTokenNative
 = ffi.Pointer<ffi_helpers.Utf8> Function(
     ffi.Pointer<ffi.Void>,
@@ -111,7 +103,6 @@ class _FfiBackend {
   late final _IcbSetSkipConfirmDart _icbSetSkipConfirm;
   late final _IcbSetActiveTzDart _icbSetActiveTzByAlias;
   late final _IcbInsertManyAtUtcDart _icbInsertManyAtUtcJson;
-  late final _IcbDeleteTxByIdDart _icbDeleteTxById;
   late final _IcbInsertBatchWithUndoTokenDart _icbInsertBatchWithUndoTokenJson;
   late final _IcbUndoLogicalBatchDart _icbUndoLogicalBatchJson;
   late final _IcbRedoLogicalBatchDart _icbRedoLogicalBatchJson;
@@ -159,7 +150,6 @@ class _FfiBackend {
       _icbSetSkipConfirm = _lib.lookupFunction<_IcbSetSkipConfirmNative, _IcbSetSkipConfirmDart>('icb_set_skip_delete_second_confirm');
       _icbSetActiveTzByAlias = _lib.lookupFunction<_IcbSetActiveTzNative, _IcbSetActiveTzDart>('icb_set_active_tz_by_alias');
       _icbInsertManyAtUtcJson = _lib.lookupFunction<_IcbInsertManyAtUtcNative, _IcbInsertManyAtUtcDart>('icb_insert_many_at_utc_json');
-      _icbDeleteTxById = _lib.lookupFunction<_IcbDeleteTxByIdNative, _IcbDeleteTxByIdDart>('icb_delete_transaction_by_id');
       _icbInsertBatchWithUndoTokenJson = _lib.lookupFunction<_IcbInsertBatchWithUndoTokenNative, _IcbInsertBatchWithUndoTokenDart>('icb_insert_batch_with_undo_token_json');
       _icbUndoLogicalBatchJson = _lib.lookupFunction<_IcbUndoLogicalBatchNative, _IcbUndoLogicalBatchDart>('icb_undo_logical_batch_json');
       _icbRedoLogicalBatchJson = _lib.lookupFunction<_IcbRedoLogicalBatchNative, _IcbRedoLogicalBatchDart>('icb_redo_logical_batch_json');
@@ -312,14 +302,6 @@ class _FfiBackend {
       if (utcIso != null) {
         ffi_helpers.malloc.free(tsPtr);
       }
-    }
-  }
-
-  Future<void> deleteTransactionById(int id) async {
-    final h = _requireHandle();
-    final rc = _icbDeleteTxById(h, id);
-    if (rc != 0) {
-      throw StateError('Rust deleteTransactionById returned error $rc');
     }
   }
 
