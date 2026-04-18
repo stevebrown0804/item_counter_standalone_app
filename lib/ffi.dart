@@ -11,27 +11,11 @@ typedef _IcbOpenDart = ffi.Pointer<ffi.Void> Function(
     );
 typedef _IcbCloseNative = ffi.Void Function(ffi.Pointer<ffi.Void>);
 typedef _IcbCloseDart = void Function(ffi.Pointer<ffi.Void>);
-typedef _IcbSetWindowDaysNative = ffi.Int32 Function(
-    ffi.Pointer<ffi.Void>,
-    ffi.Int64,
-    );
-typedef _IcbSetWindowDaysDart = int Function(
-    ffi.Pointer<ffi.Void>,
-    int,
-    );
 typedef _IcbFreeStringNative = ffi.Void Function(
     ffi.Pointer<ffi_helpers.Utf8>,
     );
 typedef _IcbFreeStringDart = void Function(
     ffi.Pointer<ffi_helpers.Utf8>,
-    );
-typedef _IcbSetSkipConfirmNative = ffi.Int32 Function(
-    ffi.Pointer<ffi.Void>,
-    ffi.Int32,
-    );
-typedef _IcbSetSkipConfirmDart = int Function(
-    ffi.Pointer<ffi.Void>,
-    int,
     );
 typedef _IcbSetActiveTzNative = ffi.Int32 Function(
     ffi.Pointer<ffi.Void>,
@@ -98,9 +82,7 @@ class _FfiBackend {
   late final ffi.DynamicLibrary _lib;
   late final _IcbOpenDart _icbOpen;
   late final _IcbCloseDart _icbClose;
-  late final _IcbSetWindowDaysDart _icbSetWindowDays;
   late final _IcbFreeStringDart _icbFreeString;
-  late final _IcbSetSkipConfirmDart _icbSetSkipConfirm;
   late final _IcbSetActiveTzDart _icbSetActiveTzByAlias;
   late final _IcbInsertManyAtUtcDart _icbInsertManyAtUtcJson;
   late final _IcbInsertBatchWithUndoTokenDart _icbInsertBatchWithUndoTokenJson;
@@ -145,9 +127,7 @@ class _FfiBackend {
 
       _icbOpen = _lib.lookupFunction<_IcbOpenNative, _IcbOpenDart>('icb_open');
       _icbClose = _lib.lookupFunction<_IcbCloseNative, _IcbCloseDart>('icb_close');
-      _icbSetWindowDays = _lib.lookupFunction<_IcbSetWindowDaysNative, _IcbSetWindowDaysDart>('icb_set_averaging_window_days');
       _icbFreeString = _lib.lookupFunction<_IcbFreeStringNative, _IcbFreeStringDart>('icb_free_string');
-      _icbSetSkipConfirm = _lib.lookupFunction<_IcbSetSkipConfirmNative, _IcbSetSkipConfirmDart>('icb_set_skip_delete_second_confirm');
       _icbSetActiveTzByAlias = _lib.lookupFunction<_IcbSetActiveTzNative, _IcbSetActiveTzDart>('icb_set_active_tz_by_alias');
       _icbInsertManyAtUtcJson = _lib.lookupFunction<_IcbInsertManyAtUtcNative, _IcbInsertManyAtUtcDart>('icb_insert_many_at_utc_json');
       _icbInsertBatchWithUndoTokenJson = _lib.lookupFunction<_IcbInsertBatchWithUndoTokenNative, _IcbInsertBatchWithUndoTokenDart>('icb_insert_batch_with_undo_token_json');
@@ -227,26 +207,6 @@ class _FfiBackend {
       throw StateError('Rust FFI JSON is not an object');
     }
     return decoded;
-  }
-
-  Future<void> setAveragingWindowDays(int days) async {
-    if (days <= 0) {
-      throw ArgumentError('days must be > 0');
-    }
-    final h = _requireHandle();
-    final rc = _icbSetWindowDays(h, days);
-    if (rc != 0) {
-      throw StateError('Rust setAveragingWindowDays returned error code $rc');
-    }
-  }
-
-  Future<void> setSkipDeleteSecondConfirm(bool skip) async {
-    final h = _requireHandle();
-    final raw = skip ? 1 : 0;
-    final rc = _icbSetSkipConfirm(h, raw);
-    if (rc != 0) {
-      throw StateError('Rust setSkipDeleteSecondConfirm returned error $rc');
-    }
   }
 
   Future<void> setActiveTzByAlias(String alias) async {

@@ -448,8 +448,21 @@ ORDER BY CAST(display_order AS INTEGER), id
   }
 
   Future<void> setAveragingWindowDays(int days) async {
-    await _ensureFfiReady();
-    await _FfiBackend.instance.setAveragingWindowDays(days);
+    if (days <= 0) {
+      throw ArgumentError('days must be > 0');
+    }
+
+    final db = await open();
+    final updated = await db.update(
+      'settings',
+      {'value': days.toString()},
+      where: 'key = ?',
+      whereArgs: ['avg_window_days'],
+    );
+
+    if (updated == 0) {
+      throw StateError('settings.avg_window_days not found');
+    }
   }
 
   /// Compute the averaging window (in days) based on a picked local calendar date
@@ -540,8 +553,25 @@ LIMIT 1
   }
 
   Future<void> setSkipDeleteSecondConfirm(bool skip) async {
-    await _ensureFfiReady();
-    await _FfiBackend.instance.setSkipDeleteSecondConfirm(skip);
+    final db = await open();
+    final value = skip ? '1' : '0';
+
+    final updated = await db.update(
+      'settings',
+      {'value': value},
+      where: 'key = ?',
+      whereArgs: ['skip_delete_transactions_second_dialog_confirmation'],
+    );
+
+    if (updated == 0) {
+      await db.insert(
+        'settings',
+        {
+          'key': 'skip_delete_transactions_second_dialog_confirmation',
+          'value': value,
+        },
+      );
+    }
   }
 
   // ───────────────────────── Transactions: archive/delete ─────────────────────────
