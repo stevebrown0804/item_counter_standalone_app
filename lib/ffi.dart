@@ -63,22 +63,6 @@ typedef _IcbDeleteTxByIdDart = int Function(
     ffi.Pointer<ffi.Void>,
     int,
     );
-typedef _IcbDeleteOlderNative = ffi.Pointer<ffi_helpers.Utf8> Function(
-    ffi.Pointer<ffi.Void>,
-    ffi.Int64,
-    );
-typedef _IcbDeleteOlderDart = ffi.Pointer<ffi_helpers.Utf8> Function(
-    ffi.Pointer<ffi.Void>,
-    int,
-    );
-typedef _IcbDeleteOldWithPolicyNative = ffi.Pointer<ffi_helpers.Utf8> Function(
-    ffi.Pointer<ffi.Void>,
-    ffi.Int64,
-    );
-typedef _IcbDeleteOldWithPolicyDart = ffi.Pointer<ffi_helpers.Utf8> Function(
-    ffi.Pointer<ffi.Void>,
-    int,
-    );
 typedef _IcbInsertBatchWithUndoTokenNative
 = ffi.Pointer<ffi_helpers.Utf8> Function(
     ffi.Pointer<ffi.Void>,
@@ -128,8 +112,6 @@ class _FfiBackend {
   late final _IcbSetActiveTzDart _icbSetActiveTzByAlias;
   late final _IcbInsertManyAtUtcDart _icbInsertManyAtUtcJson;
   late final _IcbDeleteTxByIdDart _icbDeleteTxById;
-  late final _IcbDeleteOlderDart _icbDeleteOlderJson;
-  late final _IcbDeleteOldWithPolicyDart _icbDeleteOldWithPolicyJson;
   late final _IcbInsertBatchWithUndoTokenDart _icbInsertBatchWithUndoTokenJson;
   late final _IcbUndoLogicalBatchDart _icbUndoLogicalBatchJson;
   late final _IcbRedoLogicalBatchDart _icbRedoLogicalBatchJson;
@@ -178,8 +160,6 @@ class _FfiBackend {
       _icbSetActiveTzByAlias = _lib.lookupFunction<_IcbSetActiveTzNative, _IcbSetActiveTzDart>('icb_set_active_tz_by_alias');
       _icbInsertManyAtUtcJson = _lib.lookupFunction<_IcbInsertManyAtUtcNative, _IcbInsertManyAtUtcDart>('icb_insert_many_at_utc_json');
       _icbDeleteTxById = _lib.lookupFunction<_IcbDeleteTxByIdNative, _IcbDeleteTxByIdDart>('icb_delete_transaction_by_id');
-      _icbDeleteOlderJson = _lib.lookupFunction<_IcbDeleteOlderNative, _IcbDeleteOlderDart>('icb_delete_transactions_older_than_days_json');
-      _icbDeleteOldWithPolicyJson = _lib.lookupFunction<_IcbDeleteOldWithPolicyNative, _IcbDeleteOldWithPolicyDart>('icb_delete_old_transactions_with_policy_json');
       _icbInsertBatchWithUndoTokenJson = _lib.lookupFunction<_IcbInsertBatchWithUndoTokenNative, _IcbInsertBatchWithUndoTokenDart>('icb_insert_batch_with_undo_token_json');
       _icbUndoLogicalBatchJson = _lib.lookupFunction<_IcbUndoLogicalBatchNative, _IcbUndoLogicalBatchDart>('icb_undo_logical_batch_json');
       _icbRedoLogicalBatchJson = _lib.lookupFunction<_IcbRedoLogicalBatchNative, _IcbRedoLogicalBatchDart>('icb_redo_logical_batch_json');
@@ -343,40 +323,6 @@ class _FfiBackend {
     }
   }
 
-  Future<int> deleteTransactionsOlderThanDays(int days) async {
-    if (days <= 0) return 0;
-    final h = _requireHandle();
-    final ptr = _icbDeleteOlderJson(h, days);
-    final jsonStr = _jsonFromPtr(ptr);
-    final decoded = _decodeMap(jsonStr);
-    if (decoded['ok'] != true) {
-      final msg = decoded['error']?.toString() ?? 'unknown error';
-      throw StateError('Rust deleteTransactionsOlderThanDays failed: $msg');
-    }
-    final data = decoded['data'] as Map<String, dynamic>? ?? const {};
-    final v = data['deleted'];
-    if (v is int) return v;
-    if (v is num) return v.toInt();
-    return int.tryParse(v?.toString() ?? '0') ?? 0;
-  }
-
-  Future<int> deleteOldTransactionsWithPolicy(int days) async {
-    if (days <= 0) return 0;
-    final h = _requireHandle();
-    final ptr = _icbDeleteOldWithPolicyJson(h, days);
-    final jsonStr = _jsonFromPtr(ptr);
-    final decoded = _decodeMap(jsonStr);
-    if (decoded['ok'] != true) {
-      final msg = decoded['error']?.toString() ?? 'unknown error';
-      throw StateError('Rust deleteOldTransactionsWithPolicy failed: $msg');
-    }
-    final data = decoded['data'] as Map<String, dynamic>? ?? const {};
-    final v = data['deleted'];
-    if (v is int) return v;
-    if (v is num) return v.toInt();
-    return int.tryParse(v?.toString() ?? '0') ?? 0;
-  }
-
   // ── Batch insert / undo / redo ─────────────────────────
   Future<String> insertBatchWithUndoToken(List<_Entry> entries, String? utcIso) async {
     if (entries.isEmpty) {
@@ -426,9 +372,6 @@ class _FfiBackend {
   }
 
   Future<List<int>> undoLogicalBatch(String token) async {
-    //what does 'logical' mean, in this context, I wonder.🤔
-    // seems like an empty word, here.
-    //anyhow...
     final h = _requireHandle();
     final cTok = token.toNativeUtf8();
     try {

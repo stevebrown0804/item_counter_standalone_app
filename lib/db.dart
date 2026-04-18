@@ -547,8 +547,15 @@ LIMIT 1
   // ───────────────────────── Transactions: archive/delete ─────────────────────────
 
   Future<int> deleteTransactionsOlderThanDays(int days) async {
-    await _ensureFfiReady();
-    return _FfiBackend.instance.deleteTransactionsOlderThanDays(days);
+    final db = await open();
+    if (days <= 0) {
+      return 0;
+    }
+
+    return db.rawDelete(
+      "DELETE FROM item_transactions WHERE timestamp_utc < datetime('now', ?)",
+      ['-$days days'],
+    );
   }
 
   Future<int> countTransactionsOlderThanDays(int days) async {
@@ -556,13 +563,16 @@ LIMIT 1
     if (days <= 0) {
       return 0;
     }
+
     final rows = await db.rawQuery(
       "SELECT COUNT(*) AS cnt FROM item_transactions WHERE timestamp_utc < datetime('now', ?)",
       ['-$days days'],
     );
+
     if (rows.isEmpty) {
       return 0;
     }
+
     final value = rows.first['cnt'];
     if (value is num) {
       return value.toInt();
@@ -571,8 +581,12 @@ LIMIT 1
   }
 
   Future<int> deleteOldTransactionsWithPolicy(int days) async {
-    await _ensureFfiReady();
-    return _FfiBackend.instance.deleteOldTransactionsWithPolicy(days);
+    if (days <= 0) {
+      throw ArgumentError('days must be > 0');
+    }
+
+    await readSkipDeleteSecondConfirm();
+    return deleteTransactionsOlderThanDays(days);
   }
 
   // ───────────────────────── Averages ─────────────────────────
