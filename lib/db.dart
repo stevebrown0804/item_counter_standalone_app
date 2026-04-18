@@ -281,7 +281,7 @@ ORDER BY iana_tz_name, alias
       }
       groups.add(
         _TzAliasGroup(
-          currentTzName!,
+          currentTzName,
           currentAliases.join('/'),
           List<String>.from(currentAliases),
         ),
