@@ -841,8 +841,41 @@ ORDER BY display_order, p.id
   /// Insert entries (at a given UTC timestamp, or now if null) and return their new row IDs.
   Future<List<int>> insertManyAtUtcReturningIds(
       List<_Entry> entries, String? utcIso) async {
-    await _ensureFfiReady();
-    return _FfiBackend.instance.insertManyAtUtcReturningIds(entries, utcIso);
+    if (entries.isEmpty) {
+      return const [];
+    }
+
+    for (final entry in entries) {
+      if (entry.qty <= 0) {
+        throw ArgumentError('quantity must be > 0');
+      }
+    }
+
+    final db = await open();
+
+    return db.transaction((txn) async {
+      final ids = <int>[];
+
+      if (utcIso != null) {
+        for (final entry in entries) {
+          final id = await txn.rawInsert(
+            'INSERT INTO item_transactions (item_id, quantity, timestamp_utc) VALUES (?, ?, ?)',
+            [entry.itemId, entry.qty, utcIso],
+          );
+          ids.add(id);
+        }
+      } else {
+        for (final entry in entries) {
+          final id = await txn.rawInsert(
+            'INSERT INTO item_transactions (item_id, quantity, timestamp_utc) VALUES (?, ?, CURRENT_TIMESTAMP)',
+            [entry.itemId, entry.qty],
+          );
+          ids.add(id);
+        }
+      }
+
+      return ids;
+    });
   }
 
   Future<_TxnSnapshot?> readTransactionById(int id) async {
