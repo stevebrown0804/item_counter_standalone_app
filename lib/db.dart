@@ -474,6 +474,234 @@ VALUES (?1, ?2, ?3, ?4, ?5)
     return ids;
   }
 
+  Future<int> _loadBatchIdForUndo(Transaction txn, String token) async {
+    final rows = await txn.rawQuery(
+      '''
+SELECT id, undone
+FROM logical_batches
+WHERE token = ?1
+LIMIT 1
+''',
+      [token],
+    );
+
+    if (rows.isEmpty) {
+      throw ArgumentError('batch $token not found');
+    }
+
+    final row = rows.first;
+    final batchIdRaw = row['id'];
+    final undoneRaw = row['undone'];
+
+    if (batchIdRaw == null || undoneRaw == null) {
+      throw StateError('logical_batches row for token $token is missing fields');
+    }
+
+    final batchId = (batchIdRaw is num)
+        ? batchIdRaw.toInt()
+        : int.parse(batchIdRaw.toString());
+    final undone = (undoneRaw is num)
+        ? undoneRaw.toInt()
+        : int.parse(undoneRaw.toString());
+
+    if (undone != 0) {
+      throw ArgumentError('batch $token is already undone');
+    }
+
+    return batchId;
+  }
+
+  Future<List<int>> _loadBatchTransactionIds(
+      Transaction txn,
+      int batchId,
+      ) async {
+    final rows = await txn.rawQuery(
+      '''
+SELECT transaction_id
+FROM logical_batch_items
+WHERE batch_id = ?1
+ORDER BY id
+''',
+      [batchId],
+    );
+
+    return rows.map((row) {
+      final raw = row['transaction_id'];
+      if (raw == null) {
+        throw StateError(
+          'logical_batch_items row for batch $batchId is missing transaction_id',
+        );
+      }
+      return (raw is num) ? raw.toInt() : int.parse(raw.toString());
+    }).toList();
+  }
+
+  Future<void> _deleteBatchTransactions(
+      Transaction txn,
+      String token,
+      List<int> txIds,
+      ) async {
+    for (final txId in txIds) {
+      final deleted = await txn.delete(
+        'item_transactions',
+        where: 'id = ?',
+        whereArgs: [txId],
+      );
+
+      if (deleted == 0) {
+        throw ArgumentError(
+          'transaction $txId for batch $token no longer exists; cannot undo cleanly',
+        );
+      }
+    }
+  }
+
+  Future<void> _markBatchUndone(Transaction txn, int batchId) async {
+    final updated = await txn.rawUpdate(
+      'UPDATE logical_batches SET undone = 1 WHERE id = ?1',
+      [batchId],
+    );
+
+    if (updated != 1) {
+      throw StateError('Failed to mark batch $batchId as undone');
+    }
+  }
+
+  Future<int> _loadBatchIdForRedo(Transaction txn, String token) async {
+    final rows = await txn.rawQuery(
+      '''
+SELECT id, undone
+FROM logical_batches
+WHERE token = ?1
+LIMIT 1
+''',
+      [token],
+    );
+
+    if (rows.isEmpty) {
+      throw ArgumentError('batch $token not found');
+    }
+
+    final row = rows.first;
+    final batchIdRaw = row['id'];
+    final undoneRaw = row['undone'];
+
+    if (batchIdRaw == null || undoneRaw == null) {
+      throw StateError('logical_batches row for token $token is missing fields');
+    }
+
+    final batchId = (batchIdRaw is num)
+        ? batchIdRaw.toInt()
+        : int.parse(batchIdRaw.toString());
+    final undone = (undoneRaw is num)
+        ? undoneRaw.toInt()
+        : int.parse(undoneRaw.toString());
+
+    if (undone == 0) {
+      throw ArgumentError('batch $token is not undone; cannot redo');
+    }
+
+    return batchId;
+  }
+
+  Future<List<(int, int, int, String)>> _loadBatchRedoItems(
+      Transaction txn,
+      int batchId,
+      ) async {
+    final rows = await txn.rawQuery(
+      '''
+SELECT id, item_id, quantity, timestamp_utc
+FROM logical_batch_items
+WHERE batch_id = ?1
+ORDER BY id
+''',
+      [batchId],
+    );
+
+    return rows.map((row) {
+      final batchItemRowIdRaw = row['id'];
+      final itemIdRaw = row['item_id'];
+      final qtyRaw = row['quantity'];
+      final tsRaw = row['timestamp_utc'];
+
+      if (batchItemRowIdRaw == null ||
+          itemIdRaw == null ||
+          qtyRaw == null ||
+          tsRaw == null) {
+        throw StateError(
+          'logical_batch_items row for batch $batchId is missing fields',
+        );
+      }
+
+      final batchItemRowId = (batchItemRowIdRaw is num)
+          ? batchItemRowIdRaw.toInt()
+          : int.parse(batchItemRowIdRaw.toString());
+      final itemId = (itemIdRaw is num)
+          ? itemIdRaw.toInt()
+          : int.parse(itemIdRaw.toString());
+      final qty = (qtyRaw is num)
+          ? qtyRaw.toInt()
+          : int.parse(qtyRaw.toString());
+      final ts = tsRaw.toString();
+
+      return (batchItemRowId, itemId, qty, ts);
+    }).toList();
+  }
+
+  Future<List<int>> _reinsertBatchTransactions(
+      Transaction txn,
+      String token,
+      List<(int, int, int, String)> items,
+      ) async {
+    final newIds = <int>[];
+
+    for (final item in items) {
+      final batchItemRowId = item.$1;
+      final itemId = item.$2;
+      final qty = item.$3;
+      final ts = item.$4;
+
+      if (qty <= 0) {
+        throw ArgumentError(
+          'logical batch $token has non-positive quantity for item $itemId',
+        );
+      }
+
+      final newTxId = await txn.rawInsert(
+        '''
+INSERT INTO item_transactions (item_id, quantity, timestamp_utc)
+VALUES (?1, ?2, ?3)
+''',
+        [itemId, qty, ts],
+      );
+      newIds.add(newTxId);
+
+      final updated = await txn.rawUpdate(
+        'UPDATE logical_batch_items SET transaction_id = ?1 WHERE id = ?2',
+        [newTxId, batchItemRowId],
+      );
+
+      if (updated != 1) {
+        throw StateError(
+          'Failed to update logical_batch_items row $batchItemRowId during redo',
+        );
+      }
+    }
+
+    return newIds;
+  }
+
+  Future<void> _markBatchRedone(Transaction txn, int batchId) async {
+    final updated = await txn.rawUpdate(
+      'UPDATE logical_batches SET undone = 0 WHERE id = ?1',
+      [batchId],
+    );
+
+    if (updated != 1) {
+      throw StateError('Failed to mark batch $batchId as redone');
+    }
+  }
+
   // ───────────────────────── Items ─────────────────────────
 
   Future<List<_Item>> listItemsOrdered() async {
@@ -1155,13 +1383,27 @@ LIMIT 1
   }
 
   Future<List<int>> undoLogicalBatch(String token) async {
-    await _ensureFfiReady();
-    return _FfiBackend.instance.undoLogicalBatch(token);
+    final db = await open();
+
+    return db.transaction((txn) async {
+      final batchId = await _loadBatchIdForUndo(txn, token);
+      final txIds = await _loadBatchTransactionIds(txn, batchId);
+      await _deleteBatchTransactions(txn, token, txIds);
+      await _markBatchUndone(txn, batchId);
+      return txIds;
+    });
   }
 
   Future<List<int>> redoLogicalBatch(String token) async {
-    await _ensureFfiReady();
-    return _FfiBackend.instance.redoLogicalBatch(token);
+    final db = await open();
+
+    return db.transaction((txn) async {
+      final batchId = await _loadBatchIdForRedo(txn, token);
+      final items = await _loadBatchRedoItems(txn, batchId);
+      final newIds = await _reinsertBatchTransactions(txn, token, items);
+      await _markBatchRedone(txn, batchId);
+      return newIds;
+    });
   }
 
   // ───────────────────────── Schema introspection ─────────────────────────

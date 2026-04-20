@@ -17,22 +17,6 @@ typedef _IcbFreeStringNative = ffi.Void Function(
 typedef _IcbFreeStringDart = void Function(
     ffi.Pointer<ffi_helpers.Utf8>,
     );
-typedef _IcbUndoLogicalBatchNative = ffi.Pointer<ffi_helpers.Utf8> Function(
-    ffi.Pointer<ffi.Void>,
-    ffi.Pointer<ffi_helpers.Utf8>,
-    );
-typedef _IcbUndoLogicalBatchDart = ffi.Pointer<ffi_helpers.Utf8> Function(
-    ffi.Pointer<ffi.Void>,
-    ffi.Pointer<ffi_helpers.Utf8>,
-    );
-typedef _IcbRedoLogicalBatchNative = ffi.Pointer<ffi_helpers.Utf8> Function(
-    ffi.Pointer<ffi.Void>,
-    ffi.Pointer<ffi_helpers.Utf8>,
-    );
-typedef _IcbRedoLogicalBatchDart = ffi.Pointer<ffi_helpers.Utf8> Function(
-    ffi.Pointer<ffi.Void>,
-    ffi.Pointer<ffi_helpers.Utf8>,
-    );
 // </editor-fold>
 
 class _FfiBackend {
@@ -45,8 +29,6 @@ class _FfiBackend {
   late final _IcbOpenDart _icbOpen;
   late final _IcbCloseDart _icbClose;
   late final _IcbFreeStringDart _icbFreeString;
-  late final _IcbUndoLogicalBatchDart _icbUndoLogicalBatchJson;
-  late final _IcbRedoLogicalBatchDart _icbRedoLogicalBatchJson;
 
   ffi.Pointer<ffi.Void>? _handle;
 
@@ -87,8 +69,6 @@ class _FfiBackend {
       _icbOpen = _lib.lookupFunction<_IcbOpenNative, _IcbOpenDart>('icb_open');
       _icbClose = _lib.lookupFunction<_IcbCloseNative, _IcbCloseDart>('icb_close');
       _icbFreeString = _lib.lookupFunction<_IcbFreeStringNative, _IcbFreeStringDart>('icb_free_string');
-      _icbUndoLogicalBatchJson = _lib.lookupFunction<_IcbUndoLogicalBatchNative, _IcbUndoLogicalBatchDart>('icb_undo_logical_batch_json');
-      _icbRedoLogicalBatchJson = _lib.lookupFunction<_IcbRedoLogicalBatchNative, _IcbRedoLogicalBatchDart>('icb_redo_logical_batch_json');
 
       debugPrint('[FFI] symbol lookup done in ${swSymbols.elapsedMilliseconds} ms');
 
@@ -136,74 +116,5 @@ class _FfiBackend {
     }
     _handle = null;
     _initialized = false;
-  }
-
-  ffi.Pointer<ffi.Void> _requireHandle() {
-    final h = _handle;
-    if (h == null || h == ffi.Pointer<ffi.Void>.fromAddress(0)) {
-      throw StateError('Rust backend handle not initialized');
-    }
-    return h;
-  }
-
-  String _jsonFromPtr(ffi.Pointer<ffi_helpers.Utf8> ptr) {
-    if (ptr == ffi.Pointer<ffi_helpers.Utf8>.fromAddress(0)) {
-      throw StateError('Rust FFI returned null JSON pointer');
-    }
-    try {
-      return ptr.toDartString();
-    } finally {
-      _icbFreeString(ptr);
-    }
-  }
-
-  Map<String, dynamic> _decodeMap(String jsonStr) {
-    final decoded = jsonDecode(jsonStr);
-    if (decoded is! Map<String, dynamic>) {
-      throw StateError('Rust FFI JSON is not an object');
-    }
-    return decoded;
-  }
-
-  Future<List<int>> undoLogicalBatch(String token) async {
-    final h = _requireHandle();
-    final cTok = token.toNativeUtf8();
-    try {
-      final ptr = _icbUndoLogicalBatchJson(h, cTok);
-      final jsonStr = _jsonFromPtr(ptr);
-      final decoded = _decodeMap(jsonStr);
-      if (decoded['ok'] != true) {
-        final msg = decoded['error']?.toString() ?? 'unknown error';
-        throw StateError('Rust undoLogicalBatch failed: $msg');
-      }
-      final data = decoded['data'] as Map<String, dynamic>? ?? const {};
-      final list = data['ids'] as List<dynamic>? ?? const [];
-      return list
-          .map((v) => (v is num) ? v.toInt() : int.parse(v.toString()))
-          .toList();
-    } finally {
-      ffi_helpers.malloc.free(cTok);
-    }
-  }
-
-  Future<List<int>> redoLogicalBatch(String token) async {
-    final h = _requireHandle();
-    final cTok = token.toNativeUtf8();
-    try {
-      final ptr = _icbRedoLogicalBatchJson(h, cTok);
-      final jsonStr = _jsonFromPtr(ptr);
-      final decoded = _decodeMap(jsonStr);
-      if (decoded['ok'] != true) {
-        final msg = decoded['error']?.toString() ?? 'unknown error';
-        throw StateError('Rust redoLogicalBatch failed: $msg');
-      }
-      final data = decoded['data'] as Map<String, dynamic>? ?? const {};
-      final list = data['ids'] as List<dynamic>? ?? const [];
-      return list
-          .map((v) => (v is num) ? v.toInt() : int.parse(v.toString()))
-          .toList();
-    } finally {
-      ffi_helpers.malloc.free(cTok);
-    }
   }
 }
