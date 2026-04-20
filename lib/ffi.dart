@@ -20,21 +20,6 @@ typedef _IcbFreeStringDart = void Function(
     ffi.Pointer<ffi_helpers.Utf8>,
     );
 
-typedef _IcbInsertManyAtUtcNative = ffi.Pointer<ffi_helpers.Utf8> Function(
-    ffi.Pointer<ffi.Void>,
-    ffi.Pointer<ffi.Int64>,
-    ffi.Pointer<ffi.Int64>,
-    ffi.IntPtr,
-    ffi.Pointer<ffi_helpers.Utf8>,
-    );
-typedef _IcbInsertManyAtUtcDart = ffi.Pointer<ffi_helpers.Utf8> Function(
-    ffi.Pointer<ffi.Void>,
-    ffi.Pointer<ffi.Int64>,
-    ffi.Pointer<ffi.Int64>,
-    int,
-    ffi.Pointer<ffi_helpers.Utf8>,
-    );
-
 typedef _IcbInsertBatchWithUndoTokenNative = ffi.Pointer<ffi_helpers.Utf8> Function(
     ffi.Pointer<ffi.Void>,
     ffi.Pointer<ffi.Int64>,
@@ -79,7 +64,6 @@ class _FfiBackend {
   late final _IcbOpenDart _icbOpen;
   late final _IcbCloseDart _icbClose;
   late final _IcbFreeStringDart _icbFreeString;
-  late final _IcbInsertManyAtUtcDart _icbInsertManyAtUtcJson;
   late final _IcbInsertBatchWithUndoTokenDart _icbInsertBatchWithUndoTokenJson;
   late final _IcbUndoLogicalBatchDart _icbUndoLogicalBatchJson;
   late final _IcbRedoLogicalBatchDart _icbRedoLogicalBatchJson;
@@ -110,7 +94,6 @@ class _FfiBackend {
       _icbOpen = _lib.lookupFunction<_IcbOpenNative, _IcbOpenDart>('icb_open');
       _icbClose = _lib.lookupFunction<_IcbCloseNative, _IcbCloseDart>('icb_close');
       _icbFreeString = _lib.lookupFunction<_IcbFreeStringNative, _IcbFreeStringDart>('icb_free_string');
-      _icbInsertManyAtUtcJson = _lib.lookupFunction<_IcbInsertManyAtUtcNative, _IcbInsertManyAtUtcDart>('icb_insert_many_at_utc_json');
       _icbInsertBatchWithUndoTokenJson = _lib.lookupFunction<_IcbInsertBatchWithUndoTokenNative, _IcbInsertBatchWithUndoTokenDart>('icb_insert_batch_with_undo_token_json');
       _icbUndoLogicalBatchJson = _lib.lookupFunction<_IcbUndoLogicalBatchNative, _IcbUndoLogicalBatchDart>('icb_undo_logical_batch_json');
       _icbRedoLogicalBatchJson = _lib.lookupFunction<_IcbRedoLogicalBatchNative, _IcbRedoLogicalBatchDart>('icb_redo_logical_batch_json');
@@ -178,44 +161,6 @@ class _FfiBackend {
       throw StateError('Rust FFI JSON is not an object');
     }
     return decoded;
-  }
-
-  Future<List<int>> insertManyAtUtcReturningIds(List<_Entry> entries, String? utcIso) async {
-    if (entries.isEmpty) return const [];
-
-    final h = _requireHandle();
-    final len = entries.length;
-    final idsPtr = ffi_helpers.malloc<ffi.Int64>(len);
-    final qtyPtr = ffi_helpers.malloc<ffi.Int64>(len);
-
-    for (var i = 0; i < len; i++) {
-      idsPtr[i] = entries[i].itemId;
-      qtyPtr[i] = entries[i].qty;
-    }
-
-    ffi.Pointer<ffi_helpers.Utf8> tsPtr = ffi.Pointer<ffi_helpers.Utf8>.fromAddress(0);
-    if (utcIso != null) {
-      tsPtr = utcIso.toNativeUtf8();
-    }
-
-    try {
-      final ptr = _icbInsertManyAtUtcJson(h, idsPtr, qtyPtr, len, tsPtr);
-      final jsonStr = _jsonFromPtr(ptr);
-      final decoded = _decodeMap(jsonStr);
-      if (decoded['ok'] != true) {
-        final msg = decoded['error']?.toString() ?? 'unknown error';
-        throw StateError('Rust insertManyAtUtc failed: $msg');
-      }
-      final data = decoded['data'] as Map<String, dynamic>? ?? const {};
-      final list = data['ids'] as List<dynamic>? ?? const [];
-      return list.map((v) => (v is num) ? v.toInt() : int.parse(v.toString())).toList();
-    } finally {
-      ffi_helpers.malloc.free(idsPtr);
-      ffi_helpers.malloc.free(qtyPtr);
-      if (utcIso != null) {
-        ffi_helpers.malloc.free(tsPtr);
-      }
-    }
   }
 
   Future<String> insertBatchWithUndoToken(List<_Entry> entries, String? utcIso) async {
