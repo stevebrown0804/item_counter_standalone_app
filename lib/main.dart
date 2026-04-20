@@ -4,9 +4,7 @@
 import 'dart:async';
 import 'dart:collection';
 import 'dart:convert';
-import 'dart:ffi' as ffi;
 import 'dart:io';
-import 'package:ffi/ffi.dart' as ffi_helpers;
 import 'package:flutter/material.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart' as p;
@@ -15,7 +13,6 @@ import 'package:flutter/services.dart'; // for FilteringTextInputFormatter
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest_all.dart' as tzdata;
 
-part 'ffi.dart';
 part 'store.dart';
 part 'db.dart';
 part 'ui/sheets/MainScreen.dart';

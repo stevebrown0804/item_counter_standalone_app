@@ -33,10 +33,6 @@ class _Db {
     return p.join(dbDir, kDbFileName);
   }
 
-  Future<void> _ensureFfiReady() async {
-    await open();
-  }
-
   Future<Database> open() async {
     final existingDb = _sharedDb;
     if (existingDb != null) {
@@ -52,7 +48,6 @@ class _Db {
       final full = await _dbPath();
       final opened = await openDatabase(full);
       await _ensureSchema(opened);
-      await _FfiBackend.instance.init(full);
       _sharedDb = opened;
       return opened;
     });
