@@ -354,6 +354,126 @@ ORDER BY t.timestamp_utc DESC
     }).toList();
   }
 
+  Future<void> _validateEntriesForBatchInsert(List<_Entry> entries) async {
+    if (entries.isEmpty) {
+      throw ArgumentError('entries must not be empty');
+    }
+
+    for (final entry in entries) {
+      if (entry.qty <= 0) {
+        throw ArgumentError('quantity must be > 0');
+      }
+    }
+  }
+
+  Future<(int, String)> _createPendingBatch(Transaction txn) async {
+    final batchId = await txn.rawInsert(
+      "INSERT INTO logical_batches (token, undone) VALUES ('pending', 0)",
+    );
+    final token = 'batch-$batchId';
+
+    final updated = await txn.rawUpdate(
+      'UPDATE logical_batches SET token = ?1 WHERE id = ?2',
+      [token, batchId],
+    );
+
+    if (updated != 1) {
+      throw StateError('Failed to update logical_batches token for batch $batchId');
+    }
+
+    return (batchId, token);
+  }
+
+  Future<String> _readInsertedTransactionTimestamp(
+      Transaction txn,
+      int transactionId,
+      ) async {
+    final rows = await txn.rawQuery(
+      'SELECT timestamp_utc FROM item_transactions WHERE id = ?1',
+      [transactionId],
+    );
+
+    if (rows.isEmpty || rows.first['timestamp_utc'] == null) {
+      throw StateError('Inserted transaction $transactionId has no timestamp_utc');
+    }
+
+    return rows.first['timestamp_utc'].toString();
+  }
+
+  Future<void> _insertLogicalBatchItem(
+      Transaction txn,
+      int batchId,
+      int transactionId,
+      int itemId,
+      int qty,
+      String timestampUtc,
+      ) async {
+    await txn.rawInsert(
+      '''
+INSERT INTO logical_batch_items (batch_id, transaction_id, item_id, quantity, timestamp_utc)
+VALUES (?1, ?2, ?3, ?4, ?5)
+''',
+      [batchId, transactionId, itemId, qty, timestampUtc],
+    );
+  }
+
+  Future<List<int>> _insertBatchItemsWithLiteralTimestamp(
+      Transaction txn,
+      int batchId,
+      List<_Entry> entries,
+      String timestampUtc,
+      ) async {
+    final ids = <int>[];
+
+    for (final entry in entries) {
+      final id = await txn.rawInsert(
+        'INSERT INTO item_transactions (item_id, quantity, timestamp_utc) VALUES (?1, ?2, ?3)',
+        [entry.itemId, entry.qty, timestampUtc],
+      );
+      ids.add(id);
+
+      final tsStr = await _readInsertedTransactionTimestamp(txn, id);
+      await _insertLogicalBatchItem(
+        txn,
+        batchId,
+        id,
+        entry.itemId,
+        entry.qty,
+        tsStr,
+      );
+    }
+
+    return ids;
+  }
+
+  Future<List<int>> _insertBatchItemsWithCurrentTimestamp(
+      Transaction txn,
+      int batchId,
+      List<_Entry> entries,
+      ) async {
+    final ids = <int>[];
+
+    for (final entry in entries) {
+      final id = await txn.rawInsert(
+        'INSERT INTO item_transactions (item_id, quantity, timestamp_utc) VALUES (?1, ?2, CURRENT_TIMESTAMP)',
+        [entry.itemId, entry.qty],
+      );
+      ids.add(id);
+
+      final tsStr = await _readInsertedTransactionTimestamp(txn, id);
+      await _insertLogicalBatchItem(
+        txn,
+        batchId,
+        id,
+        entry.itemId,
+        entry.qty,
+        tsStr,
+      );
+    }
+
+    return ids;
+  }
+
   // ───────────────────────── Items ─────────────────────────
 
   Future<List<_Item>> listItemsOrdered() async {
@@ -1008,8 +1128,30 @@ LIMIT 1
 
   Future<String> insertBatchWithUndoToken(
       List<_Entry> entries, String? utcIso) async {
-    await _ensureFfiReady();
-    return _FfiBackend.instance.insertBatchWithUndoToken(entries, utcIso);
+    await _validateEntriesForBatchInsert(entries);
+
+    final db = await open();
+
+    return db.transaction((txn) async {
+      final (batchId, token) = await _createPendingBatch(txn);
+
+      if (utcIso != null) {
+        await _insertBatchItemsWithLiteralTimestamp(
+          txn,
+          batchId,
+          entries,
+          utcIso,
+        );
+      } else {
+        await _insertBatchItemsWithCurrentTimestamp(
+          txn,
+          batchId,
+          entries,
+        );
+      }
+
+      return token;
+    });
   }
 
   Future<List<int>> undoLogicalBatch(String token) async {
