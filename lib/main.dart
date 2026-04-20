@@ -48,17 +48,17 @@ class ItemCounterApp extends StatelessWidget {
   }
 }
 
-
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-
+Future<void> _initializePlatformServices() async {
   if (Platform.isAndroid) {
     await MediaStore.ensureInitialized();
     MediaStore.appFolder = 'item_tracker';
   }
+}
 
+void main() {
+  WidgetsFlutterBinding.ensureInitialized();
   tzdata.initializeTimeZones();
-
   runApp(const ItemCounterApp());
+  unawaited(_initializePlatformServices());
 }
 // </editor-fold>

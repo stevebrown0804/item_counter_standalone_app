@@ -46,8 +46,16 @@ class _Db {
 
     final future = _timed('openDatabase()', () async {
       final full = await _dbPath();
-      final opened = await openDatabase(full);
-      await _ensureSchema(opened);
+      final opened = await openDatabase(
+        full,
+        version: 1,
+        onConfigure: (db) async {
+          await db.execute('PRAGMA foreign_keys = ON');
+        },
+        onCreate: (db, version) async {
+          await _ensureSchema(db);
+        },
+      );
       _sharedDb = opened;
       return opened;
     });
@@ -62,8 +70,6 @@ class _Db {
   }
 
   Future<void> _ensureSchema(Database db) async {
-    await db.execute('PRAGMA foreign_keys = ON');
-
     await db.execute('''
 CREATE TABLE IF NOT EXISTS items (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
