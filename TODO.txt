@@ -1,6 +1,6 @@
 ---------------------------------------Public use--------------------------------------------------
 
-TODO(RESUME NEXT TIME!): Database importing
+TODO(IN PROGRESS): Database importing
     * Add the ability to importing a database (from the Downloads folder, for example) into the app and having it overwrite the current DB's contents with the imported version (or merge with it...although that seems like a "later" feature).
         * We'll probably want to check the existing data (in the DB-to-be-imported) to make sure it lines up with the schema
     * Give the UI checkboxes for:
@@ -73,18 +73,6 @@ TODO: Time-zone specifying
             * When the user taps into the "Time Zone" input box, it presents a complete list of tz names
             * As the user enters characters, it refines that list to names matching the substring that the user as entered.  It continues like this until the user either taps "Submit" or taps the name (which then populates the input box), then taps "Submit."
     *Add a setting with key derived from "Specify time zone by alias"; default value is false (ie. unchecked)
-
-TODO (EVENTUALLY): Answer the question, "Should we still consider re-implement the backend in Dart, now that we've consolidated the backend's files down to 2, making passing lib.rs to ChatGPT much easier?"
-    * Initial thoughts: Let's reevaluate this question after we've made another change to the backend and had to suffer through troubleshooting what went wrong.  If that 'suffering' turns out to not be very 'suffer-y' after all then let's delete this TODO.
-        * It kinda seems like, as long as we go through the process of:
-            * wiping the phone's data
-            * `flutter clean`
-            * rebuilding the.so files and copying them into the IC project
-        ...then we're good, at the moment.  Besides, we're going to 'gradually' migrate the backend to Dart, starting with schema.rs (to let the dart app have access to the schema sos that it can veryify a DB selected for import for fitness for import; we COULD have done this via the backend, but I really don't want to add anything new to the current backend).
-            *...although I supposed that then poses the question, "After schema.rs, will you bother migrating the rest of lib.rs?" And the answer to that is ,"If we have a reason to," I suppose.
-
-TODO (Before writing an "Edit the settings" UI): Have the backend send the entirety of the settings table to the app.
-    * atm it's selective about what it sends; let's change that behavior from "selective" to "generous."
 
 
 
