@@ -15,6 +15,8 @@ import 'package:timezone/data/latest_all.dart' as tzdata;
 
 part 'store.dart';
 part 'db.dart';
+part 'db.models.dart';
+part 'db.internals.dart';
 part 'ui/sheets/MainScreen.dart';
 part 'ui/sheets/SettingsScreen.dart';
 part 'ui/settings/TimeZoneSetting.dart';
