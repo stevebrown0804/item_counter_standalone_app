@@ -68,6 +68,41 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (mounted) Navigator.of(context).pop();
   }
 
+  Future<void> _pickImportDatabaseFile(BuildContext context) async {
+    try {
+      final result = await FilePicker.pickFiles(
+        dialogTitle: 'Select database to import',
+        type: FileType.custom,
+        allowedExtensions: ['db', 'sqlite', 'sqlite3'],
+        allowMultiple: false,
+        withData: false,
+      );
+
+      if (!context.mounted) return;
+      if (result == null || result.files.isEmpty) return;
+
+      final path = result.files.single.path;
+      if (path == null || path.isEmpty) {
+        throw StateError('Selected file has no readable path.');
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Selected import file: $path'),
+          duration: const Duration(seconds: 8),
+        ),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Import file selection failed: $e'),
+          duration: const Duration(seconds: 8),
+        ),
+      );
+    }
+  }
+
   Future<void> _exportDatabase(BuildContext context) async {
     try {
       //Construct the TZ alias string to affix to the DB export filename
@@ -341,7 +376,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                       const SizedBox(width: 12),
                       _ImportDatabaseRow(
-                        onPressed: () {},
+                        onPressed: () async {
+                          await _pickImportDatabaseFile(context);
+                        },
                       ),
                     ],
                   ),
