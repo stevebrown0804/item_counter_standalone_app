@@ -68,13 +68,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (mounted) Navigator.of(context).pop();
   }
 
-  Future<void> _showImportTableDialog(BuildContext context) async {
+  Future<Map<String, bool>?> _showImportTableDialog(BuildContext context) async {
     bool itemsChecked = true;
     bool itemTransactionsChecked = true;
     bool timeZonesChecked = true;
     bool settingsChecked = true;
 
-    await showDialog<void>(
+    return showDialog<Map<String, bool>>(
       context: context,
       builder: (ctx) {
         return StatefulBuilder(
@@ -203,7 +203,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   child: const Text('Cancel'),
                 ),
                 FilledButton(
-                  onPressed: () => Navigator.of(ctx).pop(),
+                  onPressed: () => Navigator.of(ctx).pop({
+                    'itemTransactions': itemTransactionsChecked,
+                    'items': itemsChecked,
+                    'settings': settingsChecked,
+                    'timeZones': timeZonesChecked,
+                  }),
                   child: const Text('Import'),
                 ),
               ],
@@ -211,6 +216,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
           },
         );
       },
+    );
+  }
+
+  Future<void> _showImportErrorDialog(BuildContext context, Object error) async {
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Import failed'),
+        content: Text(error.toString()),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -243,7 +264,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
       );
 
-      await _showImportTableDialog(context);
+      final selectedTables = await _showImportTableDialog(context);
+      if (!context.mounted) return;
+      if (selectedTables == null) return;
+
+      try {
+        await db.importSelectedTablesFromDatabase(
+          path,
+          importItemTransactions: selectedTables['itemTransactions'] ?? false,
+          importItems: selectedTables['items'] ?? false,
+          importSettings: selectedTables['settings'] ?? false,
+          importTimeZones: selectedTables['timeZones'] ?? false,
+        );
+
+        final main = _MainScreenState._lastMounted;
+        if (main != null && main.mounted) {
+          main._store.clearUndoRedo();
+          await main._store.refreshFromDatabase();
+          main.setState(() {});
+        }
+
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Import complete.'),
+            duration: Duration(seconds: 6),
+          ),
+        );
+      } catch (e) {
+        if (!context.mounted) return;
+        await _showImportErrorDialog(context, e);
+      }
     } catch (e) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

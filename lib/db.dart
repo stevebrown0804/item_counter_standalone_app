@@ -847,6 +847,157 @@ ORDER BY
     }
   }
 
+  Future<void> _insertRowsFromCandidateTable(
+      Transaction txn,
+      Database candidateDb, {
+        required String actualTableName,
+        required String friendlyTableName,
+        String? orderBy,
+      }) async {
+    late final List<Map<String, Object?>> rows;
+
+    try {
+      rows = await candidateDb.query(
+        actualTableName,
+        orderBy: orderBy,
+      );
+    } catch (e) {
+      throw StateError(
+        'There was an error reading the $friendlyTableName table from the selected database: $e',
+      );
+    }
+
+    for (final row in rows) {
+      try {
+        await txn.insert(
+          actualTableName,
+          Map<String, Object?>.from(row),
+        );
+      } catch (e) {
+        throw StateError(
+          'There was an error importing the $friendlyTableName table: $e',
+        );
+      }
+    }
+  }
+
+  Future<void> importSelectedTablesFromDatabase(
+      String path, {
+        required bool importItemTransactions,
+        required bool importItems,
+        required bool importSettings,
+        required bool importTimeZones,
+      }) async {
+    if (!importItemTransactions &&
+        !importItems &&
+        !importSettings &&
+        !importTimeZones) {
+      throw StateError('No tables were selected for import.');
+    }
+
+    final file = File(path);
+    if (!await file.exists()) {
+      throw StateError('Selected file does not exist.');
+    }
+
+    Database? candidateDb;
+    final liveDb = await open();
+
+    try {
+      candidateDb = await openDatabase(
+        path,
+        readOnly: true,
+        singleInstance: false,
+      );
+
+      await liveDb.transaction((txn) async {
+        if (importItemTransactions) {
+          try {
+            await txn.delete('item_transactions');
+          } catch (e) {
+            throw StateError(
+              'There was an error clearing the item transactions table: $e',
+            );
+          }
+        }
+
+        if (importSettings) {
+          try {
+            await txn.delete('settings');
+          } catch (e) {
+            throw StateError(
+              'There was an error clearing the settings table: $e',
+            );
+          }
+        }
+
+        if (importItems) {
+          try {
+            await txn.delete('items');
+          } catch (e) {
+            throw StateError(
+              'There was an error clearing the items table: $e',
+            );
+          }
+        }
+
+        if (importTimeZones) {
+          try {
+            await txn.delete('time_zone_aliases');
+          } catch (e) {
+            throw StateError(
+              'There was an error clearing the time zones table: $e',
+            );
+          }
+        }
+
+        if (importItems) {
+          await _insertRowsFromCandidateTable(
+            txn,
+            candidateDb!,
+            actualTableName: 'items',
+            friendlyTableName: 'items',
+            orderBy: 'id',
+          );
+        }
+
+        if (importItemTransactions) {
+          await _insertRowsFromCandidateTable(
+            txn,
+            candidateDb!,
+            actualTableName: 'item_transactions',
+            friendlyTableName: 'item transactions',
+            orderBy: 'id',
+          );
+        }
+
+        if (importTimeZones) {
+          await _insertRowsFromCandidateTable(
+            txn,
+            candidateDb!,
+            actualTableName: 'time_zone_aliases',
+            friendlyTableName: 'time zones',
+            orderBy: 'id',
+          );
+        }
+
+        if (importSettings) {
+          await _insertRowsFromCandidateTable(
+            txn,
+            candidateDb!,
+            actualTableName: 'settings',
+            friendlyTableName: 'settings',
+            orderBy: 'key',
+          );
+        }
+      });
+    } finally {
+      if (candidateDb != null) {
+        await candidateDb.close();
+      }
+    }
+  }
+
   Future<List<_SchemaObject>> readSchemaObjects() async {
     final db = await open();
     return _readSchemaObjectsFromDb(db);
