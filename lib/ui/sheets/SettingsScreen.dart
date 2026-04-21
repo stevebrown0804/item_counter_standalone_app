@@ -92,7 +92,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Selected import file: $path\n\nSchema: $schemaResult'),
+          content: Text('Selected import file: $path\n\n$schemaResult'),
           duration: const Duration(seconds: 10),
         ),
       );

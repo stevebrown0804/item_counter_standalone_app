@@ -770,7 +770,10 @@ ORDER BY
   Future<String> validateImportDatabaseSchema(String path) async {
     final file = File(path);
     if (!await file.exists()) {
-      return 'Incompatible - selected file does not exist.';
+      return 'settings - Incompatible - selected file does not exist.\n'
+          'items - Incompatible - selected file does not exist.\n'
+          'item transactions - Incompatible - selected file does not exist.\n'
+          'time zones - Incompatible - selected file does not exist.';
     }
 
     Database? candidateDb;
@@ -781,55 +784,64 @@ ORDER BY
         singleInstance: false,
       );
     } catch (e) {
-      return 'Incompatible - selected file could not be opened as a SQLite database: $e';
+      return 'settings - Incompatible - could not be opened as a SQLite database: $e\n'
+          'items - Incompatible - could not be opened as a SQLite database: $e\n'
+          'item transactions - Incompatible - could not be opened as a SQLite database: $e\n'
+          'time zones - Incompatible - could not be opened as a SQLite database: $e';
     }
 
     try {
       final liveSchema = await readSchemaObjects();
       final candidateSchema = await _readSchemaObjectsFromDb(candidateDb);
 
-      final liveByKey = <String, _SchemaObject>{};
+      final liveByName = <String, _SchemaObject>{};
       for (final obj in liveSchema) {
-        liveByKey['${obj.type}|${obj.name}'] = obj;
+        if (obj.type == 'table') {
+          liveByName[obj.name] = obj;
+        }
       }
 
-      final candidateByKey = <String, _SchemaObject>{};
+      final candidateByName = <String, _SchemaObject>{};
       for (final obj in candidateSchema) {
-        candidateByKey['${obj.type}|${obj.name}'] = obj;
+        if (obj.type == 'table') {
+          candidateByName[obj.name] = obj;
+        }
       }
 
-      final liveKeys = liveByKey.keys.toSet();
-      final candidateKeys = candidateByKey.keys.toSet();
+      String compareTable(String actualName, String friendlyName) {
+        final expected = liveByName[actualName];
+        final actual = candidateByName[actualName];
 
-      final missing = liveKeys.difference(candidateKeys).toList()..sort();
-      if (missing.isNotEmpty) {
-        return 'Incompatible - missing schema object: ${missing.first}';
-      }
-
-      final extra = candidateKeys.difference(liveKeys).toList()..sort();
-      if (extra.isNotEmpty) {
-        return 'Incompatible - unexpected schema object: ${extra.first}';
-      }
-
-      final sortedKeys = liveKeys.toList()..sort();
-      for (final key in sortedKeys) {
-        final expected = liveByKey[key]!;
-        final actual = candidateByKey[key]!;
-
+        if (expected == null) {
+          return '$friendlyName - Incompatible - app database is missing table $actualName';
+        }
+        if (actual == null) {
+          return '$friendlyName - Incompatible - missing table $actualName';
+        }
         if (expected.tableName != actual.tableName) {
-          return 'Incompatible - schema object $key has tbl_name "${actual.tableName}" but expected "${expected.tableName}"';
+          return '$friendlyName - Incompatible - tbl_name differs';
         }
 
         final expectedSql = _normalizeSchemaSql(expected.sql);
         final actualSql = _normalizeSchemaSql(actual.sql);
         if (expectedSql != actualSql) {
-          return 'Incompatible - schema SQL differs for $key';
+          return '$friendlyName - Incompatible - schema differs';
         }
+
+        return '$friendlyName - OK';
       }
 
-      return 'Ok';
+      return [
+        compareTable('settings', 'settings'),
+        compareTable('items', 'items'),
+        compareTable('item_transactions', 'item transactions'),
+        compareTable('time_zone_aliases', 'time zones'),
+      ].join('\n');
     } catch (e) {
-      return 'Incompatible - schema check failed: $e';
+      return 'settings - Incompatible - schema check failed: $e\n'
+          'items - Incompatible - schema check failed: $e\n'
+          'item transactions - Incompatible - schema check failed: $e\n'
+          'time zones - Incompatible - schema check failed: $e';
     } finally {
       await candidateDb.close();
     }
