@@ -235,6 +235,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  Future<void> _showImportInProgressDialog(BuildContext context) async {
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => const AlertDialog(
+        title: Text('Importing database'),
+        content: Row(
+          children: [
+            SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(),
+            ),
+            SizedBox(width: 16),
+            Expanded(
+              child: Text('Import in progress...'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _pickImportDatabaseFile(BuildContext context) async {
     try {
       final result = await FilePicker.pickFiles(
@@ -268,6 +291,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (!context.mounted) return;
       if (selectedTables == null) return;
 
+      _showImportInProgressDialog(context);
+
       try {
         await db.importSelectedTablesFromDatabase(
           path,
@@ -276,6 +301,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
           importSettings: selectedTables['settings'] ?? false,
           importTimeZones: selectedTables['timeZones'] ?? false,
         );
+
+        if (context.mounted) {
+          Navigator.of(context, rootNavigator: true).pop();
+        }
 
         final main = _MainScreenState._lastMounted;
         if (main != null && main.mounted) {
@@ -292,6 +321,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         );
       } catch (e) {
+        if (context.mounted) {
+          Navigator.of(context, rootNavigator: true).pop();
+        }
         if (!context.mounted) return;
         await _showImportErrorDialog(context, e);
       }
