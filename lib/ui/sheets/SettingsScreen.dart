@@ -68,6 +68,67 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (mounted) Navigator.of(context).pop();
   }
 
+  Future<void> _showImportTableDialog(BuildContext context) async {
+    bool settingsChecked = true;
+    bool itemsChecked = true;
+    bool itemTransactionsChecked = true;
+    bool timeZonesChecked = true;
+
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setState) => AlertDialog(
+            title: const Text('Import database'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CheckboxListTile(
+                  value: settingsChecked,
+                  onChanged: (v) => setState(() => settingsChecked = v ?? false),
+                  controlAffinity: ListTileControlAffinity.leading,
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('settings'),
+                ),
+                CheckboxListTile(
+                  value: itemsChecked,
+                  onChanged: (v) => setState(() => itemsChecked = v ?? false),
+                  controlAffinity: ListTileControlAffinity.leading,
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('items'),
+                ),
+                CheckboxListTile(
+                  value: itemTransactionsChecked,
+                  onChanged: (v) => setState(() => itemTransactionsChecked = v ?? false),
+                  controlAffinity: ListTileControlAffinity.leading,
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('item transactions'),
+                ),
+                CheckboxListTile(
+                  value: timeZonesChecked,
+                  onChanged: (v) => setState(() => timeZonesChecked = v ?? false),
+                  controlAffinity: ListTileControlAffinity.leading,
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('time zones'),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('Import'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   Future<void> _pickImportDatabaseFile(BuildContext context) async {
     try {
       final result = await FilePicker.pickFiles(
@@ -96,6 +157,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           duration: const Duration(seconds: 10),
         ),
       );
+
+      await _showImportTableDialog(context);
     } catch (e) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
