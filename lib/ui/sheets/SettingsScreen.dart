@@ -69,61 +69,146 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _showImportTableDialog(BuildContext context) async {
-    bool settingsChecked = true;
     bool itemsChecked = true;
     bool itemTransactionsChecked = true;
     bool timeZonesChecked = true;
+    bool settingsChecked = true;
 
     await showDialog<void>(
       context: context,
       builder: (ctx) {
         return StatefulBuilder(
-          builder: (ctx, setState) => AlertDialog(
-            title: const Text('Import database'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                CheckboxListTile(
-                  value: settingsChecked,
-                  onChanged: (v) => setState(() => settingsChecked = v ?? false),
-                  controlAffinity: ListTileControlAffinity.leading,
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('settings'),
+          builder: (ctx, setState) {
+            void applyDependencies() {
+              if (!itemsChecked) {
+                itemTransactionsChecked = false;
+              }
+              if (!timeZonesChecked) {
+                settingsChecked = false;
+              }
+            }
+
+            applyDependencies();
+
+            Widget buildRow({
+              required bool value,
+              required ValueChanged<bool?>? onChanged,
+              required String label,
+              double leftIndent = 0,
+            }) {
+              final enabled = onChanged != null;
+
+              final checkboxTheme = Theme.of(ctx).checkboxTheme;
+              final inactiveFillColor =
+                  checkboxTheme.fillColor?.resolve({WidgetState.disabled}) ??
+                      Theme.of(ctx).disabledColor.withValues(alpha: 0.38);
+
+              final inactiveCheckColor =
+                  checkboxTheme.checkColor?.resolve({WidgetState.disabled}) ??
+                      Theme.of(ctx).colorScheme.onSurface.withValues(alpha: 0.38);
+
+              final checkbox = enabled
+                  ? Checkbox(
+                value: value,
+                onChanged: onChanged,
+                visualDensity: VisualDensity.compact,
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              )
+                  : Theme(
+                data: Theme.of(ctx).copyWith(
+                  checkboxTheme: checkboxTheme.copyWith(
+                    fillColor: WidgetStateProperty.resolveWith<Color?>((states) {
+                      if (states.contains(WidgetState.disabled)) {
+                        return inactiveFillColor;
+                      }
+                      return checkboxTheme.fillColor?.resolve(states);
+                    }),
+                    checkColor: WidgetStateProperty.resolveWith<Color?>((states) {
+                      if (states.contains(WidgetState.disabled)) {
+                        return inactiveCheckColor;
+                      }
+                      return checkboxTheme.checkColor?.resolve(states);
+                    }),
+                  ),
                 ),
-                CheckboxListTile(
-                  value: itemsChecked,
-                  onChanged: (v) => setState(() => itemsChecked = v ?? false),
-                  controlAffinity: ListTileControlAffinity.leading,
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('items'),
+                child: Checkbox(
+                  value: value,
+                  onChanged: null,
+                  visualDensity: VisualDensity.compact,
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
-                CheckboxListTile(
-                  value: itemTransactionsChecked,
-                  onChanged: (v) => setState(() => itemTransactionsChecked = v ?? false),
-                  controlAffinity: ListTileControlAffinity.leading,
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('item transactions'),
+              );
+
+              return Padding(
+                padding: EdgeInsets.only(left: leftIndent),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    checkbox,
+                    const SizedBox(width: 8),
+                    Text(label),
+                  ],
                 ),
-                CheckboxListTile(
-                  value: timeZonesChecked,
-                  onChanged: (v) => setState(() => timeZonesChecked = v ?? false),
-                  controlAffinity: ListTileControlAffinity.leading,
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('time zones'),
+              );
+            }
+
+            return AlertDialog(
+              title: const Text('Import database'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  buildRow(
+                    value: itemTransactionsChecked,
+                    onChanged: itemsChecked
+                        ? (v) => setState(() => itemTransactionsChecked = v ?? false)
+                        : null,
+                    label: 'item transactions',
+                  ),
+                  buildRow(
+                    value: itemsChecked,
+                    onChanged: (v) => setState(() {
+                      itemsChecked = v ?? false;
+                      if (!itemsChecked) {
+                        itemTransactionsChecked = false;
+                      }
+                    }),
+                    label: 'items',
+                    leftIndent: 28,
+                  ),
+                  const SizedBox(height: 8),
+                  buildRow(
+                    value: settingsChecked,
+                    onChanged: timeZonesChecked
+                        ? (v) => setState(() => settingsChecked = v ?? false)
+                        : null,
+                    label: 'settings',
+                  ),
+                  buildRow(
+                    value: timeZonesChecked,
+                    onChanged: (v) => setState(() {
+                      timeZonesChecked = v ?? false;
+                      if (!timeZonesChecked) {
+                        settingsChecked = false;
+                      }
+                    }),
+                    label: 'time zones',
+                    leftIndent: 28,
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: const Text('Cancel'),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: const Text('Import'),
                 ),
               ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(),
-                child: const Text('Cancel'),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.of(ctx).pop(),
-                child: const Text('Import'),
-              ),
-            ],
-          ),
+            );
+          },
         );
       },
     );
