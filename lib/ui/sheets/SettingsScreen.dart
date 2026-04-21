@@ -86,10 +86,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
         throw StateError('Selected file has no readable path.');
       }
 
+      final db = _Db();
+      final schemaResult = await db.validateImportDatabaseSchema(path);
+
+      if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Selected import file: $path'),
-          duration: const Duration(seconds: 8),
+          content: Text('Selected import file: $path\n\nSchema: $schemaResult'),
+          duration: const Duration(seconds: 10),
         ),
       );
     } catch (e) {

@@ -733,8 +733,13 @@ LIMIT 1
     });
   }
 
-  Future<List<_SchemaObject>> readSchemaObjects() async {
-    final db = await open();
+  String _normalizeSchemaSql(String sql) {
+    return sql
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+  }
+
+  Future<List<_SchemaObject>> _readSchemaObjectsFromDb(Database db) async {
     final rows = await db.rawQuery('''
 SELECT
   type,
@@ -760,6 +765,79 @@ ORDER BY
       final sql = row['sql']?.toString() ?? '';
       return _SchemaObject(type, name, tableName, sql);
     }).toList();
+  }
+
+  Future<String> validateImportDatabaseSchema(String path) async {
+    final file = File(path);
+    if (!await file.exists()) {
+      return 'Incompatible - selected file does not exist.';
+    }
+
+    Database? candidateDb;
+    try {
+      candidateDb = await openDatabase(
+        path,
+        readOnly: true,
+        singleInstance: false,
+      );
+    } catch (e) {
+      return 'Incompatible - selected file could not be opened as a SQLite database: $e';
+    }
+
+    try {
+      final liveSchema = await readSchemaObjects();
+      final candidateSchema = await _readSchemaObjectsFromDb(candidateDb);
+
+      final liveByKey = <String, _SchemaObject>{};
+      for (final obj in liveSchema) {
+        liveByKey['${obj.type}|${obj.name}'] = obj;
+      }
+
+      final candidateByKey = <String, _SchemaObject>{};
+      for (final obj in candidateSchema) {
+        candidateByKey['${obj.type}|${obj.name}'] = obj;
+      }
+
+      final liveKeys = liveByKey.keys.toSet();
+      final candidateKeys = candidateByKey.keys.toSet();
+
+      final missing = liveKeys.difference(candidateKeys).toList()..sort();
+      if (missing.isNotEmpty) {
+        return 'Incompatible - missing schema object: ${missing.first}';
+      }
+
+      final extra = candidateKeys.difference(liveKeys).toList()..sort();
+      if (extra.isNotEmpty) {
+        return 'Incompatible - unexpected schema object: ${extra.first}';
+      }
+
+      final sortedKeys = liveKeys.toList()..sort();
+      for (final key in sortedKeys) {
+        final expected = liveByKey[key]!;
+        final actual = candidateByKey[key]!;
+
+        if (expected.tableName != actual.tableName) {
+          return 'Incompatible - schema object $key has tbl_name "${actual.tableName}" but expected "${expected.tableName}"';
+        }
+
+        final expectedSql = _normalizeSchemaSql(expected.sql);
+        final actualSql = _normalizeSchemaSql(actual.sql);
+        if (expectedSql != actualSql) {
+          return 'Incompatible - schema SQL differs for $key';
+        }
+      }
+
+      return 'Ok';
+    } catch (e) {
+      return 'Incompatible - schema check failed: $e';
+    } finally {
+      await candidateDb.close();
+    }
+  }
+
+  Future<List<_SchemaObject>> readSchemaObjects() async {
+    final db = await open();
+    return _readSchemaObjectsFromDb(db);
   }
 
   Future<List<Map<String, Object?>>> rawQuery(
