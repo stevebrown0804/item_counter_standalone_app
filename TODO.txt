@@ -1,5 +1,7 @@
 ---------------------------------------Public use--------------------------------------------------
 
+TODO: Make the "add items" sheet respect the items.show_item field
+
 TODO: Add an "Edit countable items" button to the settings screen and implement it
     * It'll bring up a sheet with columns for "Item name", "View order" and "Show items"
     * If/when we add a "new DB wizard," we'll probably want to give a similar UI but minus the "Show items" column (as only TRUE jerks add items but then make them invisible when they first start using an app).
@@ -24,7 +26,8 @@ TODO (After 'pinning dates' and 'summary statistic selection drop-down'):
                   (for a 'pinned duration'): "[pinned start date] through [pinned end date]"
               * We should probably also state this on the home screen...at least, if it's at all unusual (ie. pinned durations).  Maybe change the header of the averages column?  We'll think about this.
 
-TODO: setting sheet behavior tidying (TBC)
+TODO: setting sheet behavior tidying
+    * 4/21/26 What's left, at this point?  I feel like we've added various 'tidying' steps in other TODOs🤔 TBD!
 
 TODO: Try using TextPainter to get the maximum width of things like 2 (or possibly 3- or 4-) digit numbers and using that to determine the width of the input boxes.
 
@@ -38,8 +41,10 @@ TODO: Add a "use timezones or do not....there is no try" (wording to be adjusted
 TODO: Add a checkbox on the settings screen for "Clicking a save button returns you to the home screen"
     * Implement!
     * We might reword it from just "save button" to any UI interaction: save buttons, a date successfully picked, etc.
+        * I've been toying around with something like "hasty mode" or "hasty retreat" to describe this behavior of hurrying back to the home screen.  *shrug* We'll see.
 
     sub-TODO: Consolidate save buttons!  Let's have one...or at least one per "some kind of region within the settings sheet" or something.
+        OR POSSIBLY: Give an option on the settings sheet to say "just auto-save stuff" that removes save buttons and just automatically saves stuff that's changed.
 
     sub-TODO: Change the default behavior of the "Export DB" button so that it ~doesn't~ automatically return the user to the home screen.  (That way, all settings sheet UI elements will have consistent behavior, and checking the checkbox from the parent TODO can apply to everything.👍)
 
@@ -48,7 +53,7 @@ TODO (Lower priority): Item metadata
     * Create a UI for defining those pairs
         * atm I'm thinking "one set of keys that applies to the entire item set" (...although that's making me think about ways to allow multiple item sets.🤔  we'll think about that later, though.)
          * eg. Manufacturer, Product Name
-    * FUTURE: If we've implementing DB importing then we'll want to add this table as an option for importing
+    * FUTURE (4/21/26 Or is it!): If we've implemented DB importing then we'll want to add this table as an option for importing
 
 TODO (POSSIBLY OUT-OF-DATE; CERTAINLY NEEDS CLARIFICATION): Time-zone specifying
     * Add a "Specify time zone by alias" checkbox  <---4/21/26 Where, exactly?🤨 Settings sheet?
