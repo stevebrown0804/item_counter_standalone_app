@@ -54,6 +54,20 @@ class _EditableCountableItemRow {
   }
 }
 
+class _SubmittedCountableItemRow {
+  const _SubmittedCountableItemRow({
+    required this.id,
+    required this.displayString,
+    required this.displayOrder,
+    required this.showItem,
+  });
+
+  final int? id;
+  final String displayString;
+  final int displayOrder;
+  final bool showItem;
+}
+
 class _EditCountableItemsSheet extends StatefulWidget {
   const _EditCountableItemsSheet();
 
@@ -65,6 +79,7 @@ class _EditCountableItemsSheetState extends State<_EditCountableItemsSheet> {
   final _db = _Db();
 
   bool _loading = true;
+  bool _saving = false;
   Object? _loadError;
   final List<_EditableCountableItemRow> _rows = [];
 
@@ -140,6 +155,97 @@ class _EditCountableItemsSheetState extends State<_EditCountableItemsSheet> {
 
   List<int> get _displayOrderOptions {
     return List<int>.generate(_rows.length, (i) => i + 1);
+  }
+
+  List<_SubmittedCountableItemRow> _buildSubmittedRows() {
+    final keptRows = <({
+    int originalIndex,
+    int? id,
+    String displayString,
+    int? displayOrder,
+    bool showItem,
+    })>[];
+
+    for (var i = 0; i < _rows.length; i++) {
+      final row = _rows[i];
+      final displayString = row.displayStringController.text.trim();
+      if (displayString.isEmpty) {
+        continue;
+      }
+
+      keptRows.add((
+      originalIndex: i,
+      id: row.id,
+      displayString: displayString,
+      displayOrder: row.displayOrder,
+      showItem: row.showItem,
+      ));
+    }
+
+    keptRows.sort((a, b) {
+      final aOrder = a.displayOrder ?? 1 << 30;
+      final bOrder = b.displayOrder ?? 1 << 30;
+
+      final orderCompare = aOrder.compareTo(bOrder);
+      if (orderCompare != 0) {
+        return orderCompare;
+      }
+
+      return a.originalIndex.compareTo(b.originalIndex);
+    });
+
+    return List<_SubmittedCountableItemRow>.generate(
+      keptRows.length,
+          (i) {
+        final row = keptRows[i];
+        return _SubmittedCountableItemRow(
+          id: row.id,
+          displayString: row.displayString,
+          displayOrder: i + 1,
+          showItem: row.showItem,
+        );
+      },
+    );
+  }
+
+  Future<void> _handleSubmit() async {
+    final submittedRows = _buildSubmittedRows();
+    if (submittedRows.isEmpty) {
+      return;
+    }
+
+    setState(() {
+      _saving = true;
+    });
+
+    try {
+      await _db.saveCountableItems(submittedRows);
+
+      final main = _MainScreenState._lastMounted;
+      if (main != null && main.mounted) {
+        await main._store.refreshFromDatabase();
+        await main._loadActiveTzDisplay();
+        if (main.mounted) {
+          main.setState(() {});
+        }
+      }
+
+      if (!mounted) return;
+      Navigator.of(context).pop();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to save countable items: $e'),
+          duration: const Duration(seconds: 8),
+        ),
+      );
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _saving = false;
+      });
+    }
   }
 
   @override
@@ -289,7 +395,7 @@ class _EditCountableItemsSheetState extends State<_EditCountableItemsSheet> {
             ),
             const SizedBox(height: 12),
             FilledButton.icon(
-              onPressed: _addRow,
+              onPressed: _saving ? null : _addRow,
               icon: const Icon(Icons.add),
               label: const Text('Add row'),
             ),
@@ -297,7 +403,7 @@ class _EditCountableItemsSheetState extends State<_EditCountableItemsSheet> {
             Align(
               alignment: Alignment.center,
               child: FilledButton(
-                onPressed: _canSubmit ? () {} : null,
+                onPressed: _canSubmit && !_saving ? _handleSubmit : null,
                 child: const Text('Submit'),
               ),
             ),

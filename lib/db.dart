@@ -1003,6 +1003,75 @@ ORDER BY
     return _readSchemaObjectsFromDb(db);
   }
 
+  Future<void> saveCountableItems(
+      List<_SubmittedCountableItemRow> rows,
+      ) async {
+    final db = await open();
+
+    await db.transaction((txn) async {
+      final existingRows = await txn.query(
+        'items',
+        columns: ['id'],
+      );
+
+      final existingIds = <int>{};
+      for (final row in existingRows) {
+        final rawId = row['id'];
+        if (rawId == null) {
+          continue;
+        }
+        final id = (rawId is num)
+            ? rawId.toInt()
+            : int.parse(rawId.toString());
+        existingIds.add(id);
+      }
+
+      final retainedExistingIds = <int>{};
+
+      for (final row in rows) {
+        final values = <String, Object?>{
+          'display_string': row.displayString,
+          'display_order': row.displayOrder,
+          'show_item': row.showItem ? 1 : 0,
+        };
+
+        if (row.id != null) {
+          retainedExistingIds.add(row.id!);
+
+          final updated = await txn.update(
+            'items',
+            values,
+            where: 'id = ?',
+            whereArgs: [row.id],
+          );
+
+          if (updated != 1) {
+            throw StateError('Expected to update exactly one items row for id ${row.id}, but updated $updated.');
+          }
+        } else {
+          await txn.insert('items', values);
+        }
+      }
+
+      final idsToDelete = existingIds
+          .difference(retainedExistingIds)
+          .toList()
+        ..sort((a, b) => b.compareTo(a));
+
+      for (final id in idsToDelete) {
+        final deleted = await txn.delete(
+          'items',
+          where: 'id = ?',
+          whereArgs: [id],
+        );
+
+        if (deleted != 1) {
+          throw StateError('Expected to delete exactly one items row for id $id, but deleted $deleted.');
+        }
+      }
+    });
+  }
+
   Future<List<Map<String, Object?>>> rawQuery(
       String sql, [
         List<Object?>? arguments,
