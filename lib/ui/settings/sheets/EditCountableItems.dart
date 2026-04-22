@@ -1,5 +1,3 @@
-// /ui/settings/sheets/EditCountableItems.dart
-
 part of '../../../main.dart';
 
 Future<void> doEditCountableItemsSheet({
@@ -18,12 +16,157 @@ Future<void> doEditCountableItemsSheet({
   );
 }
 
-class _EditCountableItemsSheet extends StatelessWidget {
+class _EditableCountableItemRow {
+  _EditableCountableItemRow({
+    required this.id,
+    required String displayString,
+    required this.displayOrder,
+    required this.showItem,
+  }) : displayStringController = TextEditingController(text: displayString);
+
+  final int? id;
+  final TextEditingController displayStringController;
+  int? displayOrder;
+  bool showItem;
+
+  factory _EditableCountableItemRow.fromItem(_Item item) {
+    return _EditableCountableItemRow(
+      id: item.id,
+      displayString: item.name,
+      displayOrder: item.displayOrder,
+      showItem: item.showItem,
+    );
+  }
+
+  factory _EditableCountableItemRow.empty({
+    required int defaultDisplayOrder,
+  }) {
+    return _EditableCountableItemRow(
+      id: null,
+      displayString: '',
+      displayOrder: defaultDisplayOrder,
+      showItem: true,
+    );
+  }
+
+  void dispose() {
+    displayStringController.dispose();
+  }
+}
+
+class _EditCountableItemsSheet extends StatefulWidget {
   const _EditCountableItemsSheet();
 
   @override
+  State<_EditCountableItemsSheet> createState() => _EditCountableItemsSheetState();
+}
+
+class _EditCountableItemsSheetState extends State<_EditCountableItemsSheet> {
+  final _db = _Db();
+
+  bool _loading = true;
+  Object? _loadError;
+  final List<_EditableCountableItemRow> _rows = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadItems();
+  }
+
+  @override
+  void dispose() {
+    for (final row in _rows) {
+      row.dispose();
+    }
+    super.dispose();
+  }
+
+  Future<void> _loadItems() async {
+    try {
+      final items = await _db.listItemsOrdered();
+
+      final loadedRows = items
+          .map(_EditableCountableItemRow.fromItem)
+          .toList();
+
+      if (loadedRows.isEmpty) {
+        loadedRows.add(
+          _EditableCountableItemRow.empty(defaultDisplayOrder: 1),
+        );
+      }
+
+      if (!mounted) {
+        for (final row in loadedRows) {
+          row.dispose();
+        }
+        return;
+      }
+
+      setState(() {
+        _rows
+          ..clear()
+          ..addAll(loadedRows);
+        _loading = false;
+        _loadError = null;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _loadError = e;
+      });
+    }
+  }
+
+  void _addRow() {
+    setState(() {
+      _rows.add(
+        _EditableCountableItemRow.empty(
+          defaultDisplayOrder: _rows.length + 1,
+        ),
+      );
+    });
+  }
+
+  List<int> get _displayOrderOptions {
+    return List<int>.generate(_rows.length, (i) => i + 1);
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final db = _Db();
+    if (_loading) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Edit countable items'),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ),
+        body: const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    if (_loadError != null) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Edit countable items'),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ),
+        body: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Text('Error loading items: $_loadError'),
+        ),
+      );
+    }
+
+    final displayOrderOptions = _displayOrderOptions;
 
     return Scaffold(
       appBar: AppBar(
@@ -33,119 +176,115 @@ class _EditCountableItemsSheet extends StatelessWidget {
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
-      body: FutureBuilder<List<_Item>>(
-        future: db.listItemsOrdered(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (snapshot.hasError) {
-            return Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Text('Error loading items: ${snapshot.error}'),
-            );
-          }
-
-          final items = snapshot.data ?? const <_Item>[];
-
-          return LayoutBuilder(
-            builder: (context, constraints) {
-              final totalWidth = constraints.maxWidth - 24.0;
-              final idWidth = totalWidth * 0.12;
-              final displayStringWidth = totalWidth * 0.42;
-              final displayOrderWidth = totalWidth * 0.23;
-              final showItemWidth = totalWidth * 0.23;
-
-              return SingleChildScrollView(
-                child: Padding(
-                  padding: const EdgeInsets.all(12.0),
-                  child: Table(
-                    border: TableBorder.all(
-                      color: Theme.of(context).dividerColor,
-                    ),
-                    columnWidths: <int, TableColumnWidth>{
-                      0: FixedColumnWidth(idWidth),
-                      1: FixedColumnWidth(displayStringWidth),
-                      2: FixedColumnWidth(displayOrderWidth),
-                      3: FixedColumnWidth(showItemWidth),
-                    },
-                    defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-                    children: <TableRow>[
-                      _buildHeaderRow(),
-                      ...items.map(_buildItemRow),
-                    ],
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(12.0),
+        child: Column(
+          children: [
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: DataTable(
+                columnSpacing: 0,
+                horizontalMargin: 0,
+                columns: const <DataColumn>[
+                  DataColumn(
+                    label: Text('Display string'),
                   ),
-                ),
-              );
-            },
-          );
-        },
+                  DataColumn(
+                    label: SizedBox(
+                      width: 88,
+                      child: Text(
+                        'Display\norder',
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+                  DataColumn(
+                    label: Text('Show/hide'),
+                  ),
+                ],
+                rows: _rows.map((row) {
+                  return DataRow(
+                    cells: <DataCell>[
+                      DataCell(
+                        SizedBox(
+                          width: 220,
+                          child: TextField(
+                            controller: row.displayStringController,
+                            decoration: const InputDecoration(
+                              isDense: true,
+                              border: OutlineInputBorder(),
+                            ),
+                            onChanged: (_) {
+                              setState(() {});
+                            },
+                          ),
+                        ),
+                      ),
+                      DataCell(
+                        SizedBox(
+                          width: 88,
+                          child: DropdownButtonFormField<int>(
+                            value: row.displayOrder,
+                            isExpanded: true,
+                            decoration: const InputDecoration(
+                              isDense: true,
+                              border: OutlineInputBorder(),
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 8,
+                              ),
+                            ),
+                            items: displayOrderOptions.map((value) {
+                              return DropdownMenuItem<int>(
+                                value: value,
+                                child: Text(value.toString()),
+                              );
+                            }).toList(),
+                            onChanged: (value) {
+                              setState(() {
+                                row.displayOrder = value;
+                              });
+                            },
+                          ),
+                        ),
+                      ),
+                      DataCell(
+                        Center(
+                          child: Switch(
+                            value: row.showItem,
+                            onChanged: (value) {
+                              setState(() {
+                                row.showItem = value;
+                              });
+                            },
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                }).toList(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              onPressed: _addRow,
+              icon: const Icon(Icons.add),
+              label: const Text('Add row'),
+            ),
+            const SizedBox(height: 20),
+            Align(
+              alignment: Alignment.center,
+              child: FilledButton(
+                onPressed: null,
+                child: const Text('Submit'),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  TableRow _buildHeaderRow() {
-    return const TableRow(
-      children: <Widget>[
-        _TableCellText(
-          text: 'id',
-          isHeader: true,
-        ),
-        _TableCellText(
-          text: 'display_string',
-          isHeader: true,
-        ),
-        _TableCellText(
-          text: 'display_order',
-          isHeader: true,
-        ),
-        _TableCellText(
-          text: 'show_item',
-          isHeader: true,
-        ),
-      ],
-    );
-  }
-
-  TableRow _buildItemRow(_Item item) {
-    return TableRow(
-      children: <Widget>[
-        _TableCellText(text: item.id.toString()),
-        _TableCellText(text: item.name),
-        _TableCellText(text: item.displayOrder?.toString() ?? 'NULL'),
-        _TableCellText(text: item.showItem ? '1' : '0'),
-      ],
-    );
-  }
-}
-
-class _TableCellText extends StatelessWidget {
-  const _TableCellText({
-    required this.text,
-    this.isHeader = false,
-  });
-
-  final String text;
-  final bool isHeader;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 8.0,
-        vertical: 10.0,
-      ),
-      child: Text(
-        text,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: isHeader
-            ? const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)
-            : const TextStyle(fontSize: 13),
-      ),
-    );
-  }
 }
 
 class _EditCountableItemsRow extends StatelessWidget {
