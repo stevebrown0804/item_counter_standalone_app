@@ -135,6 +135,8 @@ class _EditCountableItemsSheetState extends State<_EditCountableItemsSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final bodyMedium = Theme.of(context).textTheme.bodyMedium;
+
     if (_loading) {
       return Scaffold(
         appBar: AppBar(
@@ -199,7 +201,13 @@ class _EditCountableItemsSheetState extends State<_EditCountableItemsSheet> {
                     ),
                   ),
                   DataColumn(
-                    label: Text('Show/hide'),
+                    label: SizedBox(
+                      width: 65,
+                      child: Text(
+                        'Show?',
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
                   ),
                 ],
                 rows: _rows.map((row) {
@@ -210,6 +218,7 @@ class _EditCountableItemsSheetState extends State<_EditCountableItemsSheet> {
                           width: 220,
                           child: TextField(
                             controller: row.displayStringController,
+                            style: bodyMedium,
                             decoration: const InputDecoration(
                               isDense: true,
                               border: OutlineInputBorder(),
@@ -226,6 +235,7 @@ class _EditCountableItemsSheetState extends State<_EditCountableItemsSheet> {
                           child: DropdownButtonFormField<int>(
                             value: row.displayOrder,
                             isExpanded: true,
+                            style: bodyMedium,
                             decoration: const InputDecoration(
                               isDense: true,
                               border: OutlineInputBorder(),
@@ -237,7 +247,10 @@ class _EditCountableItemsSheetState extends State<_EditCountableItemsSheet> {
                             items: displayOrderOptions.map((value) {
                               return DropdownMenuItem<int>(
                                 value: value,
-                                child: Text(value.toString()),
+                                child: Text(
+                                  value.toString(),
+                                  style: bodyMedium,
+                                ),
                               );
                             }).toList(),
                             onChanged: (value) {
