@@ -1,11 +1,7 @@
 ---------------------------------------Public use--------------------------------------------------
 
-TODO: Make the "add items" sheet respect the items.show_item field
-
-TODO: Add an "Edit countable items" button to the settings screen and implement it
-    * It'll bring up a sheet with columns for "Item name", "View order" and "Show items"
-    * If/when we add a "new DB wizard," we'll probably want to give a similar UI but minus the "Show items" column (as only TRUE jerks add items but then make them invisible when they first start using an app).
-        * Maybe we could hide the show_items column, but give the option to show it, if the user is indeed a "TRUE jerk."
+TODO: "It's like a new-DB wizard, kinda"
+    When a DB's items table is empty, replace the 'add' button on the home screen with an 'add items' button, which brings up the 'edit countable items' sheet.
 
 TODO: pinning dates
     Add some options to the date-picker, reflecting these "averaging window" behaviors:
