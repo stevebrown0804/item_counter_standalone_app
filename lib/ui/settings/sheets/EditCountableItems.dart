@@ -83,7 +83,33 @@ class _EditCountableItemsSheetState extends State<_EditCountableItemsSheet> {
   Object? _loadError;
   final List<_EditableCountableItemRow> _rows = [];
 
+  Set<int> get _duplicateDisplayOrders {
+    final counts = <int, int>{};
+
+    for (final row in _rows) {
+      final value = row.displayOrder;
+      if (value == null) {
+        continue;
+      }
+      counts[value] = (counts[value] ?? 0) + 1;
+    }
+
+    final duplicates = <int>{};
+    counts.forEach((value, count) {
+      if (count > 1) {
+        duplicates.add(value);
+      }
+    });
+    return duplicates;
+  }
+
+  bool get _hasDuplicateDisplayOrders => _duplicateDisplayOrders.isNotEmpty;
+
   bool get _canSubmit {
+    if (_hasDuplicateDisplayOrders) {
+      return false;
+    }
+
     for (final row in _rows) {
       if (row.displayStringController.text.trim().isNotEmpty) {
         return true;
@@ -251,6 +277,9 @@ class _EditCountableItemsSheetState extends State<_EditCountableItemsSheet> {
   @override
   Widget build(BuildContext context) {
     final bodyMedium = Theme.of(context).textTheme.bodyMedium;
+    final duplicateDisplayOrders = _duplicateDisplayOrders;
+    final errorStyle = bodyMedium?.copyWith(color: Colors.red) ??
+        const TextStyle(color: Colors.red);
 
     if (_loading) {
       return Scaffold(
@@ -326,6 +355,9 @@ class _EditCountableItemsSheetState extends State<_EditCountableItemsSheet> {
                   ),
                 ],
                 rows: _rows.map((row) {
+                  final isDuplicate = row.displayOrder != null &&
+                      duplicateDisplayOrders.contains(row.displayOrder);
+
                   return DataRow(
                     cells: <DataCell>[
                       DataCell(
@@ -350,7 +382,7 @@ class _EditCountableItemsSheetState extends State<_EditCountableItemsSheet> {
                           child: DropdownButtonFormField<int>(
                             value: row.displayOrder,
                             isExpanded: true,
-                            style: bodyMedium,
+                            style: isDuplicate ? errorStyle : bodyMedium,
                             decoration: const InputDecoration(
                               isDense: true,
                               border: OutlineInputBorder(),
@@ -360,14 +392,31 @@ class _EditCountableItemsSheetState extends State<_EditCountableItemsSheet> {
                               ),
                             ),
                             items: displayOrderOptions.map((value) {
+                              final itemIsDuplicate =
+                              duplicateDisplayOrders.contains(value);
+
                               return DropdownMenuItem<int>(
                                 value: value,
                                 child: Text(
                                   value.toString(),
-                                  style: bodyMedium,
+                                  style: itemIsDuplicate ? errorStyle : bodyMedium,
                                 ),
                               );
                             }).toList(),
+                            selectedItemBuilder: (context) {
+                              return displayOrderOptions.map((value) {
+                                final itemIsDuplicate =
+                                duplicateDisplayOrders.contains(value);
+
+                                return Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: Text(
+                                    value.toString(),
+                                    style: itemIsDuplicate ? errorStyle : bodyMedium,
+                                  ),
+                                );
+                              }).toList();
+                            },
                             onChanged: (value) {
                               setState(() {
                                 row.displayOrder = value;
