@@ -183,7 +183,7 @@ class _MainScreenState extends State<_MainScreen> {
   }
 
   Future<void> _openAddSheet() async {
-    final items = _store.items;
+    final items = _store.items.where((item) => item.showItem).toList();
     if (items.isEmpty) return;
 
     final result = await showModalBottomSheet<_LogItemsSheetResult>(
