@@ -18,7 +18,7 @@ If you're interested in using the app, you'll probably want to do the following:
 * Take a copy of the DB file from /data/data/com.example.item_counter_standalone_app
 * Add your preferred time zone(s) (and aliases to those time zones) to the time_zone_aliases table
 * Add whatever it is you want to count to the items table.  (with display_order == 1 being the top of the list; values should probably be unique (although that's not enforced by the DB atm); with show_item: show_item == 1 => show; == 0 => don't show.)
-* Copy the DB back to your phone
+* Copy the DB back to your phone (to the same directory where you originally got the DB file)
 * Create a release .apk file and deploy it to your phone
   * That is, from the project root:
   * `flutter build apk --release`
@@ -30,6 +30,7 @@ If you're interested in using the app, you'll probably want to do the following:
 Phase 2, where I make the app more accessible to others
 
 * 2026-04-10 This phase is in progress now!🥳  Check the TODO.txt file if you want to see what I'm planning to do.  (The 'Public use' section, anyhow; the "Minor initiatives" and lower sections are TODOs that I wrote up the last time I was working on the project; we'll evaluate them to see if we still want to do them, eventually.)
+* 2026-04-21 The "Database file import" stuff is 'mostly' working.🥳  If you're interested in trying out the app and 'happen' to have a DB file with items that you're interested in counting, then you're in luck!  (...but that probably won't happen -- at least, not often.)  (Also, I just BARELY finished adding the import process and I haven't actually tried it out much, so "no promises about functionality, just yet.")
 
 ---
 
