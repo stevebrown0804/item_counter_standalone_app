@@ -68,6 +68,15 @@ class _EditCountableItemsSheetState extends State<_EditCountableItemsSheet> {
   Object? _loadError;
   final List<_EditableCountableItemRow> _rows = [];
 
+  bool get _canSubmit {
+    for (final row in _rows) {
+      if (row.displayStringController.text.trim().isNotEmpty) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -288,7 +297,7 @@ class _EditCountableItemsSheetState extends State<_EditCountableItemsSheet> {
             Align(
               alignment: Alignment.center,
               child: FilledButton(
-                onPressed: null,
+                onPressed: _canSubmit ? () {} : null,
                 child: const Text('Submit'),
               ),
             ),
@@ -297,7 +306,6 @@ class _EditCountableItemsSheetState extends State<_EditCountableItemsSheet> {
       ),
     );
   }
-
 }
 
 class _EditCountableItemsRow extends StatelessWidget {
