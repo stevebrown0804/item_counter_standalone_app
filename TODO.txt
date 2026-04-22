@@ -1,5 +1,11 @@
 ---------------------------------------Public use--------------------------------------------------
 
+TODO: Allow deleting rows in the 'edit countable items' UI
+    I'm thinkin' we'll add a little red [x] at the end of every row or something, and when it's tapped, we'll:
+     * collapse the display orders (from above) to re-use the deleted row's value,
+     * remove the deleted item's row from the DB, and
+     * refresh the screen.
+
 TODO: "It's like a new-DB wizard, kinda"
     When a DB's items table is empty, replace the 'add' button on the home screen with an 'add items' button, which brings up the 'edit countable items' sheet.
 
