@@ -1027,29 +1027,15 @@ ORDER BY
       }
 
       final retainedExistingIds = <int>{};
+      final existingRowsToUpdate = <_SubmittedCountableItemRow>[];
+      final newRowsToInsert = <_SubmittedCountableItemRow>[];
 
       for (final row in rows) {
-        final values = <String, Object?>{
-          'display_string': row.displayString,
-          'display_order': row.displayOrder,
-          'show_item': row.showItem ? 1 : 0,
-        };
-
         if (row.id != null) {
           retainedExistingIds.add(row.id!);
-
-          final updated = await txn.update(
-            'items',
-            values,
-            where: 'id = ?',
-            whereArgs: [row.id],
-          );
-
-          if (updated != 1) {
-            throw StateError('Expected to update exactly one items row for id ${row.id}, but updated $updated.');
-          }
+          existingRowsToUpdate.add(row);
         } else {
-          await txn.insert('items', values);
+          newRowsToInsert.add(row);
         }
       }
 
@@ -1068,6 +1054,52 @@ ORDER BY
         if (deleted != 1) {
           throw StateError('Expected to delete exactly one items row for id $id, but deleted $deleted.');
         }
+      }
+
+      for (var i = 0; i < existingRowsToUpdate.length; i++) {
+        final row = existingRowsToUpdate[i];
+        final temporaryDisplayOrder = -(i + 1);
+
+        final updated = await txn.update(
+          'items',
+          {
+            'display_order': temporaryDisplayOrder,
+          },
+          where: 'id = ?',
+          whereArgs: [row.id],
+        );
+
+        if (updated != 1) {
+          throw StateError('Expected to update exactly one items row for id ${row.id}, but updated $updated.');
+        }
+      }
+
+      for (final row in existingRowsToUpdate) {
+        final updated = await txn.update(
+          'items',
+          {
+            'display_string': row.displayString,
+            'display_order': row.displayOrder,
+            'show_item': row.showItem ? 1 : 0,
+          },
+          where: 'id = ?',
+          whereArgs: [row.id],
+        );
+
+        if (updated != 1) {
+          throw StateError('Expected to update exactly one items row for id ${row.id}, but updated $updated.');
+        }
+      }
+
+      for (final row in newRowsToInsert) {
+        await txn.insert(
+          'items',
+          {
+            'display_string': row.displayString,
+            'display_order': row.displayOrder,
+            'show_item': row.showItem ? 1 : 0,
+          },
+        );
       }
     });
   }
