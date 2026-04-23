@@ -34,7 +34,7 @@ TODO (Lower priority): Item metadata
     * Create a UI for defining those pairs
         * atm I'm thinking "one set of keys that applies to the entire item set" (...although that's making me think about ways to allow multiple item sets.🤔  we'll think about that later, though.)
          * eg. Manufacturer, Product Name
-    * FUTURE (4/21/26 Or is it!): If we've implemented DB importing then we'll want to add this table as an option for importing
+    * Add this table as an option for importing
 
 TODO (POSSIBLY OUT-OF-DATE; NEEDS CLARIFICATION): Time-zone specifying
     * Add a "Specify time zone by alias" checkbox  <---4/21/26 Where, exactly?🤨 Settings sheet?
@@ -46,8 +46,11 @@ TODO (POSSIBLY OUT-OF-DATE; NEEDS CLARIFICATION): Time-zone specifying
             * As the user enters characters, it refines that list to names matching the substring that the user as entered.  It continues like this until the user either taps "Submit" or taps the name (which then populates the input box), then taps "Submit."
     *Add a setting with key derived from "Specify time zone by alias"; default value is false (ie. unchecked)
 
+        sub-TODO: Answer the question, "Seeing as how the previous TODO doesn't really make a lot of sense, should we edit it until it makes sense or just scrap it and start over with an "Add a TZ alias-adding UI" TODO, which sounds much more straightforward?"
+
 TODO: Add a drop-down or something in the settings sheet to select the summary statistic
-    sub-TODO: Elaborate
+    Possible default: With the 'monthly average' statistic selected and the drop-down disabled.
+    A THOUGHT: This makes me think about "items sets" and having multiple counting UIs in the app; in THAT context, implementing "various" summary statistics seems more useful.  As it is, though, this kinda just feels like a placeholder for "when someone else wants to add a new summary statistic."
 
 TODO (After 'pinning dates' and 'summary statistic selection drop-down'):
     sub-TODO: Merge these two TODOS
