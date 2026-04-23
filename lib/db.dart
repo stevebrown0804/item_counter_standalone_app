@@ -1045,6 +1045,12 @@ ORDER BY
         ..sort((a, b) => b.compareTo(a));
 
       for (final id in idsToDelete) {
+        await txn.delete(
+          'item_transactions',
+          where: 'item_id = ?',
+          whereArgs: [id],
+        );
+
         final deleted = await txn.delete(
           'items',
           where: 'id = ?',

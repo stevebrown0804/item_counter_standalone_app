@@ -118,6 +118,113 @@ class _EditCountableItemsSheetState extends State<_EditCountableItemsSheet> {
     return false;
   }
 
+  Future<void> _handleDeleteRow(_EditableCountableItemRow row) async {
+    if (_saving) {
+      return;
+    }
+
+    setState(() {
+      _saving = true;
+    });
+
+    try {
+      final remainingRows = List<_EditableCountableItemRow>.from(_rows)
+        ..remove(row);
+
+      final keptRows = <({
+      int originalIndex,
+      int? id,
+      String displayString,
+      int? displayOrder,
+      bool showItem,
+      })>[];
+
+      for (var i = 0; i < remainingRows.length; i++) {
+        final currentRow = remainingRows[i];
+        final displayString = currentRow.displayStringController.text.trim();
+        if (displayString.isEmpty) {
+          continue;
+        }
+
+        keptRows.add((
+        originalIndex: i,
+        id: currentRow.id,
+        displayString: displayString,
+        displayOrder: currentRow.displayOrder,
+        showItem: currentRow.showItem,
+        ));
+      }
+
+      keptRows.sort((a, b) {
+        final aOrder = a.displayOrder ?? 1 << 30;
+        final bOrder = b.displayOrder ?? 1 << 30;
+
+        final orderCompare = aOrder.compareTo(bOrder);
+        if (orderCompare != 0) {
+          return orderCompare;
+        }
+
+        return a.originalIndex.compareTo(b.originalIndex);
+      });
+
+      final submittedRows = List<_SubmittedCountableItemRow>.generate(
+        keptRows.length,
+            (i) {
+          final keptRow = keptRows[i];
+          return _SubmittedCountableItemRow(
+            id: keptRow.id,
+            displayString: keptRow.displayString,
+            displayOrder: i + 1,
+            showItem: keptRow.showItem,
+          );
+        },
+      );
+
+      await _db.saveCountableItems(submittedRows);
+
+      final main = _MainScreenState._lastMounted;
+      if (main != null && main.mounted) {
+        main._store.clearUndoRedo();
+        await main._store.refreshFromDatabase();
+        await main._loadActiveTzDisplay();
+        if (main.mounted) {
+          main.setState(() {});
+        }
+      }
+
+      if (!mounted) {
+        return;
+      }
+
+      await _loadItems();
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+
+      await _loadItems();
+
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to delete row: $e'),
+          duration: const Duration(seconds: 8),
+        ),
+      );
+    } finally {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _saving = false;
+      });
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -153,12 +260,20 @@ class _EditCountableItemsSheetState extends State<_EditCountableItemsSheet> {
         return;
       }
 
+      final oldRows = List<_EditableCountableItemRow>.from(_rows);
+
       setState(() {
         _rows
           ..clear()
           ..addAll(loadedRows);
         _loading = false;
         _loadError = null;
+      });
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        for (final row in oldRows) {
+          row.dispose();
+        }
       });
     } catch (e) {
       if (!mounted) return;
@@ -337,7 +452,7 @@ class _EditCountableItemsSheetState extends State<_EditCountableItemsSheet> {
                   ),
                   DataColumn(
                     label: SizedBox(
-                      width: 88,
+                      width: 76,
                       child: Text(
                         'Display\norder',
                         textAlign: TextAlign.center,
@@ -353,17 +468,30 @@ class _EditCountableItemsSheetState extends State<_EditCountableItemsSheet> {
                       ),
                     ),
                   ),
+                  DataColumn(
+                    label: SizedBox(
+                      width: 32,
+                      child: Text(
+                        '',
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
                 ],
                 rows: _rows.map((row) {
                   final isDuplicate = row.displayOrder != null &&
                       duplicateDisplayOrders.contains(row.displayOrder);
 
+                  final rowKey = ValueKey<int?>(row.id);
+
                   return DataRow(
+                    key: rowKey,
                     cells: <DataCell>[
                       DataCell(
                         SizedBox(
-                          width: 220,
+                          width: 200,
                           child: TextField(
+                            key: ValueKey('display_string_${row.id ?? row.displayOrder}_${identityHashCode(row)}'),
                             controller: row.displayStringController,
                             style: bodyMedium,
                             decoration: const InputDecoration(
@@ -378,16 +506,17 @@ class _EditCountableItemsSheetState extends State<_EditCountableItemsSheet> {
                       ),
                       DataCell(
                         SizedBox(
-                          width: 88,
+                          width: 76,
                           child: DropdownButtonFormField<int>(
-                            initialValue: row.displayOrder,
+                            key: ValueKey('display_order_${row.id ?? row.displayOrder}_${identityHashCode(row)}'),
+                            value: row.displayOrder,
                             isExpanded: true,
                             style: isDuplicate ? errorStyle : bodyMedium,
                             decoration: const InputDecoration(
                               isDense: true,
                               border: OutlineInputBorder(),
                               contentPadding: EdgeInsets.symmetric(
-                                horizontal: 8,
+                                horizontal: 6,
                                 vertical: 8,
                               ),
                             ),
@@ -428,12 +557,29 @@ class _EditCountableItemsSheetState extends State<_EditCountableItemsSheet> {
                       DataCell(
                         Center(
                           child: Switch(
+                            key: ValueKey('show_item_${row.id ?? row.displayOrder}_${identityHashCode(row)}'),
                             value: row.showItem,
                             onChanged: (value) {
                               setState(() {
                                 row.showItem = value;
                               });
                             },
+                          ),
+                        ),
+                      ),
+                      DataCell(
+                        SizedBox(
+                          width: 32,
+                          child: Center(
+                            child: GestureDetector(
+                              onTap: _saving ? null : () => _handleDeleteRow(row),
+                              child: Text(
+                                '[x]',
+                                textAlign: TextAlign.center,
+                                style: bodyMedium?.copyWith(color: Colors.red) ??
+                                    const TextStyle(color: Colors.red),
+                              ),
+                            ),
                           ),
                         ),
                       ),
