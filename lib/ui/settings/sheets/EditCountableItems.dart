@@ -380,7 +380,7 @@ class _EditCountableItemsSheetState extends State<_EditCountableItemsSheet> {
                         SizedBox(
                           width: 88,
                           child: DropdownButtonFormField<int>(
-                            value: row.displayOrder,
+                            initialValue: row.displayOrder,
                             isExpanded: true,
                             style: isDuplicate ? errorStyle : bodyMedium,
                             decoration: const InputDecoration(
