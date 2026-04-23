@@ -1,13 +1,7 @@
 ---------------------------------------Public use--------------------------------------------------
 
-TODO: Allow deleting rows in the 'edit countable items' UI
-    I'm thinkin' we'll add a little red [x] at the end of every row or something, and when it's tapped, we'll:
-     * collapse the display orders (from above) to re-use the deleted row's value,
-     * remove the deleted item's row from the DB, and
-     * refresh the screen.
-
-TODO: "It's like a new-DB wizard, kinda"
-    When a DB's items table is empty, replace the 'add' button on the home screen with an 'add items' button, which brings up the 'edit countable items' sheet.
+TODO (ONGOING): setting sheet behavior tidying
+    * 4/21/26 What's left, at this point?  I feel like we've added various 'tidying' steps in other TODOs🤔 TBD!
 
 TODO: pinning dates
     Add some options to the date-picker, reflecting these "averaging window" behaviors:
@@ -15,8 +9,45 @@ TODO: pinning dates
         (start date only) "pinning the start date" -- duration grows each day
         (both) "Pinning a date range" -- useful?  who's to say!
         (end date only) <joke>"Pinning a final date" -- start date does what, exactly? grows forward, shortening the duration until it reaches a negative number and the app explodes?  c'mon now.
+            *Realistically though, we COULD have this do a "shrinking interval" thing and have it stop at zero days....although that ALSO seems like kind of a stupid thing to do.🤔
 
-TODO: Add a drop-down or something in the settings sheet to select the summary statistics (TBC)
+TODO: Add a "use timezones or do not....there is no try" (wording to be adjusted later) option to the Settings sheet
+    True -- use the existing timezone functionality
+    False -- hide the timezone-related stuff, I guess; just use UTC, but keep the specifics "as hidden as we can manage, without it becoming a pain in the backside"
+
+TODO: Add a checkbox on the settings screen for "Clicking a save button returns you to the home screen"
+    * Implement!
+    * We might reword it from just "save button" to any UI interaction: save buttons, a date successfully picked, etc.
+        * I've been toying around with something like "hasty mode" or "hasty retreat" to describe this behavior of hurrying back to the home screen.  *shrug* We'll see.  That might just be a phrase we reserve for TODO.txt.
+
+    sub-TODO: Consolidate save buttons!  Let's have one...or at least one per "some kind of region within the settings sheet" or something.
+        OR POSSIBLY: Give an option on the settings sheet to say "just auto-save stuff" that removes save buttons and just automatically saves stuff that's changed.
+
+    sub-TODO: Change the default behavior of the "Export DB" button so that it ~doesn't~ automatically return the user to the home screen.  (The goal is to have all settings sheet UI elements have consistent behavior; then, checking the checkbox from the parent TODO can apply to everything.👍)
+
+    sub-TODO: Change the back button on the transaction viewer sheet to return the user to the settings sheet, rather than to the home screen.
+
+    sub-TODO: Change the back button on the 'edit countable items' sheet to return the user to the settings sheet, rather than to the home screen.
+
+TODO (Lower priority): Item metadata
+    * Create a table to hold key/value pairs
+    * Create a UI for defining those pairs
+        * atm I'm thinking "one set of keys that applies to the entire item set" (...although that's making me think about ways to allow multiple item sets.🤔  we'll think about that later, though.)
+         * eg. Manufacturer, Product Name
+    * FUTURE (4/21/26 Or is it!): If we've implemented DB importing then we'll want to add this table as an option for importing
+
+TODO (POSSIBLY OUT-OF-DATE; NEEDS CLARIFICATION): Time-zone specifying
+    * Add a "Specify time zone by alias" checkbox  <---4/21/26 Where, exactly?🤨 Settings sheet?
+        * If it's checked, present a button labeled "Specify a time zone alias"  <---4/21/26 Again...where?🤨 In a modal dialog?
+            * Pressing that button brings up a sheet of time zone aliases and an initially-empty column (except for UTC, I suppose) of tz aliases.  Let the user either tap an alias and pressed a button labeled "Enter alias" to bring up a window with an input box in which they can enter an alias (and tap an "OK" button or a "Cancel" button), or long-tap the alias field beside an alias and edit the alias in-place.
+            * When the user taps in the "Time Zone" input box, it brings up a list of aliases in the DB.  (That is, it does the current behavior for selecting an alias.)
+        * If the box is unchecked:
+            * When the user taps into the "Time Zone" input box, it presents a complete list of tz names
+            * As the user enters characters, it refines that list to names matching the substring that the user as entered.  It continues like this until the user either taps "Submit" or taps the name (which then populates the input box), then taps "Submit."
+    *Add a setting with key derived from "Specify time zone by alias"; default value is false (ie. unchecked)
+
+TODO: Add a drop-down or something in the settings sheet to select the summary statistic
+    sub-TODO: Elaborate
 
 TODO (After 'pinning dates' and 'summary statistic selection drop-down'):
     sub-TODO: Merge these two TODOS
@@ -28,44 +59,9 @@ TODO (After 'pinning dates' and 'summary statistic selection drop-down'):
                   (for a 'pinned duration'): "[pinned start date] through [pinned end date]"
               * We should probably also state this on the home screen...at least, if it's at all unusual (ie. pinned durations).  Maybe change the header of the averages column?  We'll think about this.
 
-TODO: setting sheet behavior tidying
-    * 4/21/26 What's left, at this point?  I feel like we've added various 'tidying' steps in other TODOs🤔 TBD!
-
-TODO: Try using TextPainter to get the maximum width of things like 2 (or possibly 3- or 4-) digit numbers and using that to determine the width of the input boxes.
-
-TODO: Man....there are a lot of hard-coded values in this code.  And every one of them makes me think, "How much will this suck for someone with an unusual desktop size/scaling factor/font/etc.?  c'mon now."
-    Anyhow, let's work on getting rid of hard-coded constants and replacing them with "formulas based on information from the OS."
-
-TODO: Add a "use timezones or do not....there is no try" (wording to be adjusted later) option to the Settings sheet
-    True -- use the existing timezone functionality
-    False -- hide the timezone-related stuff, I guess; just use UTC, but keep the specifics "as hidden as we can manage, without it becoming a pain in the backside"
-
-TODO: Add a checkbox on the settings screen for "Clicking a save button returns you to the home screen"
-    * Implement!
-    * We might reword it from just "save button" to any UI interaction: save buttons, a date successfully picked, etc.
-        * I've been toying around with something like "hasty mode" or "hasty retreat" to describe this behavior of hurrying back to the home screen.  *shrug* We'll see.
-
-    sub-TODO: Consolidate save buttons!  Let's have one...or at least one per "some kind of region within the settings sheet" or something.
-        OR POSSIBLY: Give an option on the settings sheet to say "just auto-save stuff" that removes save buttons and just automatically saves stuff that's changed.
-
-    sub-TODO: Change the default behavior of the "Export DB" button so that it ~doesn't~ automatically return the user to the home screen.  (That way, all settings sheet UI elements will have consistent behavior, and checking the checkbox from the parent TODO can apply to everything.👍)
-
-TODO (Lower priority): Item metadata
-    * Create a table to hold key/value pairs
-    * Create a UI for defining those pairs
-        * atm I'm thinking "one set of keys that applies to the entire item set" (...although that's making me think about ways to allow multiple item sets.🤔  we'll think about that later, though.)
-         * eg. Manufacturer, Product Name
-    * FUTURE (4/21/26 Or is it!): If we've implemented DB importing then we'll want to add this table as an option for importing
-
-TODO (POSSIBLY OUT-OF-DATE; CERTAINLY NEEDS CLARIFICATION): Time-zone specifying
-    * Add a "Specify time zone by alias" checkbox  <---4/21/26 Where, exactly?🤨 Settings sheet?
-        * If it's checked, present a button labeled "Specify a time zone alias"  <---4/21/26 Again...where?🤨 In a modal dialog?
-            * Pressing that button brings up a sheet of time zone aliases and an initially-empty column (except for UTC, I suppose) of tz aliases.  Let the user either tap an alias and pressed a button labeled "Enter alias" to bring up a window with an input box in which they can enter an alias (and tap an "OK" button or a "Cancel" button), or long-tap the alias field beside an alias and edit the alias in-place.
-            * When the user taps in the "Time Zone" input box, it brings up a list of aliases in the DB.  (That is, it does the current behavior for selecting an alias.)
-        * If the box is unchecked:
-            * When the user taps into the "Time Zone" input box, it presents a complete list of tz names
-            * As the user enters characters, it refines that list to names matching the substring that the user as entered.  It continues like this until the user either taps "Submit" or taps the name (which then populates the input box), then taps "Submit."
-    *Add a setting with key derived from "Specify time zone by alias"; default value is false (ie. unchecked)
+TODO (after adding a TZ alias-adding UI): "It's like a new-DB wizard, kinda"
+    When a DB's items table is empty, replace the 'add' button on the home screen with an 'add items' button, which brings up the 'edit countable items' sheet.
+    A THOUGHT: Do we want this same wizard to also help set up time zone aliases, or at least ask if the user wants to use them?  If so, we should probably wait until we have a TZ-adding UI before we do this.
 
 TODO re: Database importing:
     * For the time being, the app's going to enforce "only import (item transactions / settings) if (items / time zones) (respectively) is imported;" we should communicate this somewhere, so as not to overly-aggravate those trying to import one table, then import the 2nd table in a later operation.
@@ -73,10 +69,32 @@ TODO re: Database importing:
 
 
 
+---------------------------------------
+Polishing
+
+*Settings sheet
+TODO: Switches are pretty nice-looking, and do basically the same thing as checkboxes, although they kinda imply on/off-ness, which seems more specific than checkbox behavior.
+    Still, let's look for checkboxes (or possibly other UI elements) that we can replace with switches.
+
+*Edit countable items sheet
+TODO: Intelligently collapse the display order values
+    For example, if we change a display order n to n+1 or higher, reduce the in-between row's display orders by one.  If we change a display order n to n-1 or lower, increase the in-between row's display orders by one.
+TODO: Add a confirmation to the delete button, eg. a dialog saying "This will delete # transactions, along with the item; proceed?" along with "Abort" and "Proceed" buttons.  If # is 0, we can probably skip this confirmation.
+    Also, add a checkbox to the settings sheet for "Skip confirmation when deleting items" or some-such.
+TODO: Make the rows & the "add row" button the scrollable region, so that the 'submit' button stays in place on-screen
+TODO: Make the textBox and the drop-down box the same vertical height
+TODO: Get rid of that light gray bar separating each row, or perhaps add some space between it and the controls it encloses, then add an exterior border so that we have a box around the scrollable region
+TODO: Answer the question, "Does closing the 'edit countable items' screen via the submit button look weird to you?  It looks slightly chaotic to me, which could probably be smoothed out -- unless it's being caused by something specific to the emulator or something."
+
+*code
+TODO: Try using TextPainter to get the maximum width of things like 2 (or possibly 3- or 4-) digit numbers and using that to determine the width of the input boxes.
+TODO: Man....there are a lot of hard-coded values in this code.  And every one of them makes me think, "How much will this suck for someone with an unusual desktop size/scaling factor/font/etc.?  c'mon now."
+    Anyhow, let's work on getting rid of hard-coded constants and replacing them with "formulas based on information from the OS."
+
 
 ---------------------------------------------------------------------------------------------------
 
-[REMINDER: From here down we have TODOs written during the first pass of app development; they may or may not still apply.  We'll get around to evaluating them 'eventually.']
+[REMINDER: From here down we have TODOs written during the first pass at app development; they may or may not still apply.  We'll get around to evaluating them 'eventually.']
 
 ---Minor initiatives---
 
