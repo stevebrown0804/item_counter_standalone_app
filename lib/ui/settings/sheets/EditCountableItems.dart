@@ -509,7 +509,7 @@ class _EditCountableItemsSheetState extends State<_EditCountableItemsSheet> {
                           width: 76,
                           child: DropdownButtonFormField<int>(
                             key: ValueKey('display_order_${row.id ?? row.displayOrder}_${identityHashCode(row)}'),
-                            value: row.displayOrder,
+                            initialValue: row.displayOrder,
                             isExpanded: true,
                             style: isDuplicate ? errorStyle : bodyMedium,
                             decoration: const InputDecoration(
