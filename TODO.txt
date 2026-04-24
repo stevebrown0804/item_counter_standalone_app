@@ -3,13 +3,30 @@
 TODO (ONGOING): setting sheet behavior tidying
     * 4/21/26 What's left, at this point?  I feel like we've added various 'tidying' steps in other TODOs🤔 TBD!
 
-TODO: pinning dates
+TODO (IN PROGRESS): pinning dates
     Add some options to the date-picker, reflecting these "averaging window" behaviors:
         (neither) "start date to define a duration" -- start date and end date then both slide fwd each day, leaving the duration the same (default)
         (start date only) "pinning the start date" -- duration grows each day
         (both) "Pinning a date range" -- useful?  who's to say!
         (end date only) <joke>"Pinning a final date" -- start date does what, exactly? grows forward, shortening the duration until it reaches a negative number and the app explodes?  c'mon now.
             *Realistically though, we COULD have this do a "shrinking interval" thing and have it stop at zero days....although that ALSO seems like kind of a stupid thing to do.🤔
+
+    sub-TODO: Averaging window "pin" switch behavior:
+        * When 'pin start date' is set to true, allow date separation characters; eg. slashes, hyphens, maybe whitespace, etc.)
+            * Alternatively, we might create a template like 'mm/dd/yyyy' and have the user enter just the numerical part of the date
+            * Or we COULD just require that dates are entered via the date picker.  Pros: Easy.  Cons: Lacks flexibility, I suppose.
+        * (BUG) Setting the pin end date switch to on shouldn't be enabling the Save button until a valid date is entered or a date is picked
+
+        * Reminder: The new fields are:
+                    daily_average.number_of_days_ago  <---and the existing key, w/e it's called
+                    daily_average.start_date
+                    daily_average.end_date
+                    daily_average.pin_start_date
+                    daily_average.pin_end_date
+
+ TODO: Answer the question, "With the start date and end date, we're assuming mm/dd/yyyy, as far as I can tell.  Does Android change that, in other regions (where yyyy/mm/dd, etc. are common)?  Do we need to adapt (ie. by adding some i18n to the project)? TBD"
+
+TODO: Add a 'reset' (or 'clear', maybe) button to the RHS of the end Date textbox (in the Averaging Window area); have it revert the contents of the textbox to 'Today' (and force the 'pin end date' switch to off)
 
 TODO: Add a "use timezones or do not....there is no try" (wording to be adjusted later) option to the Settings sheet
     True -- use the existing timezone functionality
@@ -70,6 +87,8 @@ TODO re: Database importing:
     * For the time being, the app's going to enforce "only import (item transactions / settings) if (items / time zones) (respectively) is imported;" we should communicate this somewhere, so as not to overly-aggravate those trying to import one table, then import the 2nd table in a later operation.
     * Whatever directory the "import DB" file picker starts in, we should also communicate that directory that is (to reduce guesswork about where best to place a DB file).
 
+TODO: Answer the question, "When it comes to the end date, do we want to allow (and parse) arithmetic formulas involving the word 'today,' such as "today - 1" (for 'yesterday')?  It seems "possibly" useful to someone...maybe.
+    * A THOUGHT: Maybe this is the sort of thing we should let someone who WANTS to feature to implement.
 
 
 ---------------------------------------
@@ -78,6 +97,12 @@ Polishing
 *Settings sheet
 TODO: Switches are pretty nice-looking, and do basically the same thing as checkboxes, although they kinda imply on/off-ness, which seems more specific than checkbox behavior.
     Still, let's look for checkboxes (or possibly other UI elements) that we can replace with switches.
+
+*Averaging Window area
+TODO: (Background) With the "Averaging window" textboxes, we're using TextPainter to determine the minimum interior width necessary to display things (assuming the longest possibly averaging window is 99999 days); thing is, it's producing widths wider than necessary.
+    (Actual TODO): Answer the question, "Is the font being used by TextPainter to make those measurements the same font that's actually used to render the elements and their contents?  "Not using the right font" seems like the kind of bonehead mistake ChatGPT might make."
+TODO: Restrint the allowable input in the End Date textBox to "2 digits for mm dd, 4 digits for yyyy, and slashes/hyphens/[spacebar]/other separation characters."  (This is in addition to "the date strings that the date picker returns.)"
+TODO: Eith the End Date Textbox, if the current date is selected via the date picker and the "Pin end date" box is NOT checked", display "Today"
 
 *Edit countable items sheet
 TODO: Intelligently collapse the display order values
