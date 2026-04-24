@@ -59,39 +59,6 @@ CREATE TABLE IF NOT EXISTS logical_batch_items (
 )
 ''');
 
-    await db.execute('''
-CREATE VIEW IF NOT EXISTS logged_days AS
-WITH cfg AS (
-        SELECT CAST((
-                   SELECT value
-                     FROM settings
-                    WHERE key = 'avg_window_days'
-               ) AS INTEGER) AS n
-    ),
-    global AS (
-        SELECT DATE('now') AS today,
-               MIN(DATE(timestamp_utc)) AS min_date
-          FROM item_transactions
-    ),
-    window AS (
-        SELECT g.today,
-               g.min_date,
-               c.n,
-               DATE(JULIANDAY(g.today) - (c.n - 1)) AS n_start,
-               CASE
-                   WHEN g.min_date IS NULL THEN 0
-                   ELSE CAST(
-                       JULIANDAY(g.today) - JULIANDAY(MAX(g.min_date, DATE(JULIANDAY(g.today) - (c.n - 1))))
-                       AS INTEGER
-                   ) + 1
-               END AS days
-          FROM global g
-          CROSS JOIN cfg c
-    )
-    SELECT days AS number_of_days
-      FROM window
-''');
-
     await _ensureSettingDefault(db, 'avg_window_days', '30');
     await _ensureSettingDefault(db, 'skip_delete_transactions_second_dialog_confirmation', '0');
     await _ensureSettingDefault(db, 'time_zone_id', '0');
@@ -113,6 +80,58 @@ WITH cfg AS (
       'INSERT OR IGNORE INTO time_zone_aliases (alias, iana_tz_name) VALUES (?, ?)',
       ['Z', 'Etc/UTC'],
     );
+  }
+
+  Future<int> _computeEffectiveAveragingWindowDaysFromDb(Database db) async {
+    final cfgRows = await db.rawQuery(
+      '''
+SELECT value
+FROM settings
+WHERE key = 'avg_window_days'
+LIMIT 1
+''',
+    );
+
+    int configuredDays = 0;
+    if (cfgRows.isNotEmpty) {
+      final raw = cfgRows.first['value'];
+      if (raw is num) {
+        configuredDays = raw.toInt();
+      } else {
+        configuredDays = int.tryParse(raw?.toString() ?? '0') ?? 0;
+      }
+    }
+
+    if (configuredDays <= 0) {
+      return 0;
+    }
+
+    final globalRows = await db.rawQuery(
+      '''
+SELECT DATE('now') AS today,
+       MIN(DATE(timestamp_utc)) AS min_date
+FROM item_transactions
+''',
+    );
+
+    if (globalRows.isEmpty) {
+      return 0;
+    }
+
+    final todayRaw = globalRows.first['today']?.toString();
+    final minDateRaw = globalRows.first['min_date']?.toString();
+
+    if (todayRaw == null || todayRaw.isEmpty || minDateRaw == null || minDateRaw.isEmpty) {
+      return 0;
+    }
+
+    final today = DateTime.parse(todayRaw);
+    final minDate = DateTime.parse(minDateRaw);
+    final configuredStart = today.subtract(Duration(days: configuredDays - 1));
+    final effectiveStart = minDate.isAfter(configuredStart) ? minDate : configuredStart;
+    final effectiveDays = today.difference(effectiveStart).inDays + 1;
+
+    return effectiveDays <= 0 ? 0 : effectiveDays;
   }
 
   Future<void> _ensureSettingDefault(Database db, String key, String value) async {

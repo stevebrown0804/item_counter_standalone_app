@@ -133,20 +133,7 @@ ORDER BY CAST(display_order AS INTEGER), id
   Future<int> readAveragingWindowDays() async {
     return _timed('readAveragingWindowDays()', () async {
       final db = await open();
-      final rows = await db.rawQuery(
-        'SELECT number_of_days FROM logged_days LIMIT 1',
-      );
-      if (rows.isEmpty) {
-        return 0;
-      }
-      final value = rows.first['number_of_days'];
-      if (value == null) {
-        return 0;
-      }
-      if (value is num) {
-        return value.toInt();
-      }
-      return int.tryParse(value.toString()) ?? 0;
+      return _computeEffectiveAveragingWindowDaysFromDb(db);
     });
   }
 
@@ -317,7 +304,7 @@ LIMIT 1
   Future<List<_AvgRow>> readDailyAverages() async {
     return _timed('readDailyAverages()', () async {
       final db = await open();
-      final effectiveDays = await readAveragingWindowDays();
+      final effectiveDays = await _computeEffectiveAveragingWindowDaysFromDb(db);
 
       if (effectiveDays == 0) {
         final rows = await db.rawQuery(
@@ -336,21 +323,21 @@ ORDER BY CAST(display_order AS INTEGER), id
 
       final rows = await db.rawQuery(
         '''
-WITH ld AS (SELECT number_of_days FROM logged_days)
 SELECT p.id,
        p.display_string AS item_name,
        CAST(p.display_order AS INTEGER) AS display_order,
        1.0 * COALESCE(SUM(CASE
-           WHEN t.timestamp_utc >= datetime('now', printf('-%d days', (SELECT number_of_days FROM ld)))
+           WHEN t.timestamp_utc >= datetime('now', printf('-%d days', ?1))
             AND t.timestamp_utc < datetime('now', '+1 day')
            THEN t.quantity
-           ELSE 0 END), 0) / (SELECT number_of_days FROM ld) AS daily_avg
+           ELSE 0 END), 0) / ?2 AS daily_avg
 FROM items p
 LEFT JOIN item_transactions t ON t.item_id = p.id
 WHERE COALESCE(p.show_item, 1) != 0
 GROUP BY p.id, p.display_string, display_order
 ORDER BY display_order, p.id
 ''',
+        [effectiveDays, effectiveDays],
       );
 
       return rows.map((row) {
