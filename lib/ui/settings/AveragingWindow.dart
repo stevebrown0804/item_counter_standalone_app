@@ -35,6 +35,11 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
   }
 
   void _recomputeCanSubmit() {
+    if (!_hasValidPinnedStartDate()) {
+      _setCanSubmit(false);
+      return;
+    }
+
     final startHasUserInput =
         !_showingDisplayString && _summaryStatisticTextInputBox.text.trim().isNotEmpty;
     final endHasUserInput =
@@ -221,7 +226,11 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
 
       if (!mounted) return;
       setState(() {
-        _summaryStatisticTextInputBox.text = days.toString();
+        if (_pinStartDate) {
+          _summaryStatisticTextInputBox.text = _formatDateForTextBox(picked);
+        } else {
+          _summaryStatisticTextInputBox.text = days.toString();
+        }
         _showingDisplayString = false;
       });
       _recomputeCanSubmit();
@@ -291,8 +300,65 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
     setState(() {
       _endDateTextInputBox.text = '${picked.month}/${picked.day}/${picked.year}';
       _showingEndDateDisplayString = false;
+      _pinEndDate = true;
+      _pinStartDate = true;
     });
     _recomputeCanSubmit();
+  }
+
+  String _formatDateForTextBox(DateTime date) {
+    return '${date.month}/${date.day}/${date.year}';
+  }
+
+  int? _daysAgoFromTextBoxDate(String raw) {
+    final parts = raw.trim().split('/');
+    if (parts.length != 3) {
+      return null;
+    }
+
+    final month = int.tryParse(parts[0]);
+    final day = int.tryParse(parts[1]);
+    final year = int.tryParse(parts[2]);
+    if (month == null || day == null || year == null) {
+      return null;
+    }
+
+    final parsedDate = DateTime(year, month, day);
+    if (parsedDate.year != year || parsedDate.month != month || parsedDate.day != day) {
+      return null;
+    }
+
+    final today = DateTime.now();
+    final todayDateOnly = DateTime(today.year, today.month, today.day);
+    final parsedDateOnly = DateTime(parsedDate.year, parsedDate.month, parsedDate.day);
+
+    final diff = todayDateOnly.difference(parsedDateOnly).inDays;
+    return diff < 0 ? 0 : diff;
+  }
+
+  bool _hasValidPinnedStartDate() {
+    if (!_pinStartDate) {
+      return true;
+    }
+
+    final raw = _summaryStatisticTextInputBox.text.trim();
+    if (raw.isEmpty) {
+      return false;
+    }
+
+    return _daysAgoFromTextBoxDate(raw) != null;
+  }
+
+  void _applyDaysAgoToStartTextBox(int daysAgo) {
+    final clampedDaysAgo = daysAgo > 99999 ? 99999 : daysAgo;
+
+    if (_currentAveragingWindowDays != null && clampedDaysAgo == _currentAveragingWindowDays!) {
+      _showCurrentDisplayString();
+      return;
+    }
+
+    _summaryStatisticTextInputBox.text = clampedDaysAgo.toString();
+    _showingDisplayString = false;
   }
 
   Future<void> _submit() async {
@@ -413,6 +479,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
                         : inputStyle,
                     inputFormatters: [
                       FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(5),
                     ],
                     onTap: () {
                       if (_showingDisplayString) {
@@ -496,7 +563,25 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
                   onChanged: (value) {
                     setState(() {
                       _pinStartDate = value;
+                      if (!value) {
+                        _pinEndDate = false;
+                        _showEndDateDisplayString();
+
+                        final daysAgo = _daysAgoFromTextBoxDate(
+                          _summaryStatisticTextInputBox.text,
+                        );
+                        if (daysAgo != null) {
+                          _applyDaysAgoToStartTextBox(daysAgo);
+                        }
+                      } else if (_showingDisplayString && _currentAveragingWindowDays != null) {
+                        final startDate = DateTime.now().subtract(
+                          Duration(days: _currentAveragingWindowDays!),
+                        );
+                        _summaryStatisticTextInputBox.text = _formatDateForTextBox(startDate);
+                        _showingDisplayString = false;
+                      }
                     });
+                    _recomputeCanSubmit();
                   },
                 ),
                 const Text('...and end date'),
@@ -506,7 +591,24 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
                   onChanged: (value) {
                     setState(() {
                       _pinEndDate = value;
+                      if (value) {
+                        _pinStartDate = true;
+                        if (_showingDisplayString && _currentAveragingWindowDays != null) {
+                          final startDate = DateTime.now().subtract(
+                            Duration(days: _currentAveragingWindowDays!),
+                          );
+                          _summaryStatisticTextInputBox.text = _formatDateForTextBox(startDate);
+                          _showingDisplayString = false;
+                        }
+                        if (_showingEndDateDisplayString) {
+                          _endDateTextInputBox.clear();
+                          _showingEndDateDisplayString = false;
+                        }
+                      } else {
+                        _showEndDateDisplayString();
+                      }
                     });
+                    _recomputeCanSubmit();
                   },
                 ),
               ],
