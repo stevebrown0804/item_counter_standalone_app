@@ -27,6 +27,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
   bool _showingEndDateDisplayString = true;
   bool _pinStartDate = false;
   bool _pinEndDate = false;
+  _DailyAverageSettings? _loadedSettings;
 
   void _setCanSubmit(bool v) {
     if (_canSubmit == v) return;
@@ -73,13 +74,12 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
 
   Future<void> _loadCurrentAveragingWindowDays() async {
     try {
-      final days = await _db.readAveragingWindowDays();
+      final settings = await _db.readDailyAverageSettings();
       if (!mounted) return;
 
       setState(() {
-        _currentAveragingWindowDays = days;
-        _showCurrentDisplayString();
-        _showEndDateDisplayString();
+        _loadedSettings = settings;
+        _applyLoadedSettingsToUi(settings);
       });
       _setCanSubmit(false);
     } catch (e) {
@@ -134,9 +134,14 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
 
   void discardChanges() {
     FocusScope.of(context).unfocus();
+    final loaded = _loadedSettings;
+    if (loaded == null) {
+      _setCanSubmit(false);
+      return;
+    }
+
     setState(() {
-      _showCurrentDisplayString();
-      _showEndDateDisplayString();
+      _applyLoadedSettingsToUi(loaded);
     });
     _setCanSubmit(false);
   }
@@ -361,28 +366,83 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
     _showingDisplayString = false;
   }
 
-  Future<void> _submit() async {
-    final raw = _summaryStatisticTextInputBox.text.trim();
-    final days = int.tryParse(raw);
-    if (days == null || days <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a positive number of days.')),
-      );
-      return;
+  void _applyLoadedSettingsToUi(_DailyAverageSettings settings) {
+    _currentAveragingWindowDays = settings.numberOfDaysAgo;
+    _pinStartDate = settings.pinStartDate;
+    _pinEndDate = settings.pinEndDate;
+
+    if (settings.pinStartDate) {
+      if (settings.startDate.trim().isNotEmpty) {
+        _summaryStatisticTextInputBox.text = settings.startDate;
+        _showingDisplayString = false;
+      } else {
+        final startDate = DateTime.now().subtract(
+          Duration(days: settings.numberOfDaysAgo),
+        );
+        _summaryStatisticTextInputBox.text = _formatDateForTextBox(startDate);
+        _showingDisplayString = false;
+      }
+    } else {
+      _showCurrentDisplayString();
     }
 
-    await _db.setAveragingWindowDays(days);
+    if (settings.pinEndDate) {
+      if (settings.endDate.trim().isNotEmpty) {
+        _endDateTextInputBox.text = settings.endDate;
+      } else {
+        _endDateTextInputBox.clear();
+      }
+      _showingEndDateDisplayString = false;
+    } else {
+      _showEndDateDisplayString();
+    }
+  }
+
+  Future<void> _submit() async {
+    final startRaw = _summaryStatisticTextInputBox.text.trim();
+    final endRaw = _endDateTextInputBox.text.trim();
+
+    late final int daysToStore;
+
+    if (_pinStartDate) {
+      final parsedDays = _daysAgoFromTextBoxDate(startRaw);
+      if (parsedDays == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please enter a valid start date.')),
+        );
+        return;
+      }
+      daysToStore = parsedDays > 99999 ? 99999 : parsedDays;
+    } else {
+      final parsedDays = int.tryParse(startRaw);
+      if (parsedDays == null || parsedDays <= 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please enter a positive number of days.')),
+        );
+        return;
+      }
+      daysToStore = parsedDays > 99999 ? 99999 : parsedDays;
+    }
+
+    final settings = _DailyAverageSettings(
+      numberOfDaysAgo: daysToStore,
+      startDate: _pinStartDate ? startRaw : '',
+      endDate: _pinEndDate ? endRaw : '',
+      pinStartDate: _pinStartDate,
+      pinEndDate: _pinEndDate,
+    );
+
+    await _db.saveDailyAverageSettings(settings);
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Averaging window set to: $days days')),
+      const SnackBar(content: Text('Averaging window saved.')),
     );
 
     FocusScope.of(context).unfocus();
     setState(() {
-      _currentAveragingWindowDays = days;
-      _showCurrentDisplayString();
-      _showEndDateDisplayString();
+      _loadedSettings = settings;
+      _applyLoadedSettingsToUi(settings);
     });
     _setCanSubmit(false);
   }

@@ -25,6 +25,22 @@ class _AvgRow {
   _AvgRow(this.itemName, this.avg);
 }
 
+class _DailyAverageSettings {
+  final int numberOfDaysAgo;
+  final String startDate;
+  final String endDate;
+  final bool pinStartDate;
+  final bool pinEndDate;
+
+  _DailyAverageSettings({
+    required this.numberOfDaysAgo,
+    required this.startDate,
+    required this.endDate,
+    required this.pinStartDate,
+    required this.pinEndDate,
+  });
+}
+
 class _Entry {
   final int itemId;
   final int qty;

@@ -63,6 +63,146 @@ class _Db {
     }
   }
 
+  Future<_DailyAverageSettings> readDailyAverageSettings() async {
+    return _timed('readDailyAverageSettings()', () async {
+      final db = await open();
+
+      final avgRows = await db.rawQuery(
+        '''
+SELECT value
+FROM settings
+WHERE key = 'daily_average.number_of_days_ago'
+LIMIT 1
+''',
+      );
+
+      final legacyRows = await db.rawQuery(
+        '''
+SELECT value
+FROM settings
+WHERE key = 'avg_window_days'
+LIMIT 1
+''',
+      );
+
+      final startDateRows = await db.rawQuery(
+        '''
+SELECT value
+FROM settings
+WHERE key = 'daily_average.start_date'
+LIMIT 1
+''',
+      );
+
+      final endDateRows = await db.rawQuery(
+        '''
+SELECT value
+FROM settings
+WHERE key = 'daily_average.end_date'
+LIMIT 1
+''',
+      );
+
+      final pinStartRows = await db.rawQuery(
+        '''
+SELECT value
+FROM settings
+WHERE key = 'daily_average.pin_start_date'
+LIMIT 1
+''',
+      );
+
+      final pinEndRows = await db.rawQuery(
+        '''
+SELECT value
+FROM settings
+WHERE key = 'daily_average.pin_end_date'
+LIMIT 1
+''',
+      );
+
+      int parseIntRow(List<Map<String, Object?>> rows, int fallback) {
+        if (rows.isEmpty) {
+          return fallback;
+        }
+        final raw = rows.first['value'];
+        if (raw is num) {
+          return raw.toInt();
+        }
+        return int.tryParse(raw?.toString() ?? '') ?? fallback;
+      }
+
+      String parseStringRow(List<Map<String, Object?>> rows, String fallback) {
+        if (rows.isEmpty) {
+          return fallback;
+        }
+        return rows.first['value']?.toString() ?? fallback;
+      }
+
+      bool parseBoolRow(List<Map<String, Object?>> rows, bool fallback) {
+        if (rows.isEmpty) {
+          return fallback;
+        }
+        final raw = rows.first['value']?.toString().trim() ?? '';
+        if (raw == '1') {
+          return true;
+        }
+        if (raw == '0') {
+          return false;
+        }
+        return fallback;
+      }
+
+      final legacyDays = parseIntRow(legacyRows, 30);
+      final numberOfDaysAgo = parseIntRow(avgRows, legacyDays);
+      final safeDays = numberOfDaysAgo <= 0 ? 30 : numberOfDaysAgo;
+
+      return _DailyAverageSettings(
+        numberOfDaysAgo: safeDays,
+        startDate: parseStringRow(startDateRows, ''),
+        endDate: parseStringRow(endDateRows, ''),
+        pinStartDate: parseBoolRow(pinStartRows, false),
+        pinEndDate: parseBoolRow(pinEndRows, false),
+      );
+    });
+  }
+
+  Future<void> saveDailyAverageSettings(_DailyAverageSettings settings) async {
+    return _timed('saveDailyAverageSettings()', () async {
+      final db = await open();
+      final days = settings.numberOfDaysAgo <= 0 ? 1 : settings.numberOfDaysAgo;
+
+      await db.transaction((txn) async {
+        Future<void> writeSetting(String key, String value) async {
+          await txn.insert(
+            'settings',
+            {'key': key, 'value': value},
+            conflictAlgorithm: ConflictAlgorithm.replace,
+          );
+        }
+
+        await writeSetting('avg_window_days', days.toString());
+        await writeSetting('daily_average.number_of_days_ago', days.toString());
+        await writeSetting(
+          'daily_average.start_date',
+          settings.pinStartDate ? settings.startDate : '',
+        );
+        await writeSetting(
+          'daily_average.end_date',
+          settings.pinEndDate ? settings.endDate : '',
+        );
+        await writeSetting(
+          'daily_average.pin_start_date',
+          settings.pinStartDate ? '1' : '0',
+        );
+        await writeSetting(
+          'daily_average.pin_end_date',
+          settings.pinEndDate ? '1' : '0',
+        );
+      });
+    });
+  }
+
   Future<List<_Item>> listItemsOrdered() async {
     return _timed('listItemsOrdered()', () async {
       final db = await open();
