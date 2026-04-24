@@ -499,7 +499,6 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
                     });
                   },
                 ),
-                const SizedBox(width: 24),
                 const Text('...and end date'),
                 const SizedBox(width: 8),
                 Switch(
