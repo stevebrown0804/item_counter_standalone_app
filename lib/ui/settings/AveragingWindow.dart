@@ -25,6 +25,8 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
   int? _currentAveragingWindowDays;
   bool _showingDisplayString = false;
   bool _showingEndDateDisplayString = true;
+  bool _pinStartDate = false;
+  bool _pinEndDate = false;
 
   void _setCanSubmit(bool v) {
     if (_canSubmit == v) return;
@@ -477,6 +479,36 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
                   icon: const Icon(Icons.date_range, size: 10),
                   label: const Text('Pick end date'),
                   onPressed: _pickEndDate,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          Center(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const Text('Pin start date'),
+                const SizedBox(width: 8),
+                Switch(
+                  value: _pinStartDate,
+                  onChanged: (value) {
+                    setState(() {
+                      _pinStartDate = value;
+                    });
+                  },
+                ),
+                const SizedBox(width: 24),
+                const Text('...and end date'),
+                const SizedBox(width: 8),
+                Switch(
+                  value: _pinEndDate,
+                  onChanged: (value) {
+                    setState(() {
+                      _pinEndDate = value;
+                    });
+                  },
                 ),
               ],
             ),
