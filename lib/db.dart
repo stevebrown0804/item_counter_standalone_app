@@ -49,6 +49,7 @@ class _Db {
           await _ensureSchema(db);
         },
       );
+      await _ensurePostOpenDefaults(opened);
       _sharedDb = opened;
       return opened;
     });

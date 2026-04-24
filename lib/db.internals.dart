@@ -60,6 +60,88 @@ CREATE TABLE IF NOT EXISTS logical_batch_items (
 ''');
 
     await _ensureSettingDefault(db, 'avg_window_days', '30');
+    await _ensureSettingDefault(db, 'daily_average.number_of_days_ago', '30');
+    await _ensureSettingDefault(db, 'daily_average.start_date', '');
+    await _ensureSettingDefault(db, 'daily_average.end_date', '');
+    await _ensureSettingDefault(db, 'daily_average.pin_start_date', '0');
+    await _ensureSettingDefault(db, 'daily_average.pin_end_date', '0');
+    await _ensureSettingDefault(db, 'skip_delete_transactions_second_dialog_confirmation', '0');
+    await _ensureSettingDefault(db, 'time_zone_id', '0');
+    await _ensureSettingDefault(db, 'appbar_title', 'Item Counter');
+    await _ensureSettingDefault(db, 'lhs_column_header', 'Item');
+    await _ensureSettingDefault(db, 'rhs_column_header', 'Avg. {days} day(s)');
+    await _ensureSettingDefault(db, 'last_added_banner_text', '');
+    await _ensureSettingDefault(db, 'last_added_banner_dismissed', '0');
+
+    await db.rawInsert(
+      'INSERT OR IGNORE INTO time_zone_aliases (alias, iana_tz_name) VALUES (?, ?)',
+      ['UTC', 'Etc/UTC'],
+    );
+    await db.rawInsert(
+      'INSERT OR IGNORE INTO time_zone_aliases (alias, iana_tz_name) VALUES (?, ?)',
+      ['GMT', 'Etc/UTC'],
+    );
+    await db.rawInsert(
+      'INSERT OR IGNORE INTO time_zone_aliases (alias, iana_tz_name) VALUES (?, ?)',
+      ['Z', 'Etc/UTC'],
+    );
+  }
+
+  Future<void> _ensurePostOpenDefaults(Database db) async {
+    await _ensureSettingDefault(db, 'avg_window_days', '30');
+
+    final avgWindowRows = await db.rawQuery(
+      '''
+SELECT value
+FROM settings
+WHERE key = 'avg_window_days'
+LIMIT 1
+''',
+    );
+
+    String inheritedAvgWindowDays = '30';
+    if (avgWindowRows.isNotEmpty) {
+      final raw = avgWindowRows.first['value'];
+      final parsed = raw?.toString().trim();
+      if (parsed != null && parsed.isNotEmpty) {
+        inheritedAvgWindowDays = parsed;
+      }
+    }
+
+    final dailyAverageRows = await db.rawQuery(
+      '''
+SELECT value
+FROM settings
+WHERE key = 'daily_average.number_of_days_ago'
+LIMIT 1
+''',
+    );
+
+    if (dailyAverageRows.isEmpty) {
+      await db.insert(
+        'settings',
+        {
+          'key': 'daily_average.number_of_days_ago',
+          'value': inheritedAvgWindowDays,
+        },
+        conflictAlgorithm: ConflictAlgorithm.ignore,
+      );
+    } else {
+      final existingRaw = dailyAverageRows.first['value']?.toString().trim() ?? '';
+      if (existingRaw == '30' && inheritedAvgWindowDays != '30') {
+        await db.update(
+          'settings',
+          {'value': inheritedAvgWindowDays},
+          where: 'key = ?',
+          whereArgs: ['daily_average.number_of_days_ago'],
+        );
+      }
+    }
+
+    await _ensureSettingDefault(db, 'daily_average.start_date', '');
+    await _ensureSettingDefault(db, 'daily_average.end_date', '');
+    await _ensureSettingDefault(db, 'daily_average.pin_start_date', '0');
+    await _ensureSettingDefault(db, 'daily_average.pin_end_date', '0');
     await _ensureSettingDefault(db, 'skip_delete_transactions_second_dialog_confirmation', '0');
     await _ensureSettingDefault(db, 'time_zone_id', '0');
     await _ensureSettingDefault(db, 'appbar_title', 'Item Counter');
