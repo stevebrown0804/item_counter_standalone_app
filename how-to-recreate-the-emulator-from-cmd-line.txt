@@ -1,0 +1,15 @@
+# In an Android Studio (Powershell) terminal window:
+
+$env:JAVA_HOME = "$env:ProgramFiles\Android\Android Studio\jbr"
+$env:Path = "$env:JAVA_HOME\bin;$env:Path"
+
+& "$env:LOCALAPPDATA\Android\Sdk\cmdline-tools\latest\bin\avdmanager.bat" create avd -n MediumPhone -k "system-images;android-37.0;google_apis_playstore_ps16k;x86_64" -d "medium_phone"
+
+& "$env:LOCALAPPDATA\Android\Sdk\cmdline-tools\latest\bin\avdmanager.bat" list avd | Select-String "MediumPhone"
+
+& "$env:LOCALAPPDATA\Android\Sdk\emulator\emulator.exe" -avd MediumPhone
+
+
+If create avd asks whether to create a custom hardware profile, answer:
+
+no
