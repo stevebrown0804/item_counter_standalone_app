@@ -2,6 +2,253 @@
 
 part of '../../main.dart';
 
+class _MaskedDateTextInputFormatter extends TextInputFormatter {
+  static const String _template = '__/__/____';
+  static const List<int> _monthSlots = <int>[0, 1];
+  static const List<int> _daySlots = <int>[3, 4];
+  static const List<int> _yearSlots = <int>[6, 7, 8, 9];
+
+  bool _isDigit(String ch) {
+    return RegExp(r'^[0-9]$').hasMatch(ch);
+  }
+
+  List<int> _regionSlotsForOffset(int offset) {
+    if (offset <= 2) {
+      return _monthSlots;
+    }
+    if (offset <= 5) {
+      return _daySlots;
+    }
+    return _yearSlots;
+  }
+
+  String _digitsFromRegion(String text, List<int> regionSlots) {
+    final chars = <String>[];
+    for (final slot in regionSlots) {
+      if (slot < text.length && _isDigit(text[slot])) {
+        chars.add(text[slot]);
+      }
+    }
+    return chars.join();
+  }
+
+  String _replaceRegionDigits(
+      String originalText,
+      List<int> regionSlots,
+      String regionDigits,
+      ) {
+    final chars = _template.split('');
+
+    for (var i = 0; i < chars.length && i < originalText.length; i++) {
+      chars[i] = originalText[i];
+    }
+
+    for (final slot in regionSlots) {
+      chars[slot] = '_';
+    }
+
+    for (var i = 0; i < regionDigits.length && i < regionSlots.length; i++) {
+      chars[regionSlots[i]] = regionDigits[i];
+    }
+
+    return chars.join();
+  }
+
+  int _countDigitsBeforeOffsetInRegion(String text, int offset, List<int> regionSlots) {
+    var count = 0;
+    for (final slot in regionSlots) {
+      if (slot >= offset) {
+        break;
+      }
+      if (slot < text.length && _isDigit(text[slot])) {
+        count++;
+      }
+    }
+    return count;
+  }
+
+  int _previousDigitIndexInRegion(String text, int offset, List<int> regionSlots) {
+    for (var i = regionSlots.length - 1; i >= 0; i--) {
+      final slot = regionSlots[i];
+      if (slot < offset && slot < text.length && _isDigit(text[slot])) {
+        return i;
+      }
+    }
+    return -1;
+  }
+
+  int _nextDigitIndexInRegion(String text, int offset, List<int> regionSlots) {
+    for (var i = 0; i < regionSlots.length; i++) {
+      final slot = regionSlots[i];
+      if (slot >= offset && slot < text.length && _isDigit(text[slot])) {
+        return i;
+      }
+    }
+    return -1;
+  }
+
+  int _caretOffsetForRegionDigitIndex(List<int> regionSlots, int digitIndex) {
+    if (digitIndex <= 0) {
+      return regionSlots.first;
+    }
+    if (digitIndex >= regionSlots.length) {
+      return regionSlots.last + 1;
+    }
+    return regionSlots[digitIndex];
+  }
+
+  String _insertedDigitFromEdit(
+      TextEditingValue oldValue,
+      TextEditingValue newValue,
+      List<int> regionSlots,
+      ) {
+    for (final slot in regionSlots) {
+      final oldChar = slot < oldValue.text.length ? oldValue.text[slot] : '';
+      final newChar = slot < newValue.text.length ? newValue.text[slot] : '';
+      if (oldChar != newChar && _isDigit(newChar)) {
+        return newChar;
+      }
+    }
+
+    final match = RegExp(r'[0-9]').allMatches(newValue.text);
+    if (match.isNotEmpty) {
+      return match.last.group(0)!;
+    }
+
+    return '';
+  }
+
+  @override
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue,
+      TextEditingValue newValue,
+      ) {
+    final oldText = oldValue.text.isEmpty ? _template : oldValue.text;
+    final oldSelection = oldValue.selection;
+    final newSelection = newValue.selection;
+
+    final regionSlots = _regionSlotsForOffset(oldSelection.baseOffset);
+    var regionDigits = _digitsFromRegion(oldText, regionSlots);
+    var caretDigitIndex = _countDigitsBeforeOffsetInRegion(
+      oldText,
+      oldSelection.baseOffset,
+      regionSlots,
+    );
+
+    if (newValue.text.length < oldValue.text.length) {
+      if (oldSelection.isCollapsed) {
+        final deletionLooksLikeBackspace = newSelection.baseOffset < oldSelection.baseOffset;
+
+        if (deletionLooksLikeBackspace) {
+          final deleteDigitIndex = _previousDigitIndexInRegion(
+            oldText,
+            oldSelection.baseOffset,
+            regionSlots,
+          );
+          if (deleteDigitIndex >= 0 && deleteDigitIndex < regionDigits.length) {
+            regionDigits = regionDigits.substring(0, deleteDigitIndex) +
+                regionDigits.substring(deleteDigitIndex + 1);
+            caretDigitIndex = deleteDigitIndex;
+          }
+        } else {
+          final deleteDigitIndex = _nextDigitIndexInRegion(
+            oldText,
+            oldSelection.baseOffset,
+            regionSlots,
+          );
+          if (deleteDigitIndex >= 0 && deleteDigitIndex < regionDigits.length) {
+            regionDigits = regionDigits.substring(0, deleteDigitIndex) +
+                regionDigits.substring(deleteDigitIndex + 1);
+            caretDigitIndex = _countDigitsBeforeOffsetInRegion(
+              oldText,
+              oldSelection.baseOffset,
+              regionSlots,
+            );
+          }
+        }
+      } else {
+        final selectionStart = oldSelection.start < oldSelection.end
+            ? oldSelection.start
+            : oldSelection.end;
+        final selectionEnd = oldSelection.start > oldSelection.end
+            ? oldSelection.start
+            : oldSelection.end;
+
+        final startDigitIndex = _countDigitsBeforeOffsetInRegion(
+          oldText,
+          selectionStart,
+          regionSlots,
+        );
+        final endDigitIndex = _countDigitsBeforeOffsetInRegion(
+          oldText,
+          selectionEnd,
+          regionSlots,
+        );
+
+        if (startDigitIndex < endDigitIndex) {
+          regionDigits =
+              regionDigits.substring(0, startDigitIndex) + regionDigits.substring(endDigitIndex);
+        }
+        caretDigitIndex = startDigitIndex;
+      }
+
+      final masked = _replaceRegionDigits(oldText, regionSlots, regionDigits);
+      final caretOffset = _caretOffsetForRegionDigitIndex(regionSlots, caretDigitIndex);
+
+      return TextEditingValue(
+        text: masked,
+        selection: TextSelection.collapsed(offset: caretOffset),
+      );
+    }
+
+    final insertedDigit = _insertedDigitFromEdit(oldValue, newValue, regionSlots);
+    if (insertedDigit.isEmpty) {
+      return oldValue;
+    }
+
+    if (!oldSelection.isCollapsed) {
+      final selectionStart = oldSelection.start < oldSelection.end
+          ? oldSelection.start
+          : oldSelection.end;
+      final selectionEnd = oldSelection.start > oldSelection.end
+          ? oldSelection.start
+          : oldSelection.end;
+
+      final startDigitIndex = _countDigitsBeforeOffsetInRegion(
+        oldText,
+        selectionStart,
+        regionSlots,
+      );
+      final endDigitIndex = _countDigitsBeforeOffsetInRegion(
+        oldText,
+        selectionEnd,
+        regionSlots,
+      );
+
+      regionDigits =
+          regionDigits.substring(0, startDigitIndex) + regionDigits.substring(endDigitIndex);
+      caretDigitIndex = startDigitIndex;
+    }
+
+    if (regionDigits.length >= regionSlots.length) {
+      return oldValue;
+    }
+
+    regionDigits = regionDigits.substring(0, caretDigitIndex) +
+        insertedDigit +
+        regionDigits.substring(caretDigitIndex);
+    caretDigitIndex++;
+
+    final masked = _replaceRegionDigits(oldText, regionSlots, regionDigits);
+    final caretOffset = _caretOffsetForRegionDigitIndex(regionSlots, caretDigitIndex);
+
+    return TextEditingValue(
+      text: masked,
+      selection: TextSelection.collapsed(offset: caretOffset),
+    );
+  }
+}
+
 class _SummaryStatisticRow extends StatefulWidget {
   const _SummaryStatisticRow({
     super.key,
@@ -92,12 +339,22 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
 
   void _handleFocusChanged() {
     if (_summaryStatisticFocusNode.hasFocus) {
-      if (_showingDisplayString) {
-        setState(() {
+      setState(() {
+        if (_showingDisplayString) {
           _summaryStatisticTextInputBox.clear();
           _showingDisplayString = false;
-        });
-      }
+        }
+
+        if (_pinStartDate) {
+          final raw = _summaryStatisticTextInputBox.text.trim();
+          final hasValidDate = _daysAgoFromTextBoxDate(raw) != null;
+          if (hasValidDate) {
+            _normalizePinnedStartDateForEditing();
+          } else if (!_isStartDateEntryTemplate(raw)) {
+            _showStartDateEntryTemplate();
+          }
+        }
+      });
       _recomputeCanSubmit();
       return;
     }
@@ -105,7 +362,11 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
     final raw = _summaryStatisticTextInputBox.text.trim();
     if (raw.isEmpty) {
       setState(() {
-        _showCurrentDisplayString();
+        if (_pinStartDate) {
+          _showStartDateEntryTemplate();
+        } else {
+          _showCurrentDisplayString();
+        }
       });
     }
     _recomputeCanSubmit();
@@ -312,7 +573,25 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
   }
 
   String _formatDateForTextBox(DateTime date) {
-    return '${date.month}/${date.day}/${date.year}';
+    String two(int n) => n.toString().padLeft(2, '0');
+    final year = date.year.toString().padLeft(4, '0');
+    return '${two(date.month)}/${two(date.day)}/$year';
+  }
+
+  String _startDateEntryTemplate() {
+    return '__/__/____';
+  }
+
+  bool _isStartDateEntryTemplate(String raw) {
+    return raw.trim() == _startDateEntryTemplate();
+  }
+
+  void _showStartDateEntryTemplate() {
+    _summaryStatisticTextInputBox.value = TextEditingValue(
+      text: _startDateEntryTemplate(),
+      selection: const TextSelection.collapsed(offset: 0),
+    );
+    _showingDisplayString = false;
   }
 
   int? _daysAgoFromTextBoxDate(String raw) {
@@ -339,6 +618,38 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
 
     final diff = todayDateOnly.difference(parsedDateOnly).inDays;
     return diff < 0 ? 0 : diff;
+  }
+
+  void _normalizePinnedStartDateForEditing() {
+    final raw = _summaryStatisticTextInputBox.text.trim();
+    if (raw.isEmpty || _isStartDateEntryTemplate(raw)) {
+      return;
+    }
+
+    final parts = raw.split('/');
+    if (parts.length != 3) {
+      _showStartDateEntryTemplate();
+      return;
+    }
+
+    final month = int.tryParse(parts[0]);
+    final day = int.tryParse(parts[1]);
+    final year = int.tryParse(parts[2]);
+    if (month == null || day == null || year == null) {
+      _showStartDateEntryTemplate();
+      return;
+    }
+
+    final parsedDate = DateTime(year, month, day);
+    if (parsedDate.year != year || parsedDate.month != month || parsedDate.day != day) {
+      _showStartDateEntryTemplate();
+      return;
+    }
+
+    _summaryStatisticTextInputBox.value = TextEditingValue(
+      text: _formatDateForTextBox(parsedDate),
+      selection: const TextSelection.collapsed(offset: 10),
+    );
   }
 
   bool _hasValidPinnedStartDate() {
@@ -532,12 +843,18 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
                   child: TextField(
                     controller: _summaryStatisticTextInputBox,
                     focusNode: _summaryStatisticFocusNode,
-                    keyboardType: TextInputType.number,
+                    keyboardType: _pinStartDate
+                        ? TextInputType.datetime
+                        : TextInputType.number,
                     readOnly: _showingDisplayString,
                     style: _showingDisplayString
                         ? inputStyle?.copyWith(color: Theme.of(context).hintColor)
                         : inputStyle,
-                    inputFormatters: [
+                    inputFormatters: _pinStartDate
+                        ? <TextInputFormatter>[
+                      _MaskedDateTextInputFormatter(),
+                    ]
+                        : <TextInputFormatter>[
                       FilteringTextInputFormatter.digitsOnly,
                       LengthLimitingTextInputFormatter(5),
                     ],
@@ -548,6 +865,18 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
                           _showingDisplayString = false;
                         });
                         _recomputeCanSubmit();
+                        return;
+                      }
+
+                      if (_pinStartDate) {
+                        final raw = _summaryStatisticTextInputBox.text.trim();
+                        final hasValidDate = _daysAgoFromTextBoxDate(raw) != null;
+                        if (!hasValidDate && !_isStartDateEntryTemplate(raw)) {
+                          setState(() {
+                            _showStartDateEntryTemplate();
+                          });
+                          _recomputeCanSubmit();
+                        }
                       }
                     },
                     onChanged: (_) => _recomputeCanSubmit(),
@@ -626,19 +955,28 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
                       if (!value) {
                         _pinEndDate = false;
                         _showEndDateDisplayString();
-
-                        final daysAgo = _daysAgoFromTextBoxDate(
-                          _summaryStatisticTextInputBox.text,
+                        _applyLoadedSettingsToUi(
+                          _loadedSettings ??
+                              _DailyAverageSettings(
+                                numberOfDaysAgo: _currentAveragingWindowDays ?? 30,
+                                startDate: '',
+                                endDate: '',
+                                pinStartDate: false,
+                                pinEndDate: false,
+                              ),
                         );
-                        if (daysAgo != null) {
-                          _applyDaysAgoToStartTextBox(daysAgo);
-                        }
                       } else if (_showingDisplayString && _currentAveragingWindowDays != null) {
                         final startDate = DateTime.now().subtract(
                           Duration(days: _currentAveragingWindowDays!),
                         );
                         _summaryStatisticTextInputBox.text = _formatDateForTextBox(startDate);
                         _showingDisplayString = false;
+                      } else {
+                        final raw = _summaryStatisticTextInputBox.text.trim();
+                        final hasValidDate = _daysAgoFromTextBoxDate(raw) != null;
+                        if (!hasValidDate) {
+                          _showStartDateEntryTemplate();
+                        }
                       }
                     });
                     _recomputeCanSubmit();
