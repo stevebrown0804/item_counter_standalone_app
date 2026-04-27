@@ -1,29 +1,5 @@
 ---------------------------------------Public use--------------------------------------------------
 
-TODO (ONGOING): setting sheet behavior tidying
-    * 4/21/26 What's left, at this point?  I feel like we've added various 'tidying' steps in other TODOs🤔 TBD!
-
-TODO (IN PROGRESS): pinning dates
-    Add some options to the date-picker, reflecting these "averaging window" behaviors:
-        (neither) "start date to define a duration" -- start date and end date then both slide fwd each day, leaving the duration the same (default)
-        (start date only) "pinning the start date" -- duration grows each day
-        (both) "Pinning a date range" -- useful?  who's to say!
-        (end date only) <joke>"Pinning a final date" -- start date does what, exactly? grows forward, shortening the duration until it reaches a negative number and the app explodes?  c'mon now.
-            *Realistically though, we COULD have this do a "shrinking interval" thing and have it stop at zero days....although that ALSO seems like kind of a stupid thing to do.🤔
-
-    sub-TODO: Averaging window "pin" switch behavior:
-        * When 'pin start date' is set to true, allow date separation characters; eg. slashes, hyphens, maybe whitespace, etc.)
-            * Alternatively, we might create a template like 'mm/dd/yyyy' and have the user enter just the numerical part of the date
-            * Or we COULD just require that dates are entered via the date picker.  Pros: Easy.  Cons: Lacks flexibility, I suppose.
-        * (BUG) Setting the pin end date switch to on shouldn't be enabling the Save button until a valid date is entered or a date is picked
-
-        * Reminder: The new fields are:
-                    daily_average.number_of_days_ago  <---and the existing key, w/e it's called
-                    daily_average.start_date
-                    daily_average.end_date
-                    daily_average.pin_start_date
-                    daily_average.pin_end_date
-
  TODO: Answer the question, "With the start date and end date, we're assuming mm/dd/yyyy, as far as I can tell.  Does Android change that, in other regions (where yyyy/mm/dd, etc. are common)?  Do we need to adapt (ie. by adding some i18n to the project)? TBD"
 
 TODO: Add a 'reset' (or 'clear', maybe) button to the RHS of the end Date textbox (in the Averaging Window area); have it revert the contents of the textbox to 'Today' (and force the 'pin end date' switch to off)
@@ -35,10 +11,12 @@ TODO: Add a "use timezones or do not....there is no try" (wording to be adjusted
 TODO: Add a checkbox on the settings screen for "Clicking a save button returns you to the home screen"
     * Implement!
     * We might reword it from just "save button" to any UI interaction: save buttons, a date successfully picked, etc.
-        * I've been toying around with something like "hasty mode" or "hasty retreat" to describe this behavior of hurrying back to the home screen.  *shrug* We'll see.  That might just be a phrase we reserve for TODO.txt.
+        * I've been toying around with something like "hasty mode" or "hasty retreat" to describe this behavior of hurrying back to the home screen.  *shrug* We'll see.  That might just be a phrase we reserve for TODO.txt.  (...or achievements.)
 
     sub-TODO: Consolidate save buttons!  Let's have one...or at least one per "some kind of region within the settings sheet" or something.
         OR POSSIBLY: Give an option on the settings sheet to say "just auto-save stuff" that removes save buttons and just automatically saves stuff that's changed.
+        THING IS: I'm not really crazy about the thought of consolidating save buttons, at this point.  And I feel like the behaviors that we have programmed into each save button are going to be difficult to meld together...maybe.
+            Maybe not, though.🤔 But either way, I'm not crazy about the idea at this point.
 
     sub-TODO: Change the default behavior of the "Export DB" button so that it ~doesn't~ automatically return the user to the home screen.  (The goal is to have all settings sheet UI elements have consistent behavior; then, checking the checkbox from the parent TODO can apply to everything.👍)
 
@@ -90,6 +68,7 @@ TODO re: Database importing:
 TODO: Answer the question, "When it comes to the end date, do we want to allow (and parse) arithmetic formulas involving the word 'today,' such as "today - 1" (for 'yesterday')?  It seems "possibly" useful to someone...maybe.
     * A THOUGHT: Maybe this is the sort of thing we should let someone who WANTS to feature to implement.
 
+TODO (MAYBE): Rather than allowing end dates in the future, we might add some sort of "give a fixed date range a target date in the future, but have the actual interval be (start date) to (today), then move the interval forward by a day, each day until that target end date."  Maybe.  Either way, I want to avoid allowing the user to pick dates in the future.
 
 ---------------------------------------
 Polishing
