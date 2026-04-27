@@ -99,12 +99,21 @@ class _MainScreenState extends State<_MainScreen> {
   }
 
   Future<void> _init() async {
+    debugPrint('[MAIN] _init() START');
     try {
+      debugPrint('[MAIN] before refreshFromDatabase()');
       await _store.refreshFromDatabase();
-    } catch (e) {
+      debugPrint('[MAIN] after refreshFromDatabase()');
+    } catch (e, st) {
+      debugPrint('[MAIN] _init() ERROR: $e');
+      debugPrint('$st');
       _error = e.toString();
     } finally {
-      if (mounted) setState(() => _loading = false);
+      debugPrint('[MAIN] _init() FINALLY: mounted=$mounted');
+      if (mounted) {
+        setState(() => _loading = false);
+        debugPrint('[MAIN] _init() set _loading=false');
+      }
     }
   }
 
