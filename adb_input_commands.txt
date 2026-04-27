@@ -1,5 +1,19 @@
-Types text into the focused Android text field:
-	adb shell input text "asdf"
+Types text into the focused text field then presses Enter:
+	adb shell input text "asdf"; adb shell input keyevent KEYCODE_ENTER
+	adb shell input text "asdf2"; adb shell input keyevent KEYCODE_ENTER
 
-Presses Enter:
-	adb shell input keyevent KEYCODE_ENTER
+Left/right arrow:
+	adb shell input keyevent KEYCODE_DPAD_LEFT
+	adb shell input keyevent KEYCODE_DPAD_RIGHT
+
+Delete:
+	adb shell input keyevent KEYCODE_FORWARD_DEL
+
+Backspace:
+	adb shell input keyevent KEYCODE_DEL
+
+Numbers:
+    adb shell input text "1"
+
+Enter:
+     adb shell input keyevent KEYCODE_ENTER
