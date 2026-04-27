@@ -14,6 +14,8 @@ Backspace:
 
 Numbers:
     adb shell input text "1"
+    adb shell input text "2"
+
 
 Enter:
      adb shell input keyevent KEYCODE_ENTER
