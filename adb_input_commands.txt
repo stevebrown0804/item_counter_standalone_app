@@ -1,0 +1,5 @@
+Types text into the focused Android text field:
+	adb shell input text "asdf"
+
+Presses Enter:
+	adb shell input keyevent KEYCODE_ENTER
