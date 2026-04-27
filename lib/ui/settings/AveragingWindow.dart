@@ -283,16 +283,62 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
   }
 
   void _recomputeCanSubmit() {
+    final loaded = _loadedSettings;
+    if (loaded == null) {
+      _setCanSubmit(false);
+      return;
+    }
+
     if (!_hasValidPinnedStartDate()) {
       _setCanSubmit(false);
       return;
     }
 
-    final startHasUserInput =
-        !_showingDisplayString && _summaryStatisticTextInputBox.text.trim().isNotEmpty;
-    final endHasUserInput =
-        !_showingEndDateDisplayString && _endDateTextInputBox.text.trim().isNotEmpty;
-    _setCanSubmit(startHasUserInput || endHasUserInput);
+    final startRaw = _summaryStatisticTextInputBox.text.trim();
+    final endRaw = _endDateTextInputBox.text.trim();
+
+    late final int currentDays;
+
+    if (_pinStartDate) {
+      final parsedDays = _daysAgoFromTextBoxDate(startRaw);
+      if (parsedDays == null) {
+        _setCanSubmit(false);
+        return;
+      }
+      currentDays = parsedDays > 99999 ? 99999 : parsedDays;
+    } else {
+      final parsedDays = int.tryParse(startRaw);
+      if (parsedDays == null || parsedDays <= 0) {
+        if (_showingDisplayString && _currentAveragingWindowDays != null) {
+          currentDays = _currentAveragingWindowDays!;
+        } else {
+          _setCanSubmit(false);
+          return;
+        }
+      } else {
+        currentDays = parsedDays > 99999 ? 99999 : parsedDays;
+      }
+    }
+
+    if (_pinEndDate) {
+      final endDateIsValid = _daysAgoFromTextBoxDate(endRaw) != null;
+      if (!endDateIsValid) {
+        _setCanSubmit(false);
+        return;
+      }
+    }
+
+    final currentStartDate = _pinStartDate ? startRaw : '';
+    final currentEndDate = _pinEndDate ? endRaw : '';
+
+    final hasChanges =
+        currentDays != loaded.numberOfDaysAgo ||
+            currentStartDate != loaded.startDate ||
+            currentEndDate != loaded.endDate ||
+            _pinStartDate != loaded.pinStartDate ||
+            _pinEndDate != loaded.pinEndDate;
+
+    _setCanSubmit(hasChanges);
   }
 
   String _displayStringForDays(int days) {
@@ -621,7 +667,8 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
   }
 
   void _normalizePinnedStartDateForEditing() {
-    final raw = _summaryStatisticTextInputBox.text.trim();
+    final oldValue = _summaryStatisticTextInputBox.value;
+    final raw = oldValue.text.trim();
     if (raw.isEmpty || _isStartDateEntryTemplate(raw)) {
       return;
     }
@@ -646,9 +693,17 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
       return;
     }
 
+    final formatted = _formatDateForTextBox(parsedDate);
+    final oldOffset = oldValue.selection.baseOffset;
+    final newOffset = oldOffset < 0
+        ? formatted.length
+        : oldOffset > formatted.length
+        ? formatted.length
+        : oldOffset;
+
     _summaryStatisticTextInputBox.value = TextEditingValue(
-      text: _formatDateForTextBox(parsedDate),
-      selection: const TextSelection.collapsed(offset: 10),
+      text: formatted,
+      selection: TextSelection.collapsed(offset: newOffset),
     );
   }
 
@@ -715,6 +770,27 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
 
     late final int daysToStore;
 
+    DateTime? parseTextBoxDate(String raw) {
+      final parts = raw.trim().split('/');
+      if (parts.length != 3) {
+        return null;
+      }
+
+      final month = int.tryParse(parts[0]);
+      final day = int.tryParse(parts[1]);
+      final year = int.tryParse(parts[2]);
+      if (month == null || day == null || year == null) {
+        return null;
+      }
+
+      final parsedDate = DateTime(year, month, day);
+      if (parsedDate.year != year || parsedDate.month != month || parsedDate.day != day) {
+        return null;
+      }
+
+      return DateTime(parsedDate.year, parsedDate.month, parsedDate.day);
+    }
+
     if (_pinStartDate) {
       final parsedDays = _daysAgoFromTextBoxDate(startRaw);
       if (parsedDays == null) {
@@ -735,6 +811,29 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
       daysToStore = parsedDays > 99999 ? 99999 : parsedDays;
     }
 
+    int displayedIntervalDays = daysToStore;
+    if (_pinStartDate) {
+      final startDate = parseTextBoxDate(startRaw);
+      DateTime? endDate;
+      if (_pinEndDate) {
+        endDate = parseTextBoxDate(endRaw);
+        if (endDate == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Please enter a valid end date.')),
+          );
+          return;
+        }
+      } else {
+        final now = DateTime.now();
+        endDate = DateTime(now.year, now.month, now.day);
+      }
+
+      if (startDate != null) {
+        final rawIntervalDays = endDate.difference(startDate).inDays;
+        displayedIntervalDays = rawIntervalDays <= 0 ? 1 : rawIntervalDays;
+      }
+    }
+
     final settings = _DailyAverageSettings(
       numberOfDaysAgo: daysToStore,
       startDate: _pinStartDate ? startRaw : '',
@@ -747,7 +846,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Averaging window saved.')),
+      SnackBar(content: Text('Averaging window saved: $displayedIntervalDays days.')),
     );
 
     FocusScope.of(context).unfocus();
@@ -991,12 +1090,14 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
                       _pinEndDate = value;
                       if (value) {
                         _pinStartDate = true;
-                        if (_showingDisplayString && _currentAveragingWindowDays != null) {
+                        if (_currentAveragingWindowDays != null) {
                           final startDate = DateTime.now().subtract(
                             Duration(days: _currentAveragingWindowDays!),
                           );
                           _summaryStatisticTextInputBox.text = _formatDateForTextBox(startDate);
                           _showingDisplayString = false;
+                        } else {
+                          _showStartDateEntryTemplate();
                         }
                         if (_showingEndDateDisplayString) {
                           _endDateTextInputBox.clear();
