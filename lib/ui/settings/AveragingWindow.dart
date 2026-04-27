@@ -274,40 +274,129 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
   bool _showingEndDateDisplayString = true;
   bool _pinStartDate = false;
   bool _pinEndDate = false;
+  String? _startDateErrorText;
+  String? _endDateErrorText;
   _DailyAverageSettings? _loadedSettings;
 
-  void _setCanSubmit(bool v) {
-    if (_canSubmit == v) return;
-    setState(() => _canSubmit = v);
+  void _setValidationState({
+    required bool canSubmit,
+    required String? startDateErrorText,
+    required String? endDateErrorText,
+  }) {
+    final changed =
+        _canSubmit != canSubmit ||
+            _startDateErrorText != startDateErrorText ||
+            _endDateErrorText != endDateErrorText;
+
+    if (!changed) return;
+
+    setState(() {
+      _canSubmit = canSubmit;
+      _startDateErrorText = startDateErrorText;
+      _endDateErrorText = endDateErrorText;
+    });
     widget.onDirtyChanged(_canSubmit);
+  }
+
+  void _setCanSubmit(bool v) {
+    if (_canSubmit == v && _startDateErrorText == null && _endDateErrorText == null) return;
+    setState(() {
+      _canSubmit = v;
+      _startDateErrorText = null;
+      _endDateErrorText = null;
+    });
+    widget.onDirtyChanged(_canSubmit);
+  }
+
+  DateTime _todayDateOnly() {
+    final now = DateTime.now();
+    return DateTime(now.year, now.month, now.day);
+  }
+
+  String? _errorTextForDateEntry({
+    required String raw,
+    required bool pinned,
+  }) {
+    if (!pinned) {
+      return null;
+    }
+
+    final trimmed = raw.trim();
+    if (trimmed.isEmpty || _isDateEntryTemplate(trimmed)) {
+      return null;
+    }
+
+    final parsed = _parseTextBoxDate(trimmed);
+    if (parsed == null) {
+      return 'Enter a valid date.';
+    }
+
+    if (parsed.isAfter(_todayDateOnly())) {
+      return 'Date cannot be in the future.';
+    }
+
+    return null;
   }
 
   void _recomputeCanSubmit() {
     final loaded = _loadedSettings;
     if (loaded == null) {
-      _setCanSubmit(false);
-      return;
-    }
-
-    if (!_hasValidPinnedStartDate()) {
-      _setCanSubmit(false);
-      return;
-    }
-
-    if (!_hasValidPinnedEndDate()) {
-      _setCanSubmit(false);
+      _setValidationState(
+        canSubmit: false,
+        startDateErrorText: null,
+        endDateErrorText: null,
+      );
       return;
     }
 
     final startRaw = _summaryStatisticTextInputBox.text.trim();
     final endRaw = _endDateTextInputBox.text.trim();
 
+    final startError = _errorTextForDateEntry(
+      raw: startRaw,
+      pinned: _pinStartDate,
+    );
+
+    var endError = _errorTextForDateEntry(
+      raw: endRaw,
+      pinned: _pinEndDate,
+    );
+
+    final startDate = _pinStartDate ? _parseTextBoxDate(startRaw) : null;
+    final endDate = _pinEndDate ? _parseTextBoxDate(endRaw) : null;
+
+    if (endError == null && startDate != null && endDate != null && endDate.isBefore(startDate)) {
+      endError = 'End date cannot be before start date.';
+    }
+
+    if (startError != null || endError != null) {
+      _setValidationState(
+        canSubmit: false,
+        startDateErrorText: startError,
+        endDateErrorText: endError,
+      );
+      return;
+    }
+
+    if (!_hasValidPinnedStartDate() || !_hasValidPinnedEndDate()) {
+      _setValidationState(
+        canSubmit: false,
+        startDateErrorText: startError,
+        endDateErrorText: endError,
+      );
+      return;
+    }
+
     late final int currentDays;
 
     if (_pinStartDate) {
       final parsedDays = _daysAgoFromTextBoxDate(startRaw);
       if (parsedDays == null) {
-        _setCanSubmit(false);
+        _setValidationState(
+          canSubmit: false,
+          startDateErrorText: startError,
+          endDateErrorText: endError,
+        );
         return;
       }
       currentDays = parsedDays > 99999 ? 99999 : parsedDays;
@@ -317,7 +406,11 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
         if (_showingDisplayString && _currentAveragingWindowDays != null) {
           currentDays = _currentAveragingWindowDays!;
         } else {
-          _setCanSubmit(false);
+          _setValidationState(
+            canSubmit: false,
+            startDateErrorText: startError,
+            endDateErrorText: endError,
+          );
           return;
         }
       } else {
@@ -335,7 +428,11 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
             _pinStartDate != loaded.pinStartDate ||
             _pinEndDate != loaded.pinEndDate;
 
-    _setCanSubmit(hasChanges);
+    _setValidationState(
+      canSubmit: hasChanges,
+      startDateErrorText: null,
+      endDateErrorText: null,
+    );
   }
 
   String _displayStringForDays(int days) {
@@ -420,7 +517,9 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
       setState(() {
         if (_showingEndDateDisplayString) {
           if (_pinEndDate) {
-            _showEndDateEntryTemplate();
+            final today = DateTime.now();
+            _endDateTextInputBox.text = _formatDateForTextBox(today);
+            _showingEndDateDisplayString = false;
           } else {
             _endDateTextInputBox.clear();
             _showingEndDateDisplayString = false;
@@ -492,19 +591,15 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
   Future<void> _pickDate() async {
     // Default range for the picker.  Seems "reasonable" <---sarcasm
     DateTime firstDate = DateTime(2000, 1, 1);
-    DateTime lastDate  = DateTime(2100, 12, 31);
-    DateTime initialDate = DateTime.now();
+    DateTime lastDate  = _todayDateOnly();
+    DateTime initialDate = _todayDateOnly();
 
     try {
       // Oldest transaction date in the currently-active time zone, truncated to Y-M-D.
       final oldestLocal = await _db.readOldestTransactionLocalDate();
       debugPrint('readOldestTransactionLocalDate -> $oldestLocal');
 
-      final today = DateTime(
-        initialDate.year,
-        initialDate.month,
-        initialDate.day,
-      );
+      final today = _todayDateOnly();
 
       if (oldestLocal == null) {
         // No transactions exist -> only allow selecting today
@@ -518,8 +613,12 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
           oldestLocal.month,
           oldestLocal.day,
         );
+        lastDate = today;
         if (initialDate.isBefore(firstDate)) {
           initialDate = firstDate;
+        }
+        if (initialDate.isAfter(lastDate)) {
+          initialDate = lastDate;
         }
       }
     } catch (e, st) {
@@ -572,19 +671,15 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
   Future<void> _pickEndDate() async {
     // Default range for the picker.  Seems "reasonable" <---sarcasm
     DateTime firstDate = DateTime(2000, 1, 1);
-    DateTime lastDate  = DateTime(2100, 12, 31);
-    DateTime initialDate = DateTime.now();
+    DateTime lastDate  = _todayDateOnly();
+    DateTime initialDate = _todayDateOnly();
 
     try {
       // Oldest transaction date in the currently-active time zone, truncated to Y-M-D.
       final oldestLocal = await _db.readOldestTransactionLocalDate();
       debugPrint('readOldestTransactionLocalDate -> $oldestLocal');
 
-      final today = DateTime(
-        initialDate.year,
-        initialDate.month,
-        initialDate.day,
-      );
+      final today = _todayDateOnly();
 
       if (oldestLocal == null) {
         // No transactions exist -> only allow selecting today
@@ -598,8 +693,12 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
           oldestLocal.month,
           oldestLocal.day,
         );
+        lastDate = today;
         if (initialDate.isBefore(firstDate)) {
           initialDate = firstDate;
+        }
+        if (initialDate.isAfter(lastDate)) {
+          initialDate = lastDate;
         }
       }
     } catch (e, st) {
@@ -690,11 +789,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
       return null;
     }
 
-    final today = DateTime.now();
-    final todayDateOnly = DateTime(today.year, today.month, today.day);
-    final parsedDateOnly = DateTime(parsedDate.year, parsedDate.month, parsedDate.day);
-
-    final diff = todayDateOnly.difference(parsedDateOnly).inDays;
+    final diff = _todayDateOnly().difference(parsedDate).inDays;
     return diff < 0 ? 0 : diff;
   }
 
@@ -758,11 +853,16 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
     }
 
     final raw = _summaryStatisticTextInputBox.text.trim();
-    if (raw.isEmpty) {
+    if (raw.isEmpty || _isDateEntryTemplate(raw)) {
       return false;
     }
 
-    return _daysAgoFromTextBoxDate(raw) != null;
+    final parsed = _parseTextBoxDate(raw);
+    if (parsed == null) {
+      return false;
+    }
+
+    return !parsed.isAfter(_todayDateOnly());
   }
 
   bool _hasValidPinnedEndDate() {
@@ -771,11 +871,16 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
     }
 
     final raw = _endDateTextInputBox.text.trim();
-    if (raw.isEmpty) {
+    if (raw.isEmpty || _isDateEntryTemplate(raw)) {
       return false;
     }
 
-    return _parseTextBoxDate(raw) != null;
+    final parsed = _parseTextBoxDate(raw);
+    if (parsed == null) {
+      return false;
+    }
+
+    return !parsed.isAfter(_todayDateOnly());
   }
 
   void _forceStartDatePinnedFromCurrentDays() {
@@ -835,6 +940,9 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
     } else {
       _showEndDateDisplayString();
     }
+
+    _startDateErrorText = null;
+    _endDateErrorText = null;
   }
 
   Future<void> _submit() async {
@@ -876,8 +984,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
           return;
         }
       } else {
-        final now = DateTime.now();
-        endDate = DateTime(now.year, now.month, now.day);
+        endDate = _todayDateOnly();
       }
 
       if (startDate != null) {
@@ -987,7 +1094,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
           Center(
             child: Row(
               mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 SizedBox(
                   width: startTextFieldWidth,
@@ -1031,16 +1138,20 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
                       }
                     },
                     onChanged: (_) => _recomputeCanSubmit(),
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       hintText: '#',
                       isDense: true,
-                      border: OutlineInputBorder(),
-                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      border: const OutlineInputBorder(),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      errorText: _startDateErrorText,
                     ),
                   ),
                 ),
                 const SizedBox(width: 8),
-                const Text('to'),
+                const Padding(
+                  padding: EdgeInsets.only(top: 10),
+                  child: Text('to'),
+                ),
                 const SizedBox(width: 8),
                 SizedBox(
                   width: endTextFieldWidth,
@@ -1084,10 +1195,11 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
                       }
                     },
                     onChanged: (_) => _recomputeCanSubmit(),
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       isDense: true,
-                      border: OutlineInputBorder(),
-                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      border: const OutlineInputBorder(),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      errorText: _endDateErrorText,
                     ),
                   ),
                 ),
@@ -1129,16 +1241,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
                       if (!value) {
                         _pinEndDate = false;
                         _showEndDateDisplayString();
-                        _applyLoadedSettingsToUi(
-                          _loadedSettings ??
-                              _DailyAverageSettings(
-                                numberOfDaysAgo: _currentAveragingWindowDays ?? 30,
-                                startDate: '',
-                                endDate: '',
-                                pinStartDate: false,
-                                pinEndDate: false,
-                              ),
-                        );
+                        _showCurrentDisplayString();
                       } else if (_showingDisplayString && _currentAveragingWindowDays != null) {
                         final startDate = DateTime.now().subtract(
                           Duration(days: _currentAveragingWindowDays!),
@@ -1194,6 +1297,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
               child: const Text('Save'),
             ),
           ),
+          // TODO: Consider adding a planned end-date mode for date ranges whose intended end date is in the future. In that mode, the configured end date would remain fixed as the planned future endpoint, but the averaging calculation would use min(today, plannedEndDate) as the effective end date until the planned end date is reached.
         ],
       ),
     );

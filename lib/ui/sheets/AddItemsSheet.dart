@@ -99,15 +99,21 @@ class _LogItemsSheetState extends State<_LogItemsSheet> {
 
     // "Now" in the active app time zone, not the device zone.
     final nowLocal = tz.TZDateTime.now(loc);
-    final initialDate = current != null
+    final todayLocalDateOnly = DateTime(nowLocal.year, nowLocal.month, nowLocal.day);
+
+    var initialDate = current != null
         ? DateTime(current.year, current.month, current.day)
-        : DateTime(nowLocal.year, nowLocal.month, nowLocal.day);
+        : todayLocalDateOnly;
+
+    if (initialDate.isAfter(todayLocalDateOnly)) {
+      initialDate = todayLocalDateOnly;
+    }
 
     final picked = await showDatePicker(
       context: context,
       initialDate: initialDate,
       firstDate: DateTime(2000, 1, 1),
-      lastDate: DateTime(2100, 12, 31),
+      lastDate: todayLocalDateOnly,
       helpText: 'Choose date of transaction',
     );
     if (picked == null) return;
