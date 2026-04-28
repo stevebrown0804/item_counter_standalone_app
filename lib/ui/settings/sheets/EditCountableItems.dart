@@ -82,6 +82,7 @@ class _EditCountableItemsSheetState extends State<_EditCountableItemsSheet> {
   bool _saving = false;
   Object? _loadError;
   final List<_EditableCountableItemRow> _rows = [];
+  List<_SubmittedCountableItemRow> _loadedSubmittedRows = const [];
 
   Set<int> get _duplicateDisplayOrders {
     final counts = <int, int>{};
@@ -110,12 +111,12 @@ class _EditCountableItemsSheetState extends State<_EditCountableItemsSheet> {
       return false;
     }
 
-    for (final row in _rows) {
-      if (row.displayStringController.text.trim().isNotEmpty) {
-        return true;
-      }
+    final currentRows = _buildSubmittedRows();
+    if (currentRows.isEmpty) {
+      return false;
     }
-    return false;
+
+    return !_submittedRowsMatch(_loadedSubmittedRows, currentRows);
   }
 
   Future<void> _handleDeleteRow(_EditableCountableItemRow row) async {
@@ -124,105 +125,12 @@ class _EditCountableItemsSheetState extends State<_EditCountableItemsSheet> {
     }
 
     setState(() {
-      _saving = true;
+      _rows.remove(row);
     });
 
-    try {
-      final remainingRows = List<_EditableCountableItemRow>.from(_rows)
-        ..remove(row);
-
-      final keptRows = <({
-      int originalIndex,
-      int? id,
-      String displayString,
-      int? displayOrder,
-      bool showItem,
-      })>[];
-
-      for (var i = 0; i < remainingRows.length; i++) {
-        final currentRow = remainingRows[i];
-        final displayString = currentRow.displayStringController.text.trim();
-        if (displayString.isEmpty) {
-          continue;
-        }
-
-        keptRows.add((
-        originalIndex: i,
-        id: currentRow.id,
-        displayString: displayString,
-        displayOrder: currentRow.displayOrder,
-        showItem: currentRow.showItem,
-        ));
-      }
-
-      keptRows.sort((a, b) {
-        final aOrder = a.displayOrder ?? 1 << 30;
-        final bOrder = b.displayOrder ?? 1 << 30;
-
-        final orderCompare = aOrder.compareTo(bOrder);
-        if (orderCompare != 0) {
-          return orderCompare;
-        }
-
-        return a.originalIndex.compareTo(b.originalIndex);
-      });
-
-      final submittedRows = List<_SubmittedCountableItemRow>.generate(
-        keptRows.length,
-            (i) {
-          final keptRow = keptRows[i];
-          return _SubmittedCountableItemRow(
-            id: keptRow.id,
-            displayString: keptRow.displayString,
-            displayOrder: i + 1,
-            showItem: keptRow.showItem,
-          );
-        },
-      );
-
-      await _db.saveCountableItems(submittedRows);
-
-      final main = _MainScreenState._lastMounted;
-      if (main != null && main.mounted) {
-        main._store.clearUndoRedo();
-        await main._store.refreshFromDatabase();
-        await main._loadActiveTzDisplay();
-        if (main.mounted) {
-          main.setState(() {});
-        }
-      }
-
-      if (!mounted) {
-        return;
-      }
-
-      await _loadItems();
-    } catch (e) {
-      if (!mounted) {
-        return;
-      }
-
-      await _loadItems();
-
-      if (!mounted) {
-        return;
-      }
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to delete row: $e'),
-          duration: const Duration(seconds: 8),
-        ),
-      );
-    } finally {
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _saving = false;
-      });
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      row.dispose();
+    });
   }
 
   @override
@@ -266,6 +174,7 @@ class _EditCountableItemsSheetState extends State<_EditCountableItemsSheet> {
         _rows
           ..clear()
           ..addAll(loadedRows);
+        _loadedSubmittedRows = _snapshotSubmittedRows();
         _loading = false;
         _loadError = null;
       });
@@ -347,6 +256,33 @@ class _EditCountableItemsSheetState extends State<_EditCountableItemsSheet> {
         );
       },
     );
+  }
+
+  bool _submittedRowsMatch(
+      List<_SubmittedCountableItemRow> left,
+      List<_SubmittedCountableItemRow> right,
+      ) {
+    if (left.length != right.length) {
+      return false;
+    }
+
+    for (var i = 0; i < left.length; i++) {
+      final a = left[i];
+      final b = right[i];
+
+      if (a.id != b.id ||
+          a.displayString != b.displayString ||
+          a.displayOrder != b.displayOrder ||
+          a.showItem != b.showItem) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  List<_SubmittedCountableItemRow> _snapshotSubmittedRows() {
+    return List<_SubmittedCountableItemRow>.unmodifiable(_buildSubmittedRows());
   }
 
   Future<void> _handleSubmit() async {
