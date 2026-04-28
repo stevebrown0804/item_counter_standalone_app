@@ -17,6 +17,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   GlobalKey<_SkipSecondConfirmationSettingState>();
 
   final Map<String, bool> _dirty = <String, bool>{};
+  bool _returnHomeAfterSettingsInteraction = false;
 
   bool get _hasUnsavedChanges => _dirty.values.any((v) => v);
 
@@ -38,34 +39,44 @@ class _SettingsScreenState extends State<SettingsScreen> {
       return;
     }
 
-    final abandon = await showDialog<bool>(
+    final action = await showDialog<String>(
       context: context,
       builder: (ctx) =>
           AlertDialog(
             title: const Text('Unsaved changes'),
             content: const Text(
-              'There are unsaved changes. Are you sure you want to leave the Settings interface?',
+              'There are unsaved changes in Settings.',
             ),
             actions: [
               TextButton(
-                onPressed: () => Navigator.of(ctx).pop(false),
-                child: const Text('Cancel'),
+                onPressed: () => Navigator.of(ctx).pop('abandon'),
+                child: const Text('Abandon changes'),
               ),
               FilledButton(
-                onPressed: () => Navigator.of(ctx).pop(true),
-                child: const Text('Abandon changes'),
+                onPressed: () => Navigator.of(ctx).pop('save'),
+                child: const Text('Save changes'),
               ),
             ],
           ),
     );
 
-    if (abandon != true) return;
+    if (action == null) return;
 
-    _avgKey.currentState?.discardChanges();
-    _tzKey.currentState?.discardChanges();
-    _skipKey.currentState?.discardChanges();
+    if (action == 'save') {
+      final saved = await (_avgKey.currentState?._submit() ?? Future<bool>.value(true));
+      if (!saved) return;
 
-    if (mounted) Navigator.of(context).pop();
+      if (mounted) Navigator.of(context).pop();
+      return;
+    }
+
+    if (action == 'abandon') {
+      _avgKey.currentState?.discardChanges();
+      _tzKey.currentState?.discardChanges();
+      _skipKey.currentState?.discardChanges();
+
+      if (mounted) Navigator.of(context).pop();
+    }
   }
 
   Future<Map<String, bool>?> _showImportTableDialog(BuildContext context) async {
@@ -407,6 +418,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _showDeleteOldTxDialog(BuildContext context) async {
+    FocusManager.instance.primaryFocus?.unfocus();
+
     final db = _Db();
 
     final days = await db.readAveragingWindowDays();
@@ -433,6 +446,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   foregroundColor: Colors.white,
                 ),
                 onPressed: () async {
+                  FocusManager.instance.primaryFocus?.unfocus();
                   Navigator.of(ctx).pop();
                   await _handleDeleteOldTx(context, days);
                 },
@@ -444,6 +458,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _handleDeleteOldTx(BuildContext context, int days) async {
+    FocusManager.instance.primaryFocus?.unfocus();
+
     final db = _Db();
     final skip = await db.readSkipDeleteSecondConfirm();
 
@@ -496,6 +512,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               backgroundColor: Colors.transparent,
                             ),
                             onPressed: () async {
+                              FocusManager.instance.primaryFocus?.unfocus();
                               if (skipNext) {
                                 await db.setSkipDeleteSecondConfirm(true);
                               }
@@ -540,7 +557,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     return PopScope(
       canPop: false,
-      onPopInvoked: (didPop) async {
+      onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
         await _attemptLeaveSettings();
       },
@@ -560,19 +577,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   const Divider(),
                   _ViewTransactionsRow(
                     onPressed: () {
-                      Navigator.of(context).pop();
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        final s = _MainScreenState._lastMounted;
-                        if (s != null) {
-                          doTransactionViewerSheet(
-                            context: s.context,
-                            db: s._db,
-                            store: s._store,
-                            parentSetState: s.setState,
-                            parentMounted: () => s.mounted,
-                          );
-                        }
-                      });
+                      final s = _MainScreenState._lastMounted;
+                      if (s != null) {
+                        doTransactionViewerSheet(
+                          context: context,
+                          db: s._db,
+                          store: s._store,
+                          parentSetState: s.setState,
+                          parentMounted: () => s.mounted,
+                        );
+                      }
                     },
                   ),
                   const Divider(),
@@ -588,13 +602,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   const Divider(),
                   _EditCountableItemsRow(
                     onPressed: () {
-                      Navigator.of(context).pop();
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        final s = _MainScreenState._lastMounted;
-                        if (s != null) {
-                          doEditCountableItemsSheet(context: s.context);
-                        }
-                      });
+                      doEditCountableItemsSheet(context: context);
                     },
                   ),
                   const Divider(),
@@ -602,11 +610,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       _ExportDatabaseRow(
-                        onPressed: () {
-                          Navigator.of(context).pop();
-                          WidgetsBinding.instance.addPostFrameCallback((_) {
-                            _exportDatabase(context);
-                          });
+                        onPressed: () async {
+                          await _exportDatabase(context);
                         },
                       ),
                       const SizedBox(width: 12),
@@ -625,6 +630,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
               hasScrollBody: false,
               child: Column(
                 children: [
+                  SwitchListTile(
+                    title: Text(
+                      'Settings sheet interactions immediately return you to the home screen',
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                    value: _returnHomeAfterSettingsInteraction,
+                    onChanged: (value) {
+                      setState(() {
+                        _returnHomeAfterSettingsInteraction = value;
+                      });
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Reminder: Unimplemented')),
+                      );
+                    },
+                  ),
                   const Spacer(),
                   const Divider(),
                   const _DangerZoneHeader(),

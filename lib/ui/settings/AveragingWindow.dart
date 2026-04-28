@@ -454,6 +454,22 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
     _showingDisplayString = true;
   }
 
+  void _showEditableCurrentDaysWithSelection() {
+    final days = _currentAveragingWindowDays;
+    if (days == null) {
+      _summaryStatisticTextInputBox.clear();
+      _showingDisplayString = false;
+      return;
+    }
+
+    final text = days.toString();
+    _summaryStatisticTextInputBox.value = TextEditingValue(
+      text: text,
+      selection: TextSelection(baseOffset: 0, extentOffset: text.length),
+    );
+    _showingDisplayString = false;
+  }
+
   void _showEndDateDisplayString() {
     _endDateTextInputBox.text = 'Today';
     _showingEndDateDisplayString = true;
@@ -481,8 +497,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
     if (_summaryStatisticFocusNode.hasFocus) {
       setState(() {
         if (_showingDisplayString) {
-          _summaryStatisticTextInputBox.clear();
-          _showingDisplayString = false;
+          _showEditableCurrentDaysWithSelection();
         }
 
         if (_pinStartDate) {
@@ -945,7 +960,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
     _endDateErrorText = null;
   }
 
-  Future<void> _submit() async {
+  Future<bool> _submit() async {
     final startRaw = _summaryStatisticTextInputBox.text.trim();
     final endRaw = _endDateTextInputBox.text.trim();
 
@@ -957,18 +972,23 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Please enter a valid start date.')),
         );
-        return;
+        return false;
       }
       daysToStore = parsedDays > 99999 ? 99999 : parsedDays;
     } else {
       final parsedDays = int.tryParse(startRaw);
       if (parsedDays == null || parsedDays <= 0) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please enter a positive number of days.')),
-        );
-        return;
+        if (_showingDisplayString && _currentAveragingWindowDays != null) {
+          daysToStore = _currentAveragingWindowDays!;
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Please enter a positive number of days.')),
+          );
+          return false;
+        }
+      } else {
+        daysToStore = parsedDays > 99999 ? 99999 : parsedDays;
       }
-      daysToStore = parsedDays > 99999 ? 99999 : parsedDays;
     }
 
     int displayedIntervalDays = daysToStore;
@@ -981,7 +1001,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Please enter a valid end date.')),
           );
-          return;
+          return false;
         }
       } else {
         endDate = _todayDateOnly();
@@ -1003,7 +1023,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
 
     await _db.saveDailyAverageSettings(settings);
 
-    if (!mounted) return;
+    if (!mounted) return false;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Averaging window saved: $displayedIntervalDays days.')),
     );
@@ -1014,6 +1034,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
       _applyLoadedSettingsToUi(settings);
     });
     _setCanSubmit(false);
+    return true;
   }
 
   @override
@@ -1119,8 +1140,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
                     onTap: () {
                       if (_showingDisplayString) {
                         setState(() {
-                          _summaryStatisticTextInputBox.clear();
-                          _showingDisplayString = false;
+                          _showEditableCurrentDaysWithSelection();
                         });
                         _recomputeCanSubmit();
                         return;
@@ -1239,9 +1259,27 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
                     setState(() {
                       _pinStartDate = value;
                       if (!value) {
+                        final raw = _summaryStatisticTextInputBox.text.trim();
+                        final parsedDays = _daysAgoFromTextBoxDate(raw);
+                        final nextDays = parsedDays == null
+                            ? _currentAveragingWindowDays
+                            : parsedDays > 99999
+                            ? 99999
+                            : parsedDays;
                         _pinEndDate = false;
                         _showEndDateDisplayString();
-                        _showCurrentDisplayString();
+
+                        if (nextDays == null) {
+                          _showCurrentDisplayString();
+                        } else {
+                          _currentAveragingWindowDays = nextDays;
+                          if (_loadedSettings != null && nextDays == _loadedSettings!.numberOfDaysAgo) {
+                            _showCurrentDisplayString();
+                          } else {
+                            _summaryStatisticTextInputBox.text = nextDays.toString();
+                            _showingDisplayString = false;
+                          }
+                        }
                       } else if (_showingDisplayString && _currentAveragingWindowDays != null) {
                         final startDate = DateTime.now().subtract(
                           Duration(days: _currentAveragingWindowDays!),
@@ -1293,7 +1331,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
           Align(
             alignment: Alignment.center,
             child: FilledButton(
-              onPressed: _canSubmit ? _submit : null,
+              onPressed: _canSubmit ? () async => await _submit() : null,
               child: const Text('Save'),
             ),
           ),

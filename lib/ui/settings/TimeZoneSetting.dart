@@ -16,25 +16,13 @@ class _TzRow extends StatefulWidget {
 
 class _TzRowState extends State<_TzRow> {
   final _db = _Db();
-  final _ctrl = TextEditingController();
-  String _query = '';
   List<String> _options = const [];
+  String? _currentDisplayString;
   bool _loading = true;
-  bool _canSubmit = false;
-
-  void _setCanSubmit(bool v) {
-    if (_canSubmit == v) return;
-    setState(() => _canSubmit = v);
-    widget.onDirtyChanged(_canSubmit);
-  }
+  bool _saving = false;
 
   void discardChanges() {
-    FocusScope.of(context).unfocus();
-    _ctrl.clear();
-    setState(() {
-      _query = '';
-    });
-    _setCanSubmit(false);
+    widget.onDirtyChanged(false);
   }
 
   @override
@@ -47,9 +35,12 @@ class _TzRowState extends State<_TzRow> {
   Future<void> _loadOptions() async {
     try {
       final opts = await _db.listTzAliasStrings();
+      final activeDisplayString = await _db.readActiveTzAliasString();
+
       if (!mounted) return;
       setState(() {
         _options = opts;
+        _currentDisplayString = opts.contains(activeDisplayString) ? activeDisplayString : null;
         _loading = false;
       });
     } catch (e) {
@@ -61,39 +52,53 @@ class _TzRowState extends State<_TzRow> {
     }
   }
 
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
+  Future<void> _saveSelectedTimeZone(String selectedDisplayString) async {
+    if (_saving) {
+      return;
+    }
 
-  Future<void> _submit() async {
-    final raw = _ctrl.text.trim();
-    if (raw.isEmpty) return;
+    if (selectedDisplayString == _currentDisplayString) {
+      return;
+    }
+
+    setState(() {
+      _saving = true;
+    });
 
     try {
-      final aliasToSave = await _db.interpretTzAliasInput(raw);
+      final aliasToSave = await _db.interpretTzAliasInput(selectedDisplayString);
       await _db.setActiveTzByAlias(aliasToSave);
 
-      final displayString = await _db.readActiveTzAliasString();
+      final savedDisplayString = await _db.readActiveTzAliasString();
+
+      final main = _MainScreenState._lastMounted;
+      if (main != null && main.mounted) {
+        await main._store.refreshFromDatabase();
+        await main._loadActiveTzDisplay();
+        if (main.mounted) {
+          main.setState(() {});
+        }
+      }
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Time zone: ($displayString) saved')),
-      );
-
-      FocusScope.of(context).unfocus();
-
-      _ctrl.clear();
       setState(() {
-        _query = '';
+        _currentDisplayString = savedDisplayString;
       });
-      _setCanSubmit(false);
+      widget.onDirtyChanged(false);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Time zone selected: $savedDisplayString')),
+      );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to save time zone: $e')),
       );
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _saving = false;
+      });
     }
   }
 
@@ -116,92 +121,37 @@ class _TzRowState extends State<_TzRow> {
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Autocomplete<String>(
-              optionsBuilder: (TextEditingValue tev) {
-                final q = tev.text.trim().toLowerCase();
-                if (q.isEmpty) return _options;
-                return _options.where((s) => s.toLowerCase().contains(q));
-              },
-              onSelected: (value) {
-                _ctrl.text = value;
-                _setCanSubmit(value.trim().isNotEmpty);
-              },
-              fieldViewBuilder:
-                  (context, controller, focusNode, onFieldSubmitted) {
-                return TextField(
-                  controller: controller,
-                  focusNode: focusNode,
-                  onChanged: (text) {
-                    _ctrl.text = text;
-                    final next = text.trim();
-                    if (_query != next) {
-                      setState(() => _query = next);
-                    }
-                    _setCanSubmit(next.isNotEmpty);
-                  },
-                  decoration: const InputDecoration(
-                    hintText: 'e.g., MT/MST/MDT or MT',
-                    isDense: true,
-                    border: OutlineInputBorder(),
-                  ),
+            child: DropdownButtonFormField<String>(
+              initialValue: _currentDisplayString,
+              isExpanded: true,
+              decoration: const InputDecoration(
+                isDense: true,
+                border: OutlineInputBorder(),
+              ),
+              items: _options.map((option) {
+                return DropdownMenuItem<String>(
+                  value: option,
+                  child: Text(option),
                 );
-              },
-
-              optionsViewBuilder: (context, onSelected, options) {
-                final q = _query.trim().toLowerCase();
-                return Align(
-                  alignment: Alignment.topLeft,
-                  child: Material(
-                    elevation: 4,
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxHeight: 240),
-                      child: ListView(
-                        padding: EdgeInsets.zero,
-                        shrinkWrap: true,
-                        children: options.map((opt) {
-                          final aliases = opt.split('/');
-                          final match = q.isNotEmpty &&
-                              aliases.any((a) => a.toLowerCase() == q);
-
-                          final title = Text.rich(
-                            TextSpan(
-                              children: [
-                                for (int i = 0; i < aliases.length; i++) ...[
-                                  TextSpan(
-                                    text: aliases[i],
-                                    style: TextStyle(
-                                      fontWeight: (q.isNotEmpty &&
-                                          aliases[i].toLowerCase() == q)
-                                          ? FontWeight.bold
-                                          : FontWeight.normal,
-                                    ),
-                                  ),
-                                  if (i < aliases.length - 1)
-                                    const TextSpan(text: '/'),
-                                ]
-                              ],
-                            ),
-                          );
-
-                          return ListTile(
-                            dense: true,
-                            selected: match,
-                            title: title,
-                            onTap: () => onSelected(opt),
-                          );
-                        }).toList(),
-                      ),
-                    ),
-                  ),
-                );
+              }).toList(),
+              onChanged: _saving
+                  ? null
+                  : (value) async {
+                if (value == null) {
+                  return;
+                }
+                await _saveSelectedTimeZone(value);
               },
             ),
           ),
-          const SizedBox(width: 12),
-          FilledButton(
-            onPressed: _canSubmit ? _submit : null,
-            child: const Text('Save'),
-          ),
+          if (_saving) ...[
+            const SizedBox(width: 12),
+            const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+          ],
         ],
       ),
     );
