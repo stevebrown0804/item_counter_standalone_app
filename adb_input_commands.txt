@@ -15,6 +15,7 @@ Backspace:
 Numbers:
     adb shell input text "1"
     adb shell input text "2"
+    adb shell input text "30"
 
 
 Enter:
