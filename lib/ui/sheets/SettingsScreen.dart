@@ -17,6 +17,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   GlobalKey<_SkipSecondConfirmationSettingState>();
 
   final Map<String, bool> _dirty = <String, bool>{};
+  bool _returnHomeAfterSettingsInteraction = false;
 
   bool get _hasUnsavedChanges => _dirty.values.any((v) => v);
 
@@ -613,6 +614,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
               hasScrollBody: false,
               child: Column(
                 children: [
+                  SwitchListTile(
+                    title: const Text('Changing settings returns you to the home screen'),
+                    value: _returnHomeAfterSettingsInteraction,
+                    onChanged: (value) {
+                      setState(() {
+                        _returnHomeAfterSettingsInteraction = value;
+                      });
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Unimplemented')),
+                      );
+                    },
+                  ),
                   const Spacer(),
                   const Divider(),
                   const _DangerZoneHeader(),
