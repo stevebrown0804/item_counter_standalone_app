@@ -39,34 +39,44 @@ class _SettingsScreenState extends State<SettingsScreen> {
       return;
     }
 
-    final abandon = await showDialog<bool>(
+    final action = await showDialog<String>(
       context: context,
       builder: (ctx) =>
           AlertDialog(
             title: const Text('Unsaved changes'),
             content: const Text(
-              'There are unsaved changes. Are you sure you want to leave the Settings interface?',
+              'There are unsaved changes in Settings.',
             ),
             actions: [
               TextButton(
-                onPressed: () => Navigator.of(ctx).pop(false),
-                child: const Text('Cancel'),
+                onPressed: () => Navigator.of(ctx).pop('abandon'),
+                child: const Text('Abandon changes'),
               ),
               FilledButton(
-                onPressed: () => Navigator.of(ctx).pop(true),
-                child: const Text('Abandon changes'),
+                onPressed: () => Navigator.of(ctx).pop('save'),
+                child: const Text('Save changes'),
               ),
             ],
           ),
     );
 
-    if (abandon != true) return;
+    if (action == null) return;
 
-    _avgKey.currentState?.discardChanges();
-    _tzKey.currentState?.discardChanges();
-    _skipKey.currentState?.discardChanges();
+    if (action == 'save') {
+      final saved = await (_avgKey.currentState?._submit() ?? Future<bool>.value(true));
+      if (!saved) return;
 
-    if (mounted) Navigator.of(context).pop();
+      if (mounted) Navigator.of(context).pop();
+      return;
+    }
+
+    if (action == 'abandon') {
+      _avgKey.currentState?.discardChanges();
+      _tzKey.currentState?.discardChanges();
+      _skipKey.currentState?.discardChanges();
+
+      if (mounted) Navigator.of(context).pop();
+    }
   }
 
   Future<Map<String, bool>?> _showImportTableDialog(BuildContext context) async {

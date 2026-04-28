@@ -960,7 +960,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
     _endDateErrorText = null;
   }
 
-  Future<void> _submit() async {
+  Future<bool> _submit() async {
     final startRaw = _summaryStatisticTextInputBox.text.trim();
     final endRaw = _endDateTextInputBox.text.trim();
 
@@ -972,7 +972,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Please enter a valid start date.')),
         );
-        return;
+        return false;
       }
       daysToStore = parsedDays > 99999 ? 99999 : parsedDays;
     } else {
@@ -984,7 +984,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Please enter a positive number of days.')),
           );
-          return;
+          return false;
         }
       } else {
         daysToStore = parsedDays > 99999 ? 99999 : parsedDays;
@@ -1001,7 +1001,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Please enter a valid end date.')),
           );
-          return;
+          return false;
         }
       } else {
         endDate = _todayDateOnly();
@@ -1023,7 +1023,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
 
     await _db.saveDailyAverageSettings(settings);
 
-    if (!mounted) return;
+    if (!mounted) return false;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Averaging window saved: $displayedIntervalDays days.')),
     );
@@ -1034,6 +1034,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
       _applyLoadedSettingsToUi(settings);
     });
     _setCanSubmit(false);
+    return true;
   }
 
   @override
@@ -1330,7 +1331,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
           Align(
             alignment: Alignment.center,
             child: FilledButton(
-              onPressed: _canSubmit ? _submit : null,
+              onPressed: _canSubmit ? () async => await _submit() : null,
               child: const Text('Save'),
             ),
           ),
