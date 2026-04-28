@@ -963,12 +963,17 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
     } else {
       final parsedDays = int.tryParse(startRaw);
       if (parsedDays == null || parsedDays <= 0) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please enter a positive number of days.')),
-        );
-        return;
+        if (_showingDisplayString && _currentAveragingWindowDays != null) {
+          daysToStore = _currentAveragingWindowDays!;
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Please enter a positive number of days.')),
+          );
+          return;
+        }
+      } else {
+        daysToStore = parsedDays > 99999 ? 99999 : parsedDays;
       }
-      daysToStore = parsedDays > 99999 ? 99999 : parsedDays;
     }
 
     int displayedIntervalDays = daysToStore;
@@ -1239,9 +1244,27 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
                     setState(() {
                       _pinStartDate = value;
                       if (!value) {
+                        final raw = _summaryStatisticTextInputBox.text.trim();
+                        final parsedDays = _daysAgoFromTextBoxDate(raw);
+                        final nextDays = parsedDays == null
+                            ? _currentAveragingWindowDays
+                            : parsedDays > 99999
+                            ? 99999
+                            : parsedDays;
                         _pinEndDate = false;
                         _showEndDateDisplayString();
-                        _showCurrentDisplayString();
+
+                        if (nextDays == null) {
+                          _showCurrentDisplayString();
+                        } else {
+                          _currentAveragingWindowDays = nextDays;
+                          if (_loadedSettings != null && nextDays == _loadedSettings!.numberOfDaysAgo) {
+                            _showCurrentDisplayString();
+                          } else {
+                            _summaryStatisticTextInputBox.text = nextDays.toString();
+                            _showingDisplayString = false;
+                          }
+                        }
                       } else if (_showingDisplayString && _currentAveragingWindowDays != null) {
                         final startDate = DateTime.now().subtract(
                           Duration(days: _currentAveragingWindowDays!),
