@@ -13,10 +13,10 @@ TODO (Switch added but not implemented yet): Add a switch on the settings screen
     * btw we'll have any toasts show up after returning to the home screen
 
 TODO: Adding an indicator to the settings sheet
-    * Add a red/green indicator light (ie. a circle) next to the back button
+    * Add a red/green/gray indicator light (ie. a circle) next to the back button
         * When it's red, that means the equivalent of the save button being disabled, saying "something needs to be saved and/or changed"
         * When it's green, everything's that was changes had been saved, and the back button can be pressed without any pop-ups about unsaved changes.
-    * The indicator will start grayed out, and will return to being grayed out if changes are made but then reverted (so that the sheet's current state equals the initial state).
+        * The indicator will start grayed out, and will return to being grayed out if changes are made but then reverted (so that the sheet's current state equals the initial state).
 
 TODO: Add a 'reset' (or 'clear', maybe) button to the RHS of the end Date textbox (in the Averaging Window area); have it revert the contents of the textbox to 'Today' (and force the 'pin end date' switch to off)
 
