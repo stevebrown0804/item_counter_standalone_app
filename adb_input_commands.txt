@@ -17,6 +17,8 @@ Numbers:
     adb shell input text "1"
     adb shell input text "2"
     adb shell input text "30"
+    adb shell input text "269"
+    adb shell input text "268"
 
 Enter:
      adb shell input keyevent KEYCODE_ENTER
