@@ -17,6 +17,13 @@ Numbers:
     adb shell input text "2"
     adb shell input text "30"
 
-
 Enter:
      adb shell input keyevent KEYCODE_ENTER
+
+Phone controls:
+    # Back
+        adb shell input keyevent KEYCODE_BACK
+    # Home
+        adb shell input keyevent KEYCODE_HOME
+    # Overview / recent apps
+        adb shell input keyevent KEYCODE_APP_SWITCH
