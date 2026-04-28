@@ -229,6 +229,10 @@ class _MainScreenState extends State<_MainScreen> {
   @override
   Widget build(BuildContext context) {
     final titleDays = _store.days;
+    final averageWindowTooltip = _store.averageWindowTooltip;
+    final rhsHeaderText = (_rhsHeaderTemplate ?? 'Avg. ({days} day(s))')
+        .replaceAll('{days}', titleDays.toString());
+
     return Scaffold(
       appBar: AppBar(
         title: Column(
@@ -254,7 +258,8 @@ class _MainScreenState extends State<_MainScreen> {
             onPressed: () async {
               await Navigator.of(context).push(
                 MaterialPageRoute(
-                    builder: (_) => const SettingsScreen()),
+                  builder: (_) => const SettingsScreen(),
+                ),
               );
               if (!mounted) return;
               await _store.refreshFromDatabase();
@@ -270,8 +275,10 @@ class _MainScreenState extends State<_MainScreen> {
           : _error != null
           ? Padding(
         padding: const EdgeInsets.all(16),
-        child: Text(_error!,
-            style: const TextStyle(color: Colors.red)),
+        child: Text(
+          _error!,
+          style: const TextStyle(color: Colors.red),
+        ),
       )
           : AnimatedBuilder(
         animation: _store,
@@ -282,25 +289,22 @@ class _MainScreenState extends State<_MainScreen> {
               const SizedBox(height: 4),
               if (_lastAdded != null) ...[
                 Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
                   child: Card(
                     elevation: 0,
                     color: Theme.of(context)
                         .colorScheme
                         .surfaceContainerHighest,
                     child: Padding(
-                      padding:
-                      const EdgeInsets.symmetric(
-                          vertical: 8,
-                          horizontal: 12),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 8,
+                        horizontal: 12,
+                      ),
                       child: Row(
-                        crossAxisAlignment:
-                        CrossAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Padding(
-                            padding: EdgeInsets.only(
-                                top: 2),
+                            padding: EdgeInsets.only(top: 2),
                             child: Icon(Icons.history),
                           ),
                           const SizedBox(width: 12),
@@ -308,18 +312,12 @@ class _MainScreenState extends State<_MainScreen> {
                             child: ConstrainedBox(
                               constraints: BoxConstraints(
                                 maxHeight:
-                                MediaQuery.of(
-                                    context)
-                                    .size
-                                    .height *
+                                MediaQuery.of(context).size.height *
                                     0.35,
                               ),
-                              child:
-                              SingleChildScrollView(
+                              child: SingleChildScrollView(
                                 padding:
-                                const EdgeInsets
-                                    .only(
-                                    right: 8),
+                                const EdgeInsets.only(right: 8),
                                 child: SelectionArea(
                                   child: Text(
                                     _lastAdded!,
@@ -348,7 +346,9 @@ class _MainScreenState extends State<_MainScreen> {
               ],
               Padding(
                 padding: const EdgeInsets.symmetric(
-                    horizontal: 12, vertical: 6),
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 child: Row(
                   children: [
                     Expanded(
@@ -359,12 +359,28 @@ class _MainScreenState extends State<_MainScreen> {
                         ),
                       ),
                     ),
-                    Text(
-                      (_rhsHeaderTemplate ?? 'Avg. ({days} day(s))')
-                          .replaceAll('{days}', titleDays.toString()),
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                      ),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          rhsHeaderText,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        if (averageWindowTooltip != null) ...[
+                          const SizedBox(width: 6),
+                          Tooltip(
+                            message: averageWindowTooltip,
+                            child: const Text(
+                              'ⓘ',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ],
                 ),
@@ -379,49 +395,44 @@ class _MainScreenState extends State<_MainScreen> {
                     return Stack(
                       children: [
                         Padding(
-                          padding: const EdgeInsets
-                              .symmetric(
-                              horizontal: 12,
-                              vertical: 6),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
                           child: Row(
                             children: [
                               Expanded(
                                 child: Text(
                                   r.itemName,
                                   maxLines: 1,
-                                  overflow:
-                                  TextOverflow
-                                      .ellipsis,
+                                  overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(
-                                      fontSize: 14,
-                                      height: 1.0),
+                                    fontSize: 14,
+                                    height: 1.0,
+                                  ),
                                 ),
                               ),
                               const SizedBox(width: 8),
                               Text(
-                                r.avg
-                                    .toStringAsFixed(
-                                    2),
+                                r.avg.toStringAsFixed(2),
                                 style: const TextStyle(
-                                    fontSize: 14,
-                                    height: 1.0),
-                                textAlign:
-                                TextAlign.right,
+                                  fontSize: 14,
+                                  height: 1.0,
+                                ),
+                                textAlign: TextAlign.right,
                               ),
                             ],
                           ),
                         ),
                         Positioned.fill(
                           child: Align(
-                            alignment: Alignment
-                                .bottomCenter,
+                            alignment: Alignment.bottomCenter,
                             child: Container(
                               height: 1,
-                              color:
-                              Colors.grey.shade300,
-                              margin: const EdgeInsets
-                                  .symmetric(
-                                  horizontal: 8),
+                              color: Colors.grey.shade300,
+                              margin: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                              ),
                             ),
                           ),
                         ),
@@ -434,8 +445,7 @@ class _MainScreenState extends State<_MainScreen> {
           );
         },
       ),
-      floatingActionButtonLocation:
-      FloatingActionButtonLocation.centerFloat,
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: Row(
         mainAxisSize: MainAxisSize.min,
         children: [

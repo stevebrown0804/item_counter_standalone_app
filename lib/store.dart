@@ -9,6 +9,8 @@ class _Store extends ChangeNotifier {
   UnmodifiableListView<_AvgRow> get rows => UnmodifiableListView(_rows);
   int _days = 0;
   int get days => _days;
+  String? _averageWindowTooltip;
+  String? get averageWindowTooltip => _averageWindowTooltip;
   List<_Item> _items = const [];
   UnmodifiableListView<_Item> get items => UnmodifiableListView(_items);
   _Tz? _activeTz;
@@ -20,12 +22,58 @@ class _Store extends ChangeNotifier {
   final List<String> _redoTokens = [];
   bool get canRedo => _redoTokens.isNotEmpty;
 
+  DateTime _todayDateOnly() {
+    final now = DateTime.now();
+    return DateTime(now.year, now.month, now.day);
+  }
+
+  DateTime? _parseTextBoxDate(String raw) {
+    final parts = raw.trim().split('/');
+    if (parts.length != 3) {
+      return null;
+    }
+
+    final month = int.tryParse(parts[0]);
+    final day = int.tryParse(parts[1]);
+    final year = int.tryParse(parts[2]);
+    if (month == null || day == null || year == null) {
+      return null;
+    }
+
+    final parsedDate = DateTime(year, month, day);
+    if (parsedDate.year != year || parsedDate.month != month || parsedDate.day != day) {
+      return null;
+    }
+
+    return DateTime(parsedDate.year, parsedDate.month, parsedDate.day);
+  }
+
+  String _formatTooltipDate(DateTime date) {
+    return '${date.month}/${date.day}/${date.year}';
+  }
+
+  String? _buildAverageWindowTooltip(_DailyAverageSettings settings) {
+    if (!settings.pinStartDate) {
+      return null;
+    }
+
+    final startDate = _parseTextBoxDate(settings.startDate) ??
+        _todayDateOnly().subtract(Duration(days: settings.numberOfDaysAgo));
+
+    if (!settings.pinEndDate) {
+      return '${_formatTooltipDate(startDate)} to today';
+    }
+
+    final endDate = _parseTextBoxDate(settings.endDate) ?? _todayDateOnly();
+    return '${_formatTooltipDate(startDate)} to ${_formatTooltipDate(endDate)}';
+  }
 
   void clearUndoRedo() {
     _undoTokens.clear();
     _redoTokens.clear();
     notifyListeners();
   }
+
   void _breakRedoChain() {
     if (_redoTokens.isNotEmpty) {
       _redoTokens.clear();
@@ -61,7 +109,9 @@ class _Store extends ChangeNotifier {
   Future<void> refreshFromDatabase() async {
     //Refresh the values held by Store, from the DB
     _activeTz = await _db.readActiveTz() ?? _Tz('UTC', 'UTC');
+    final averageSettings = await _db.readDailyAverageSettings();
     _days = await _db.readAveragingWindowDays();
+    _averageWindowTooltip = _buildAverageWindowTooltip(averageSettings);
     _items = await _db.listItemsOrdered();
 
     final list = await _db.readDailyAverages();
