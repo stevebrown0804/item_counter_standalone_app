@@ -18,22 +18,11 @@ class _SkipSecondConfirmationSetting extends StatefulWidget {
 class _SkipSecondConfirmationSettingState
     extends State<_SkipSecondConfirmationSetting> {
   final _db = _Db();
-  bool? _initial;
-  bool _current = false;
+  bool? _current;
   bool _saving = false;
 
-  void _notifyDirty() {
-    if (_initial == null) return;
-    widget.onDirtyChanged(_initial != _current);
-  }
-
   void discardChanges() {
-    if (_initial == null) return;
-    FocusScope.of(context).unfocus();
-    setState(() {
-      _current = _initial!;
-    });
-    _notifyDirty();
+    widget.onDirtyChanged(false);
   }
 
   @override
@@ -47,71 +36,71 @@ class _SkipSecondConfirmationSettingState
     final v = await _db.readSkipDeleteSecondConfirm();
     if (!mounted) return;
     setState(() {
-      _initial = v;
       _current = v;
     });
-    _notifyDirty();
+    widget.onDirtyChanged(false);
   }
 
-  Future<void> _save() async {
-    setState(() => _saving = true);
+  Future<void> _save(bool value) async {
+    if (_saving) return;
+
+    final previous = _current;
+
+    setState(() {
+      _current = value;
+      _saving = true;
+    });
+
+    widget.onDirtyChanged(false);
+
     try {
-      await _db.setSkipDeleteSecondConfirm(_current);
+      await _db.setSkipDeleteSecondConfirm(value);
       if (!mounted) return;
-      setState(() => _initial = _current);
-      _notifyDirty();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Preference saved.')),
       );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _current = previous;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to save preference: $e')),
+      );
     } finally {
-      if (mounted) setState(() => _saving = false);
+      if (mounted) {
+        setState(() {
+          _saving = false;
+        });
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_initial == null) {
+    final current = _current;
+
+    if (current == null) {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
         child: SizedBox(height: 56),
       );
     }
 
-    final changed = _initial != _current;
-
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8.0),
-      child: Column(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      child: Row(
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Checkbox(
-                value: _current,
-                onChanged: (v) {
-                  setState(() => _current = v ?? false);
-                  _notifyDirty();
-                },
-              ),
-              Expanded(
-                child: const Text(
-                  'Skip second confirmation when deleting transactions',
-                ),
-              ),
-              const SizedBox(width: 8),
-              ElevatedButton(
-                onPressed: (!changed || _saving) ? null : _save,
-                child: _saving
-                    ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-                    : const Text('Save'),
-              ),
-            ],
+          const Expanded(
+            child: Text(
+              'Skip second confirmation when deleting transactions',
+            ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(width: 8),
+          Switch(
+            value: current,
+            onChanged: _saving ? null : (value) async => await _save(value),
+          ),
         ],
       ),
     );
