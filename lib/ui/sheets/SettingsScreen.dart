@@ -560,19 +560,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   const Divider(),
                   _ViewTransactionsRow(
                     onPressed: () {
-                      Navigator.of(context).pop();
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        final s = _MainScreenState._lastMounted;
-                        if (s != null) {
-                          doTransactionViewerSheet(
-                            context: s.context,
-                            db: s._db,
-                            store: s._store,
-                            parentSetState: s.setState,
-                            parentMounted: () => s.mounted,
-                          );
-                        }
-                      });
+                      final s = _MainScreenState._lastMounted;
+                      if (s != null) {
+                        doTransactionViewerSheet(
+                          context: context,
+                          db: s._db,
+                          store: s._store,
+                          parentSetState: s.setState,
+                          parentMounted: () => s.mounted,
+                        );
+                      }
                     },
                   ),
                   const Divider(),
@@ -588,13 +585,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   const Divider(),
                   _EditCountableItemsRow(
                     onPressed: () {
-                      Navigator.of(context).pop();
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        final s = _MainScreenState._lastMounted;
-                        if (s != null) {
-                          doEditCountableItemsSheet(context: s.context);
-                        }
-                      });
+                      doEditCountableItemsSheet(context: context);
                     },
                   ),
                   const Divider(),
@@ -602,11 +593,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       _ExportDatabaseRow(
-                        onPressed: () {
-                          Navigator.of(context).pop();
-                          WidgetsBinding.instance.addPostFrameCallback((_) {
-                            _exportDatabase(context);
-                          });
+                        onPressed: () async {
+                          await _exportDatabase(context);
                         },
                       ),
                       const SizedBox(width: 12),
