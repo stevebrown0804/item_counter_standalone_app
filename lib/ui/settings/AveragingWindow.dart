@@ -454,6 +454,22 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
     _showingDisplayString = true;
   }
 
+  void _showEditableCurrentDaysWithSelection() {
+    final days = _currentAveragingWindowDays;
+    if (days == null) {
+      _summaryStatisticTextInputBox.clear();
+      _showingDisplayString = false;
+      return;
+    }
+
+    final text = days.toString();
+    _summaryStatisticTextInputBox.value = TextEditingValue(
+      text: text,
+      selection: TextSelection(baseOffset: 0, extentOffset: text.length),
+    );
+    _showingDisplayString = false;
+  }
+
   void _showEndDateDisplayString() {
     _endDateTextInputBox.text = 'Today';
     _showingEndDateDisplayString = true;
@@ -481,8 +497,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
     if (_summaryStatisticFocusNode.hasFocus) {
       setState(() {
         if (_showingDisplayString) {
-          _summaryStatisticTextInputBox.clear();
-          _showingDisplayString = false;
+          _showEditableCurrentDaysWithSelection();
         }
 
         if (_pinStartDate) {
@@ -1124,8 +1139,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
                     onTap: () {
                       if (_showingDisplayString) {
                         setState(() {
-                          _summaryStatisticTextInputBox.clear();
-                          _showingDisplayString = false;
+                          _showEditableCurrentDaysWithSelection();
                         });
                         _recomputeCanSubmit();
                         return;
