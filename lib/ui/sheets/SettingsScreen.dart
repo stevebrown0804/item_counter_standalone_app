@@ -622,7 +622,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         _returnHomeAfterSettingsInteraction = value;
                       });
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Unimplemented')),
+                        const SnackBar(content: Text('Reminder: Unimplemented')),
                       );
                     },
                   ),
