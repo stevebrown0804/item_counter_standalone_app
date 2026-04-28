@@ -408,6 +408,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _showDeleteOldTxDialog(BuildContext context) async {
+    FocusManager.instance.primaryFocus?.unfocus();
+
     final db = _Db();
 
     final days = await db.readAveragingWindowDays();
@@ -434,6 +436,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   foregroundColor: Colors.white,
                 ),
                 onPressed: () async {
+                  FocusManager.instance.primaryFocus?.unfocus();
                   Navigator.of(ctx).pop();
                   await _handleDeleteOldTx(context, days);
                 },
@@ -445,6 +448,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _handleDeleteOldTx(BuildContext context, int days) async {
+    FocusManager.instance.primaryFocus?.unfocus();
+
     final db = _Db();
     final skip = await db.readSkipDeleteSecondConfirm();
 
@@ -497,6 +502,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               backgroundColor: Colors.transparent,
                             ),
                             onPressed: () async {
+                              FocusManager.instance.primaryFocus?.unfocus();
                               if (skipNext) {
                                 await db.setSkipDeleteSecondConfirm(true);
                               }
@@ -615,7 +621,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: Column(
                 children: [
                   SwitchListTile(
-                    title: const Text('Changing settings returns you to the home screen'),
+                    title: Text(
+                      'Changing settings returns you to the home screen',
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
                     value: _returnHomeAfterSettingsInteraction,
                     onChanged: (value) {
                       setState(() {
