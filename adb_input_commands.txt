@@ -1,6 +1,7 @@
 Types text into the focused text field then presses Enter:
 	adb shell input text "asdf"; adb shell input keyevent KEYCODE_ENTER
 	adb shell input text "asdf2"; adb shell input keyevent KEYCODE_ENTER
+	adb shell input text "asdf3"; adb shell input keyevent KEYCODE_ENTER
 
 Left/right arrow:
 	adb shell input keyevent KEYCODE_DPAD_LEFT
