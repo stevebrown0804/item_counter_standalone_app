@@ -1,28 +1,42 @@
 ---------------------------------------Public use--------------------------------------------------
 
- TODO: Answer the question, "With the start date and end date, we're assuming mm/dd/yyyy, as far as I can tell.  Does Android change that, in other regions (where yyyy/mm/dd, etc. are common)?  Do we need to adapt (ie. by adding some i18n to the project)? TBD"
+TODO (Switch added but not implemented yet): Add a switch on the settings screen for "Settings sheet interactions immediately return you to the home screen"
+    *The following this will return the user directly to the home screen:
+        * Clicking the back button on the Transaction Viewer
+        * Clicking the save button in the Averaging Window area
+        * Selecting a new Time Zone
+        * Clicking the back button on the Edit Countable Items sheet
+        * Completing the "Export database" process
+        * Finishing the "Import database" process (successfully or not)
+        * Finishing the "Delete outdated transactions" process (unless it's canceled/aborted)
+        * Toggling the "Skip second confirmation..." switch
+    * btw we'll have any toasts show up after returning to the home screen
+
+TODO: Adding an indicator to the settings sheet
+    * Add a red/green indicator light (ie. a circle) next to the back button
+        * When it's red, that means the equivalent of the save button being disabled, saying "something needs to be saved and/or changed"
+        * When it's green, everything's that was changes had been saved, and the back button can be pressed without any pop-ups about unsaved changes.
+    * The indicator will start grayed out, and will return to being grayed out if changes are made but then reverted (so that the sheet's current state equals the initial state).
 
 TODO: Add a 'reset' (or 'clear', maybe) button to the RHS of the end Date textbox (in the Averaging Window area); have it revert the contents of the textbox to 'Today' (and force the 'pin end date' switch to off)
 
+TODO: Answer the question, "With the start date and end date, we're assuming mm/dd/yyyy, as far as I can tell.  Does Android change that, in other regions (where yyyy/mm/dd, etc. are common)?  Do we need to adapt (ie. by adding some i18n to the project)? TBD"
+
+TODO: Answer the question, "Do we want a 'Use default path' switch beneath the Export Database button?  If it's disabled we can let the user choose the path to which to save the DB file."
+    * (Or we might reword the switch and have its default state be off; we'll see.)
+    * btw This introduces the possibility of the DB export process being canceled; we should consider that when thinking about the "Settings sheet interactions...." switch's behavior (when set to 'on').
+
 TODO: Add a "use timezones or do not....there is no try" (wording to be adjusted later) option to the Settings sheet
     True -- use the existing timezone functionality
-    False -- hide the timezone-related stuff, I guess; just use UTC, but keep the specifics "as hidden as we can manage, without it becoming a pain in the backside"
+    False -- hide the timezone-related stuff, I guess; just use UTC, but keep the specifics "as hidden as we can manage, without it becoming a pain in the bum"
 
-TODO: Add a checkbox on the settings screen for "Clicking a save button returns you to the home screen"
-    * Implement!
-    * We might reword it from just "save button" to any UI interaction: save buttons, a date successfully picked, etc.
-        * I've been toying around with something like "hasty mode" or "hasty retreat" to describe this behavior of hurrying back to the home screen.  *shrug* We'll see.  That might just be a phrase we reserve for TODO.txt.  (...or achievements.)
+TODO: In the Transaction Viewer, let's either have the "Apply filter" button be lit up when any UI interaction takes place while would necessitate it being clicked before the new filter is changed, or just get rid of it.
+    Or both, and allow a setting to control which.  *shrug*
 
-    sub-TODO: Consolidate save buttons!  Let's have one...or at least one per "some kind of region within the settings sheet" or something.
-        OR POSSIBLY: Give an option on the settings sheet to say "just auto-save stuff" that removes save buttons and just automatically saves stuff that's changed.
-        THING IS: I'm not really crazy about the thought of consolidating save buttons, at this point.  And I feel like the behaviors that we have programmed into each save button are going to be difficult to meld together...maybe.
-            Maybe not, though.🤔 But either way, I'm not crazy about the idea at this point.
+TODO: The Transaction Viewer's state/end dates extend well beyond the range of existing transactions within the DB; let's trim down the allowable dates to ones that actually have transactions.
 
-    sub-TODO: Change the default behavior of the "Export DB" button so that it ~doesn't~ automatically return the user to the home screen.  (The goal is to have all settings sheet UI elements have consistent behavior; then, checking the checkbox from the parent TODO can apply to everything.👍)
-
-    sub-TODO: Change the back button on the transaction viewer sheet to return the user to the settings sheet, rather than to the home screen.
-
-    sub-TODO: Change the back button on the 'edit countable items' sheet to return the user to the settings sheet, rather than to the home screen.
+TODO: Answer the question, "Does the Averaging Window area really need a save button?  They seem kind passé nowadays; besides, we COULD just be auto-commiting every change.  It wouldn't be THAT bad, would it?"
+    A THOUGHT: Is this not the "Fewer save buttons" behavior that we're currently working on?  Some people might like save buttons, even do this day.
 
 TODO (Lower priority): Item metadata
     * Create a table to hold key/value pairs
@@ -68,7 +82,7 @@ TODO re: Database importing:
 TODO: Answer the question, "When it comes to the end date, do we want to allow (and parse) arithmetic formulas involving the word 'today,' such as "today - 1" (for 'yesterday')?  It seems "possibly" useful to someone...maybe.
     * A THOUGHT: Maybe this is the sort of thing we should let someone who WANTS to feature to implement.
 
-TODO (MAYBE): Rather than allowing end dates in the future, we might add some sort of "give a fixed date range a target date in the future, but have the actual interval be (start date) to (today), then move the interval forward by a day, each day until that target end date."  Maybe.  Either way, I want to avoid allowing the user to pick dates in the future.
+TODO (MAYBE): Rather than allowing end dates in the future, we might add some sort of "give a fixed date range a target date in the future, but have the actual interval be (start date) to (today), then move the interval forward by a day, each day until that target end date."  Maybe.  Either way, I want to avoid allowing the user to pick interval start/end dates in the future.
 
 ---------------------------------------
 Polishing
@@ -76,6 +90,7 @@ Polishing
 *Settings sheet
 TODO: Switches are pretty nice-looking, and do basically the same thing as checkboxes, although they kinda imply on/off-ness, which seems more specific than checkbox behavior.
     Still, let's look for checkboxes (or possibly other UI elements) that we can replace with switches.
+        FOLLOW-UP: I'm only seeing one atm: The "Skip 2nd confirmation" checkbox/save button.  We'll keep our eyes open for others, though.
 
 *Averaging Window area
 TODO: (Background) With the "Averaging window" textboxes, we're using TextPainter to determine the minimum interior width necessary to display things (assuming the longest possibly averaging window is 99999 days); thing is, it's producing widths wider than necessary.
