@@ -632,7 +632,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 children: [
                   SwitchListTile(
                     title: Text(
-                      'Changing settings returns you to the home screen',
+                      'Settings sheet interactions immediately return you to the home screen',
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
                     value: _returnHomeAfterSettingsInteraction,
