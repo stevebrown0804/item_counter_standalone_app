@@ -32,6 +32,10 @@ Phase 2, where I make the app more accessible to others
 * 2026-04-10 This phase is in progress now!🥳  Check the TODO.txt file if you want to see what I'm planning to do.  (The 'Public use' section, anyhow; the "Minor initiatives" and lower sections are TODOs that I wrote up the last time I was working on the project; we'll evaluate them to see if we still want to do them, eventually.)
 * 2026-04-21 The "Database file import" stuff is 'mostly' working.🥳  If you're interested in trying out the app and 'happen' to have a DB file with items that you're interested in counting, then you're in luck!  (...but that probably won't happen -- at least, not often.)  (Also, I just BARELY finished adding the import process and I haven't actually tried it out much, so "no promises about functionality, just yet.")
 * 2026-04-22 We added a UI for adding new 'countable items,' so you don't have to go through the trouble of installing a debug version of the app, copying the DB to your local machine, adding items then copying the DB back to the phone, then installing the retail version of the app, to use it.🥳  Alas, you still have to do that with time zones.  (All in good time!)
+* 2026-04-28 Pinning dates for the date ranges now works (or at least, it seems to).  You can either do:
+  * A duration (eg. 30 days)
+  * A fixed start date, up until 'today' (so the duration grows each day), or
+  * A fixed date window (eg. 12/7/2025 through 3/9/2026), if you're into that sort of thing.
 
 ---
 
