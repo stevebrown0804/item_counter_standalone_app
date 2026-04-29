@@ -17,12 +17,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
   GlobalKey<_SkipSecondConfirmationSettingState>();
 
   final Map<String, bool> _dirty = <String, bool>{};
+  final Map<String, bool> _blocked = <String, bool>{};
   final GlobalKey _settingsBackArrowIconKey = GlobalKey();
   static const double _settingsIndicatorLightDiameterScale = 1.0 / 3.0;
   Size? _settingsBackArrowIconSize;
   bool _returnHomeAfterSettingsInteraction = false;
+  bool _settingsHaveBeenSavedSinceOpening = false;
 
   bool get _hasUnsavedChanges => _dirty.values.any((v) => v);
+  bool get _hasBlockedChanges => _blocked.values.any((v) => v);
 
   void _measureSettingsBackArrowIconAfterLayout() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -62,6 +65,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return kMinInteractiveDimension + indicatorGap + indicatorDiameter;
   }
 
+  Color _settingsIndicatorLightColor(BuildContext context) {
+    if (_hasUnsavedChanges || _hasBlockedChanges) {
+      return Colors.red;
+    }
+
+    if (_settingsHaveBeenSavedSinceOpening) {
+      return Colors.green;
+    }
+
+    return Theme.of(context).disabledColor;
+  }
+
   Widget _buildSettingsLeading(BuildContext context) {
     final arrowIconSize = _settingsBackArrowIconSize;
 
@@ -96,7 +111,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           height: indicatorDiameter,
           child: DecoratedBox(
             decoration: BoxDecoration(
-              color: Theme.of(context).disabledColor,
+              color: _settingsIndicatorLightColor(context),
               shape: BoxShape.circle,
             ),
           ),
@@ -113,12 +128,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (!mounted) return;
       setState(() {
         _dirty[key] = isDirty;
+        if (isDirty) {
+          _settingsHaveBeenSavedSinceOpening = false;
+        }
       });
     });
   }
 
+  void _setBlocked(String key, bool isBlocked) {
+    final prev = _blocked[key];
+    if (prev == isBlocked) return;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      setState(() {
+        _blocked[key] = isBlocked;
+        if (isBlocked) {
+          _settingsHaveBeenSavedSinceOpening = false;
+        }
+      });
+    });
+  }
+
+  void _markSettingsSaved() {
+    if (!mounted) return;
+    setState(() {
+      _settingsHaveBeenSavedSinceOpening = true;
+    });
+  }
+
   Future<void> _attemptLeaveSettings() async {
-    if (!_hasUnsavedChanges) {
+    if (!_hasUnsavedChanges && !_hasBlockedChanges) {
       if (mounted) Navigator.of(context).pop();
       return;
     }
@@ -137,7 +177,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 child: const Text('Abandon changes'),
               ),
               FilledButton(
-                onPressed: () => Navigator.of(ctx).pop('save'),
+                onPressed: _hasBlockedChanges
+                    ? null
+                    : () => Navigator.of(ctx).pop('save'),
                 child: const Text('Save changes'),
               ),
             ],
@@ -677,6 +719,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   _SummaryStatisticRow(
                     key: _avgKey,
                     onDirtyChanged: (v) => _setDirty('avg_window', v),
+                    onBlockedChanged: (v) => _setBlocked('avg_window', v),
+                    onSaved: _markSettingsSaved,
                   ),
                   const Divider(),
                   _TzRow(

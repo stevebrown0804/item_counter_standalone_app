@@ -253,9 +253,13 @@ class _SummaryStatisticRow extends StatefulWidget {
   const _SummaryStatisticRow({
     super.key,
     required this.onDirtyChanged,
+    required this.onBlockedChanged,
+    required this.onSaved,
   });
 
   final void Function(bool) onDirtyChanged;
+  final void Function(bool) onBlockedChanged;
+  final VoidCallback onSaved;
 
   @override
   State<_SummaryStatisticRow> createState() => _SummaryStatisticRowState();
@@ -280,6 +284,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
 
   void _setValidationState({
     required bool canSubmit,
+    required bool blockedChanges,
     required String? startDateErrorText,
     required String? endDateErrorText,
   }) {
@@ -288,24 +293,62 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
             _startDateErrorText != startDateErrorText ||
             _endDateErrorText != endDateErrorText;
 
-    if (!changed) return;
+    if (changed) {
+      setState(() {
+        _canSubmit = canSubmit;
+        _startDateErrorText = startDateErrorText;
+        _endDateErrorText = endDateErrorText;
+      });
+    }
 
-    setState(() {
-      _canSubmit = canSubmit;
-      _startDateErrorText = startDateErrorText;
-      _endDateErrorText = endDateErrorText;
-    });
-    widget.onDirtyChanged(_canSubmit);
+    widget.onDirtyChanged(canSubmit);
+    widget.onBlockedChanged(blockedChanges);
   }
 
   void _setCanSubmit(bool v) {
-    if (_canSubmit == v && _startDateErrorText == null && _endDateErrorText == null) return;
+    if (_canSubmit == v && _startDateErrorText == null && _endDateErrorText == null) {
+      widget.onDirtyChanged(v);
+      widget.onBlockedChanged(false);
+      return;
+    }
+
     setState(() {
       _canSubmit = v;
       _startDateErrorText = null;
       _endDateErrorText = null;
     });
-    widget.onDirtyChanged(_canSubmit);
+    widget.onDirtyChanged(v);
+    widget.onBlockedChanged(false);
+  }
+
+  bool _currentRawStateDiffersFromLoaded(_DailyAverageSettings loaded) {
+    final startRaw = _summaryStatisticTextInputBox.text.trim();
+    final endRaw = _endDateTextInputBox.text.trim();
+
+    if (_pinStartDate != loaded.pinStartDate || _pinEndDate != loaded.pinEndDate) {
+      return true;
+    }
+
+    if (_pinStartDate) {
+      if (startRaw != loaded.startDate) {
+        return true;
+      }
+    } else if (_showingDisplayString && _currentAveragingWindowDays != null) {
+      if (_currentAveragingWindowDays != loaded.numberOfDaysAgo) {
+        return true;
+      }
+    } else {
+      final parsedDays = int.tryParse(startRaw);
+      if (parsedDays != loaded.numberOfDaysAgo) {
+        return true;
+      }
+    }
+
+    if (_pinEndDate && endRaw != loaded.endDate) {
+      return true;
+    }
+
+    return false;
   }
 
   DateTime _todayDateOnly() {
@@ -343,6 +386,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
     if (loaded == null) {
       _setValidationState(
         canSubmit: false,
+        blockedChanges: false,
         startDateErrorText: null,
         endDateErrorText: null,
       );
@@ -351,6 +395,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
 
     final startRaw = _summaryStatisticTextInputBox.text.trim();
     final endRaw = _endDateTextInputBox.text.trim();
+    final rawStateDiffersFromLoaded = _currentRawStateDiffersFromLoaded(loaded);
 
     final startError = _errorTextForDateEntry(
       raw: startRaw,
@@ -372,6 +417,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
     if (startError != null || endError != null) {
       _setValidationState(
         canSubmit: false,
+        blockedChanges: rawStateDiffersFromLoaded,
         startDateErrorText: startError,
         endDateErrorText: endError,
       );
@@ -381,6 +427,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
     if (!_hasValidPinnedStartDate() || !_hasValidPinnedEndDate()) {
       _setValidationState(
         canSubmit: false,
+        blockedChanges: rawStateDiffersFromLoaded,
         startDateErrorText: startError,
         endDateErrorText: endError,
       );
@@ -394,6 +441,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
       if (parsedDays == null) {
         _setValidationState(
           canSubmit: false,
+          blockedChanges: rawStateDiffersFromLoaded,
           startDateErrorText: startError,
           endDateErrorText: endError,
         );
@@ -408,6 +456,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
         } else {
           _setValidationState(
             canSubmit: false,
+            blockedChanges: rawStateDiffersFromLoaded,
             startDateErrorText: startError,
             endDateErrorText: endError,
           );
@@ -430,6 +479,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
 
     _setValidationState(
       canSubmit: hasChanges,
+      blockedChanges: false,
       startDateErrorText: null,
       endDateErrorText: null,
     );
@@ -586,6 +636,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
   void initState() {
     super.initState();
     widget.onDirtyChanged(false);
+    widget.onBlockedChanged(false);
     _summaryStatisticFocusNode.addListener(_handleFocusChanged);
     _endDateFocusNode.addListener(_handleEndDateFocusChanged);
     _showEndDateDisplayString();
@@ -1034,6 +1085,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
       _applyLoadedSettingsToUi(settings);
     });
     _setCanSubmit(false);
+    widget.onSaved();
     return true;
   }
 
