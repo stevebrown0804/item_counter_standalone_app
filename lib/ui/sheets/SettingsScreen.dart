@@ -726,6 +726,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   _TzRow(
                     key: _tzKey,
                     onDirtyChanged: (v) => _setDirty('tz', v),
+                    onSaved: _markSettingsSaved,
                   ),
                   const Divider(),
                   _EditCountableItemsRow(
@@ -767,6 +768,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     onChanged: (value) {
                       setState(() {
                         _returnHomeAfterSettingsInteraction = value;
+                        _settingsHaveBeenSavedSinceOpening = true;
                       });
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('Reminder: Unimplemented')),
@@ -784,6 +786,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   _SkipSecondConfirmationSetting(
                     key: _skipKey,
                     onDirtyChanged: (v) => _setDirty('skip_second_confirm', v),
+                    onSaved: _markSettingsSaved,
                   ),
                   const Divider(),
                 ],

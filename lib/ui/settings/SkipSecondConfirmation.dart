@@ -6,9 +6,11 @@ class _SkipSecondConfirmationSetting extends StatefulWidget {
   const _SkipSecondConfirmationSetting({
     super.key,
     required this.onDirtyChanged,
+    required this.onSaved,
   });
 
   final void Function(bool) onDirtyChanged;
+  final VoidCallback onSaved;
 
   @override
   State<_SkipSecondConfirmationSetting> createState() =>
@@ -56,6 +58,7 @@ class _SkipSecondConfirmationSettingState
     try {
       await _db.setSkipDeleteSecondConfirm(value);
       if (!mounted) return;
+      widget.onSaved();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Preference saved.')),
       );

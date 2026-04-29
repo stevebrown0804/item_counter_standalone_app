@@ -6,9 +6,11 @@ class _TzRow extends StatefulWidget {
   const _TzRow({
     super.key,
     required this.onDirtyChanged,
+    required this.onSaved,
   });
 
   final void Function(bool) onDirtyChanged;
+  final VoidCallback onSaved;
 
   @override
   State<_TzRow> createState() => _TzRowState();
@@ -85,6 +87,7 @@ class _TzRowState extends State<_TzRow> {
         _currentDisplayString = savedDisplayString;
       });
       widget.onDirtyChanged(false);
+      widget.onSaved();
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Time zone selected: $savedDisplayString')),
