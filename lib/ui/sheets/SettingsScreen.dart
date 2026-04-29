@@ -17,9 +17,93 @@ class _SettingsScreenState extends State<SettingsScreen> {
   GlobalKey<_SkipSecondConfirmationSettingState>();
 
   final Map<String, bool> _dirty = <String, bool>{};
+  final GlobalKey _settingsBackArrowIconKey = GlobalKey();
+  static const double _settingsIndicatorLightDiameterScale = 1.0 / 3.0;
+  Size? _settingsBackArrowIconSize;
   bool _returnHomeAfterSettingsInteraction = false;
 
   bool get _hasUnsavedChanges => _dirty.values.any((v) => v);
+
+  void _measureSettingsBackArrowIconAfterLayout() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+
+      final arrowIconContext = _settingsBackArrowIconKey.currentContext;
+      if (arrowIconContext == null) {
+        return;
+      }
+
+      final renderObject = arrowIconContext.findRenderObject();
+      if (renderObject is! RenderBox) {
+        throw StateError('Settings back arrow icon render object was not a RenderBox.');
+      }
+
+      final measuredSize = renderObject.size;
+      if (_settingsBackArrowIconSize == measuredSize) {
+        return;
+      }
+
+      setState(() {
+        _settingsBackArrowIconSize = measuredSize;
+      });
+    });
+  }
+
+  double? _settingsLeadingWidth() {
+    final arrowIconSize = _settingsBackArrowIconSize;
+    if (arrowIconSize == null) {
+      return null;
+    }
+
+    final indicatorDiameter =
+        arrowIconSize.height * _settingsIndicatorLightDiameterScale;
+    final indicatorGap = indicatorDiameter * 0.25;
+
+    return kMinInteractiveDimension + indicatorGap + indicatorDiameter;
+  }
+
+  Widget _buildSettingsLeading(BuildContext context) {
+    final arrowIconSize = _settingsBackArrowIconSize;
+
+    if (arrowIconSize == null) {
+      return IconButton(
+        icon: Icon(
+          Icons.arrow_back,
+          key: _settingsBackArrowIconKey,
+        ),
+        onPressed: () async => await _attemptLeaveSettings(),
+      );
+    }
+
+    final indicatorDiameter =
+        arrowIconSize.height * _settingsIndicatorLightDiameterScale;
+    final indicatorGap = indicatorDiameter * 0.25;
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        IconButton(
+          icon: Icon(
+            Icons.arrow_back,
+            key: _settingsBackArrowIconKey,
+          ),
+          onPressed: () async => await _attemptLeaveSettings(),
+        ),
+        SizedBox(width: indicatorGap),
+        SizedBox(
+          width: indicatorDiameter,
+          height: indicatorDiameter,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: Theme.of(context).disabledColor,
+              shape: BoxShape.circle,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 
   void _setDirty(String key, bool isDirty) {
     final prev = _dirty[key];
@@ -555,6 +639,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   //NOTE: If you want to shuffle around the rows of the settings sheet, here's the place to do that
   @override
   Widget build(BuildContext context) {
+    _measureSettingsBackArrowIconAfterLayout();
+
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) async {
@@ -564,10 +650,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Settings'),
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () async => await _attemptLeaveSettings(),
-          ),
+          leadingWidth: _settingsLeadingWidth(),
+          leading: _buildSettingsLeading(context),
         ),
         body: CustomScrollView(
           slivers: [
