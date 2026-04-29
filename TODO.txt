@@ -1,5 +1,7 @@
 ---------------------------------------Public use--------------------------------------------------
 
+TODO: When we click the "Skip this step next time" button on the 2nd confirmation window of "Delete outdated transactions," it appears to apply the setting....but it's not visibly moving the switch.  Let's move the switch and confirm that the underlying behavior is being adopted.
+
 TODO (Switch added but not implemented yet): Add a switch on the settings screen for "Settings sheet interactions immediately return you to the home screen"
     *The following this will return the user directly to the home screen:
         * Clicking the back button on the Transaction Viewer
@@ -12,11 +14,14 @@ TODO (Switch added but not implemented yet): Add a switch on the settings screen
         * Toggling the "Skip second confirmation..." switch
     * btw we'll have any toasts show up after returning to the home screen
 
-TODO: Adding an indicator to the settings sheet
-    * Add a red/green/gray indicator light (ie. a circle) next to the back button
-        * When it's red, that means the equivalent of the save button being disabled, saying "something needs to be saved and/or changed"
-        * When it's green, everything's that was changes had been saved, and the back button can be pressed without any pop-ups about unsaved changes.
-        * The indicator will start grayed out, and will return to being grayed out if changes are made but then reverted (so that the sheet's current state equals the initial state).
+TODO: Give ChatGPT a DB exported from the version running out our phone and a copy of the db.*.dart files, and tell it to generate a migration.
+    * Run the (debug version, on the emulator) app with that DB file in-place and see if it brings it up-to-date with the current schema.
+    * Assuming it does, then I ~think~ that means we can deploy versions-in-development to our phone, with confidence that the app will bring the DB up to speed.
+    FOLLOW-UP: I did a preliminary version of this where I just pasted in an existing DB file and the db.*.dart files and asked if there were differences, of which there were 2:
+        * some missing rows (date pinning-related) in the settings table
+        * a uniqueness contraints on the items.display_order field
+
+TODO: the DB import process is likely saying that existing DB files are incompatible because they lack some rows from the settings table; let's try to add those rows before we have the app decide it the DB file is compatible or not.
 
 TODO: Add a 'reset' (or 'clear', maybe) button to the RHS of the end Date textbox (in the Averaging Window area); have it revert the contents of the textbox to 'Today' (and force the 'pin end date' switch to off)
 
@@ -26,17 +31,14 @@ TODO: Answer the question, "Do we want a 'Use default path' switch beneath the E
     * (Or we might reword the switch and have its default state be off; we'll see.)
     * btw This introduces the possibility of the DB export process being canceled; we should consider that when thinking about the "Settings sheet interactions...." switch's behavior (when set to 'on').
 
-TODO: Add a "use timezones or do not....there is no try" (wording to be adjusted later) option to the Settings sheet
-    True -- use the existing timezone functionality
-    False -- hide the timezone-related stuff, I guess; just use UTC, but keep the specifics "as hidden as we can manage, without it becoming a pain in the bum"
+TODO: Add a "use timezones or do not....there is no try" (wording to be adjusted later) switch to the Settings sheet; default value: On
+    * On -- use the existing timezone functionality
+    * Off -- hide the timezone-related stuff, I guess; just use UTC, but keep the specifics "as hidden as we can manage, without it becoming ridiculous"
 
 TODO: In the Transaction Viewer, let's either have the "Apply filter" button be lit up when any UI interaction takes place while would necessitate it being clicked before the new filter is changed, or just get rid of it.
     Or both, and allow a setting to control which.  *shrug*
 
 TODO: The Transaction Viewer's state/end dates extend well beyond the range of existing transactions within the DB; let's trim down the allowable dates to ones that actually have transactions.
-
-TODO: Answer the question, "Does the Averaging Window area really need a save button?  They seem kind passé nowadays; besides, we COULD just be auto-commiting every change.  It wouldn't be THAT bad, would it?"
-    A THOUGHT: Is this not the "Fewer save buttons" behavior that we're currently working on?  Some people might like save buttons, even do this day.
 
 TODO (Lower priority): Item metadata
     * Create a table to hold key/value pairs
@@ -56,6 +58,7 @@ TODO (POSSIBLY OUT-OF-DATE; NEEDS CLARIFICATION): Time-zone specifying
     *Add a setting with key derived from "Specify time zone by alias"; default value is false (ie. unchecked)
 
         sub-TODO: Answer the question, "Seeing as how the previous TODO doesn't really make a lot of sense, should we edit it until it makes sense or just scrap it and start over with an "Add a TZ alias-adding UI" TODO, which sounds much more straightforward?"
+            RESPONSE: Yes, at this point I absolutely think we SHOULD! ...because heck if I can make sense of that TODO.😂
 
 TODO: Add a drop-down or something in the settings sheet to select the summary statistic
     Possible default: With the 'monthly average' statistic selected and the drop-down disabled.
@@ -80,7 +83,7 @@ TODO re: Database importing:
     * Whatever directory the "import DB" file picker starts in, we should also communicate that directory that is (to reduce guesswork about where best to place a DB file).
 
 TODO: Answer the question, "When it comes to the end date, do we want to allow (and parse) arithmetic formulas involving the word 'today,' such as "today - 1" (for 'yesterday')?  It seems "possibly" useful to someone...maybe.
-    * A THOUGHT: Maybe this is the sort of thing we should let someone who WANTS to feature to implement.
+    * A THOUGHT: Maybe this is the sort of thing we should let someone who WANTS that feature, to implement it.
 
 TODO (MAYBE): Rather than allowing end dates in the future, we might add some sort of "give a fixed date range a target date in the future, but have the actual interval be (start date) to (today), then move the interval forward by a day, each day until that target end date."  Maybe.  Either way, I want to avoid allowing the user to pick interval start/end dates in the future.
 
