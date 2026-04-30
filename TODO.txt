@@ -1,25 +1,20 @@
 ---------------------------------------Public use--------------------------------------------------
+TODO (for 4/30/2026, before we leave): Pin the start date to 12/7/2026
+TODO (for 5/1/2026): Watch the pinned start date; it was set to "12/7/2026" (and should stay there).
 
-TODO: When we click the "Skip this step next time" button on the 2nd confirmation window of "Delete outdated transactions," it appears to apply the setting....but it's not visibly moving the switch.  Let's move the switch and confirm that the underlying behavior is being adopted.
+TODO (Waiting for keyboard input to reach the emulator again): Resume working on 'manually entered date string' stuff.
 
-TODO (Switch added but not implemented yet): Add a switch on the settings screen for "Settings sheet interactions immediately return you to the home screen"
+TODO (After adding path-specifying to DB exporting) (Switch added but not implemented yet): Add a switch on the settings screen for "Settings sheet interactions immediately return you to the home screen"
     *The following this will return the user directly to the home screen:
         * Clicking the back button on the Transaction Viewer
         * Clicking the save button in the Averaging Window area
         * Selecting a new Time Zone
         * Clicking the back button on the Edit Countable Items sheet
-        * Completing the "Export database" process
-        * Finishing the "Import database" process (successfully or not)
+        * Successfully completing the "Export database" process (meaning the DB file was written)
+        * Successfully completing the "Import database" process (meaning the DB file was successfully imported)
         * Finishing the "Delete outdated transactions" process (unless it's canceled/aborted)
         * Toggling the "Skip second confirmation..." switch
     * btw we'll have any toasts show up after returning to the home screen
-
-TODO: Give ChatGPT a DB exported from the version running out our phone and a copy of the db.*.dart files, and tell it to generate a migration.
-    * Run the (debug version, on the emulator) app with that DB file in-place and see if it brings it up-to-date with the current schema.
-    * Assuming it does, then I ~think~ that means we can deploy versions-in-development to our phone, with confidence that the app will bring the DB up to speed.
-    FOLLOW-UP: I did a preliminary version of this where I just pasted in an existing DB file and the db.*.dart files and asked if there were differences, of which there were 2:
-        * some missing rows (date pinning-related) in the settings table
-        * a uniqueness contraints on the items.display_order field
 
 TODO: the DB import process is likely saying that existing DB files are incompatible because they lack some rows from the settings table; let's try to add those rows before we have the app decide it the DB file is compatible or not.
 
@@ -46,6 +41,13 @@ TODO (Lower priority): Item metadata
         * atm I'm thinking "one set of keys that applies to the entire item set" (...although that's making me think about ways to allow multiple item sets.🤔  we'll think about that later, though.)
          * eg. Manufacturer, Product Name
     * Add this table as an option for importing
+
+TODO (Just before trying to install the dev. version onto our phone): Give ChatGPT a DB exported from the version running out our phone and a copy of the db.*.dart files, and tell it to generate a migration.
+    * Run the (debug version, on the emulator) app with that DB file in-place and see if it brings it up-to-date with the current schema.
+    * Assuming it does, then I ~think~ that means we can deploy versions-in-development to our phone, with confidence that the app will bring the DB up to speed.
+    FOLLOW-UP: I did a preliminary version of this where I just pasted in an existing DB file and the db.*.dart files and asked if there were differences, of which there were 2:
+        * some missing rows (date pinning-related) in the settings table
+        * a uniqueness contraints on the items.display_order field
 
 TODO (POSSIBLY OUT-OF-DATE; NEEDS CLARIFICATION): Time-zone specifying
     * Add a "Specify time zone by alias" checkbox  <---4/21/26 Where, exactly?🤨 Settings sheet?
@@ -90,16 +92,19 @@ TODO (MAYBE): Rather than allowing end dates in the future, we might add some so
 ---------------------------------------
 Polishing
 
+*App-wide
+TODO (Waiting for the UI minutiae interface to be started): Toast shape, duration and max. # of toasts displayed at once are configurable, so we should let the user configure them.
+    * Those probably belong in the UI minutiae interface.
+
 *Settings sheet
-TODO: Switches are pretty nice-looking, and do basically the same thing as checkboxes, although they kinda imply on/off-ness, which seems more specific than checkbox behavior.
-    Still, let's look for checkboxes (or possibly other UI elements) that we can replace with switches.
-        FOLLOW-UP: I'm only seeing one atm: The "Skip 2nd confirmation" checkbox/save button.  We'll keep our eyes open for others, though.
 
 *Averaging Window area
+TODO: The mm and dd fields in the start date text box (and presumably the end date text box as well) have leading 0s again, which I don't really want.
+TODO: The "ENTER A VALID STRING😠" indicator while editing the pinned start date is awfully strict; let's relax it to not announce the result of the string's validity check until the user clicks save or the textbox otherwise loses focus.
+    *If the date string is invalid, Let's (1) announce it in a toast and (2) not save it yet.  (And keep the save button activated.)  Or maybe (1) auto-show a message over the textbox with a 'friendly-ish' message such as "12/0/2026" isn't a valid date", then (2) not save it yet.
 TODO: (Background) With the "Averaging window" textboxes, we're using TextPainter to determine the minimum interior width necessary to display things (assuming the longest possibly averaging window is 99999 days); thing is, it's producing widths wider than necessary.
     (Actual TODO): Answer the question, "Is the font being used by TextPainter to make those measurements the same font that's actually used to render the elements and their contents?  "Not using the right font" seems like the kind of bonehead mistake ChatGPT might make."
-TODO: Restrint the allowable input in the End Date textBox to "2 digits for mm dd, 4 digits for yyyy, and slashes/hyphens/[spacebar]/other separation characters."  (This is in addition to "the date strings that the date picker returns.)"
-TODO: Eith the End Date Textbox, if the current date is selected via the date picker and the "Pin end date" box is NOT checked", display "Today"
+TODO: The latest allowable date for start dates really ought to be "yesterday," rather than "today."  It's being compressed to a '1 day average' in the UI, but I dunno if it's actually doing that full day or what.  Either way, let's just make 'yesterday' the latest allowable date.
 
 *Edit countable items sheet
 TODO: Intelligently collapse the display order values
