@@ -639,9 +639,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             ),
                             onPressed: () async {
                               FocusManager.instance.primaryFocus?.unfocus();
+
                               if (skipNext) {
                                 await db.setSkipDeleteSecondConfirm(true);
+                                _skipKey.currentState?.applySavedValueFromExternalWrite(true);
+                                _markSettingsSaved();
                               }
+
                               final deleted =
                               await db.deleteOldTransactionsWithPolicy(days);
                               if (!context.mounted) return;

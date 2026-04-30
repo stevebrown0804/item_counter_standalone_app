@@ -43,6 +43,14 @@ class _SkipSecondConfirmationSettingState
     widget.onDirtyChanged(false);
   }
 
+  void applySavedValueFromExternalWrite(bool value) {
+    if (!mounted) return;
+    setState(() {
+      _current = value;
+    });
+    widget.onDirtyChanged(false);
+  }
+
   Future<void> _save(bool value) async {
     if (_saving) return;
 
