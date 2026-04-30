@@ -255,11 +255,13 @@ class _SummaryStatisticRow extends StatefulWidget {
     required this.onDirtyChanged,
     required this.onBlockedChanged,
     required this.onSaved,
+    required this.onToast,
   });
 
   final void Function(bool) onDirtyChanged;
   final void Function(bool) onBlockedChanged;
   final VoidCallback onSaved;
+  final void Function(String) onToast;
 
   @override
   State<_SummaryStatisticRow> createState() => _SummaryStatisticRowState();
@@ -281,6 +283,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
   bool _pinEndDate = false;
   String? _startDateErrorText;
   String? _endDateErrorText;
+  DateTime? _earliestAllowedDate;
   _DailyAverageSettings? _loadedSettings;
 
   void _showAveragingWindowMessage(String message) {
@@ -288,9 +291,68 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
+    widget.onToast(message);
+  }
+
+  void _showAllowableDateRangeMessage() {
+    final earliest = _earliestAllowedDate ?? _todayDateOnly();
+    _showAveragingWindowMessage(
+      'The allowable date range is ${_formatDateForTextBox(earliest)} to today.',
     );
+  }
+
+  DateTime _dateOnly(DateTime date) {
+    return DateTime(date.year, date.month, date.day);
+  }
+
+  bool _isOutsideAllowableDateRange(DateTime date) {
+    final dateOnly = _dateOnly(date);
+    final earliest = _earliestAllowedDate ?? _todayDateOnly();
+    final today = _todayDateOnly();
+
+    return dateOnly.isBefore(earliest) || dateOnly.isAfter(today);
+  }
+
+  bool _isValidDateInsideAllowableRange(String raw) {
+    final parsed = _parseTextBoxDate(raw);
+    if (parsed == null) {
+      return false;
+    }
+
+    return !_isOutsideAllowableDateRange(parsed);
+  }
+
+  bool _focusedPinnedDateFieldHasInvalidValue() {
+    if (_summaryStatisticFocusNode.hasFocus && _pinStartDate) {
+      final raw = _summaryStatisticTextInputBox.text.trim();
+      if (raw.isNotEmpty && !_isDateEntryTemplate(raw)) {
+        return !_isValidDateInsideAllowableRange(raw);
+      }
+    }
+
+    if (_endDateFocusNode.hasFocus && _pinEndDate) {
+      final raw = _endDateTextInputBox.text.trim();
+      if (raw.isNotEmpty && !_isDateEntryTemplate(raw)) {
+        return !_isValidDateInsideAllowableRange(raw);
+      }
+    }
+
+    return false;
+  }
+
+  DateTime _earliestAllowedDateFromOldestTransaction(DateTime? oldestLocal) {
+    final today = _todayDateOnly();
+
+    if (oldestLocal == null) {
+      return today;
+    }
+
+    final oldest = _dateOnly(oldestLocal);
+    if (oldest.isAfter(today)) {
+      return today;
+    }
+
+    return oldest;
   }
 
   void _setManualDateEditInProgress(bool value) {
@@ -310,7 +372,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
     required String? endDateErrorText,
   }) {
     final effectiveCanSubmit = _manualDateEditInProgress && canSubmit;
-    final effectiveBlockedChanges = _manualDateEditInProgress && blockedChanges;
+    final effectiveBlockedChanges = blockedChanges || _focusedPinnedDateFieldHasInvalidValue();
 
     final changed =
         _canSubmit != effectiveCanSubmit ||
@@ -331,10 +393,11 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
 
   void _setCanSubmit(bool v) {
     final effectiveCanSubmit = _manualDateEditInProgress && v;
+    final effectiveBlockedChanges = _focusedPinnedDateFieldHasInvalidValue();
 
     if (_canSubmit == effectiveCanSubmit && _startDateErrorText == null && _endDateErrorText == null) {
       widget.onDirtyChanged(effectiveCanSubmit);
-      widget.onBlockedChanged(false);
+      widget.onBlockedChanged(effectiveBlockedChanges);
       return;
     }
 
@@ -344,7 +407,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
       _endDateErrorText = null;
     });
     widget.onDirtyChanged(effectiveCanSubmit);
-    widget.onBlockedChanged(false);
+    widget.onBlockedChanged(effectiveBlockedChanges);
   }
 
   bool _currentRawStateDiffersFromLoaded(_DailyAverageSettings loaded) {
@@ -400,8 +463,8 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
       return 'Enter a valid date.';
     }
 
-    if (parsed.isAfter(_todayDateOnly())) {
-      return 'Date cannot be in the future.';
+    if (_isOutsideAllowableDateRange(parsed)) {
+      return 'Date is outside allowable range.';
     }
 
     return null;
@@ -443,7 +506,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
     if (startError != null || endError != null) {
       _setValidationState(
         canSubmit: false,
-        blockedChanges: rawStateDiffersFromLoaded,
+        blockedChanges: true,
         startDateErrorText: startError,
         endDateErrorText: endError,
       );
@@ -453,7 +516,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
     if (!_hasValidPinnedStartDate() || !_hasValidPinnedEndDate()) {
       _setValidationState(
         canSubmit: false,
-        blockedChanges: rawStateDiffersFromLoaded,
+        blockedChanges: rawStateDiffersFromLoaded || _manualDateEditInProgress,
         startDateErrorText: startError,
         endDateErrorText: endError,
       );
@@ -467,7 +530,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
       if (parsedDays == null) {
         _setValidationState(
           canSubmit: false,
-          blockedChanges: rawStateDiffersFromLoaded,
+          blockedChanges: true,
           startDateErrorText: startError,
           endDateErrorText: endError,
         );
@@ -482,7 +545,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
         } else {
           _setValidationState(
             canSubmit: false,
-            blockedChanges: rawStateDiffersFromLoaded,
+            blockedChanges: rawStateDiffersFromLoaded || _manualDateEditInProgress,
             startDateErrorText: startError,
             endDateErrorText: endError,
           );
@@ -554,19 +617,21 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
   Future<void> _loadCurrentAveragingWindowDays() async {
     try {
       final settings = await _db.readDailyAverageSettings();
+      final oldestLocal = await _db.readOldestTransactionLocalDate();
+      final earliestAllowedDate = _earliestAllowedDateFromOldestTransaction(oldestLocal);
+
       if (!mounted) return;
 
       setState(() {
         _manualDateEditInProgress = false;
+        _earliestAllowedDate = earliestAllowedDate;
         _loadedSettings = settings;
         _applyLoadedSettingsToUi(settings);
       });
       _setCanSubmit(false);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to load averaging window: $e')),
-      );
+      _showAveragingWindowMessage('Failed to load averaging window: $e');
     }
   }
 
@@ -579,11 +644,13 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
 
         if (_pinStartDate) {
           final raw = _summaryStatisticTextInputBox.text.trim();
-          final hasValidDate = _daysAgoFromTextBoxDate(raw) != null;
-          if (hasValidDate) {
-            _normalizePinnedStartDateForEditing();
-          } else if (!_isDateEntryTemplate(raw)) {
+          if (raw.isEmpty) {
             _showStartDateEntryTemplate();
+          } else {
+            final parsed = _parseTextBoxDate(raw);
+            if (parsed != null && !_isOutsideAllowableDateRange(parsed)) {
+              _normalizePinnedStartDateForEditing();
+            }
           }
         }
       });
@@ -600,6 +667,11 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
           _showCurrentDisplayString();
         }
       });
+    } else if (_pinStartDate) {
+      final parsed = _parseTextBoxDate(raw);
+      if (parsed != null && _isOutsideAllowableDateRange(parsed)) {
+        _showAllowableDateRangeMessage();
+      }
     }
     _recomputeCanSubmit();
   }
@@ -620,11 +692,13 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
 
         if (_pinEndDate) {
           final raw = _endDateTextInputBox.text.trim();
-          final hasValidDate = _daysAgoFromTextBoxDate(raw) != null;
-          if (hasValidDate) {
-            _normalizePinnedEndDateForEditing();
-          } else if (!_isDateEntryTemplate(raw)) {
+          if (raw.isEmpty) {
             _showEndDateEntryTemplate();
+          } else {
+            final parsed = _parseTextBoxDate(raw);
+            if (parsed != null && !_isOutsideAllowableDateRange(parsed)) {
+              _normalizePinnedEndDateForEditing();
+            }
           }
         }
       });
@@ -641,6 +715,11 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
           _showEndDateDisplayString();
         }
       });
+    } else if (_pinEndDate) {
+      final parsed = _parseTextBoxDate(raw);
+      if (parsed != null && _isOutsideAllowableDateRange(parsed)) {
+        _showAllowableDateRangeMessage();
+      }
     }
     _recomputeCanSubmit();
   }
@@ -701,6 +780,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
         firstDate = today;
         lastDate  = today;
         initialDate = today;
+        _earliestAllowedDate = today;
       } else {
         // At least one transaction exists-> do "this"  <---those are air quotes, btw
         firstDate = DateTime(
@@ -709,6 +789,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
           oldestLocal.day,
         );
         lastDate = today;
+        _earliestAllowedDate = firstDate;
         if (initialDate.isBefore(firstDate)) {
           initialDate = firstDate;
         }
@@ -719,11 +800,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
     } catch (e, st) {
       debugPrint('ERROR reading oldest transaction date: $e\n$st');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to read oldest transaction date: $e'),
-          ),
-        );
+        _showAveragingWindowMessage('Failed to read oldest transaction date: $e');
       }
       //Error -> keep the default bounds
     }
@@ -764,9 +841,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to compute window days: $e')),
-      );
+      _showAveragingWindowMessage('Failed to compute window days: $e');
     }
   }
 
@@ -788,6 +863,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
         firstDate = today;
         lastDate  = today;
         initialDate = today;
+        _earliestAllowedDate = today;
       } else {
         // At least one transaction exists-> do "this"  <---those are air quotes, btw
         firstDate = DateTime(
@@ -796,6 +872,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
           oldestLocal.day,
         );
         lastDate = today;
+        _earliestAllowedDate = firstDate;
         if (initialDate.isBefore(firstDate)) {
           initialDate = firstDate;
         }
@@ -806,11 +883,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
     } catch (e, st) {
       debugPrint('ERROR reading oldest transaction date: $e\n$st');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to read oldest transaction date: $e'),
-          ),
-        );
+        _showAveragingWindowMessage('Failed to read oldest transaction date: $e');
       }
       //Error -> keep the default bounds
     }
@@ -898,6 +971,10 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
       return null;
     }
 
+    if (_isOutsideAllowableDateRange(parsedDate)) {
+      return null;
+    }
+
     final diff = _todayDateOnly().difference(parsedDate).inDays;
     return diff < 0 ? 0 : diff;
   }
@@ -911,7 +988,6 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
 
     final parsedDate = _parseTextBoxDate(raw);
     if (parsedDate == null) {
-      _showStartDateEntryTemplate();
       return;
     }
 
@@ -938,7 +1014,6 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
 
     final parsedDate = _parseTextBoxDate(raw);
     if (parsedDate == null) {
-      _showEndDateEntryTemplate();
       return;
     }
 
@@ -971,7 +1046,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
       return false;
     }
 
-    return !parsed.isAfter(_todayDateOnly());
+    return !_isOutsideAllowableDateRange(parsed);
   }
 
   bool _hasValidPinnedEndDate() {
@@ -989,7 +1064,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
       return false;
     }
 
-    return !parsed.isAfter(_todayDateOnly());
+    return !_isOutsideAllowableDateRange(parsed);
   }
 
   void _forceStartDatePinnedFromCurrentDays() {
@@ -1063,11 +1138,20 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
     late final int daysToStore;
 
     if (_pinStartDate) {
+      final parsedStartDate = _parseTextBoxDate(startRaw);
+      if (parsedStartDate == null) {
+        _showAveragingWindowMessage('Please enter a valid start date.');
+        return false;
+      }
+
+      if (_isOutsideAllowableDateRange(parsedStartDate)) {
+        _showAllowableDateRangeMessage();
+        return false;
+      }
+
       final parsedDays = _daysAgoFromTextBoxDate(startRaw);
       if (parsedDays == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please enter a valid start date.')),
-        );
+        _showAveragingWindowMessage('Please enter a valid start date.');
         return false;
       }
       daysToStore = parsedDays > 99999 ? 99999 : parsedDays;
@@ -1077,9 +1161,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
         if (_showingDisplayString && _currentAveragingWindowDays != null) {
           daysToStore = _currentAveragingWindowDays!;
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Please enter a positive number of days.')),
-          );
+          _showAveragingWindowMessage('Please enter a positive number of days.');
           return false;
         }
       } else {
@@ -1094,9 +1176,12 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
       if (_pinEndDate) {
         endDate = _parseTextBoxDate(endRaw);
         if (endDate == null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Please enter a valid end date.')),
-          );
+          _showAveragingWindowMessage('Please enter a valid end date.');
+          return false;
+        }
+
+        if (_isOutsideAllowableDateRange(endDate)) {
+          _showAllowableDateRangeMessage();
           return false;
         }
       } else {
@@ -1121,9 +1206,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
 
     if (!mounted) return false;
     if (showSuccessSnackBar) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Averaging window saved: $displayedIntervalDays days.')),
-      );
+      _showAveragingWindowMessage('Averaging window saved: $displayedIntervalDays days.');
     }
 
     FocusScope.of(context).unfocus();
@@ -1265,13 +1348,19 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
 
                                     if (_pinStartDate) {
                                       final raw = _summaryStatisticTextInputBox.text.trim();
-                                      final hasValidDate = _daysAgoFromTextBoxDate(raw) != null;
-                                      if (!hasValidDate && !_isDateEntryTemplate(raw)) {
+                                      if (raw.isEmpty) {
                                         setState(() {
                                           _showStartDateEntryTemplate();
                                         });
                                         _recomputeCanSubmit();
+                                        return;
                                       }
+
+                                      final parsed = _parseTextBoxDate(raw);
+                                      if (parsed != null && !_isOutsideAllowableDateRange(parsed)) {
+                                        _normalizePinnedStartDateForEditing();
+                                      }
+                                      _recomputeCanSubmit();
                                     }
                                   },
                                   onChanged: (_) {
@@ -1322,13 +1411,19 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
 
                                     if (_pinEndDate) {
                                       final raw = _endDateTextInputBox.text.trim();
-                                      final hasValidDate = _parseTextBoxDate(raw) != null;
-                                      if (!hasValidDate && !_isDateEntryTemplate(raw)) {
+                                      if (raw.isEmpty) {
                                         setState(() {
                                           _showEndDateEntryTemplate();
                                         });
                                         _recomputeCanSubmit();
+                                        return;
                                       }
+
+                                      final parsed = _parseTextBoxDate(raw);
+                                      if (parsed != null && !_isOutsideAllowableDateRange(parsed)) {
+                                        _normalizePinnedEndDateForEditing();
+                                      }
+                                      _recomputeCanSubmit();
                                     }
                                   },
                                   onChanged: (_) {
@@ -1425,7 +1520,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
                         message = 'Start date pinned to $startText.';
                       } else {
                         final raw = _summaryStatisticTextInputBox.text.trim();
-                        final hasValidDate = _daysAgoFromTextBoxDate(raw) != null;
+                        final hasValidDate = _isValidDateInsideAllowableRange(raw);
                         if (!hasValidDate) {
                           _showStartDateEntryTemplate();
                           message = 'Start date pinned.';
@@ -1454,7 +1549,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
                       if (value) {
                         _forceStartDatePinnedFromCurrentDays();
                         final raw = _endDateTextInputBox.text.trim();
-                        final hasValidDate = _parseTextBoxDate(raw) != null;
+                        final hasValidDate = _isValidDateInsideAllowableRange(raw);
                         if (_showingEndDateDisplayString) {
                           final today = DateTime.now();
                           final todayText = _formatDateForTextBox(today);

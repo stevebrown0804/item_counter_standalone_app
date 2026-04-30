@@ -2,6 +2,16 @@
 
 part of '../../main.dart';
 
+class _SettingsToastEntry {
+  const _SettingsToastEntry({
+    required this.id,
+    required this.message,
+  });
+
+  final int id;
+  final String message;
+}
+
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
 
@@ -20,9 +30,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final Map<String, bool> _blocked = <String, bool>{};
   final GlobalKey _settingsBackArrowIconKey = GlobalKey();
   static const double _settingsIndicatorLightDiameterScale = 1.0 / 3.0;
+  static const int _maxVisibleSettingsToasts = 3;
+  static const Duration _settingsToastDisplayDuration = Duration(milliseconds: 2200);
+  static const double _settingsToastOuterPadding = 16.0;
+  static const double _settingsToastGap = 6.0;
+  static const double _settingsToastHorizontalPadding = 14.0;
+  static const double _settingsToastVerticalPadding = 10.0;
   Size? _settingsBackArrowIconSize;
   bool _returnHomeAfterSettingsInteraction = false;
   bool _settingsHaveBeenSavedSinceOpening = false;
+  int _nextSettingsToastId = 0;
+  final List<_SettingsToastEntry> _settingsToasts = <_SettingsToastEntry>[];
 
   bool get _hasUnsavedChanges => _dirty.values.any((v) => v);
   bool get _hasBlockedChanges => _blocked.values.any((v) => v);
@@ -117,6 +135,83 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  void _showSettingsToast(String message) {
+    if (!mounted) {
+      return;
+    }
+
+    final entry = _SettingsToastEntry(
+      id: _nextSettingsToastId,
+      message: message,
+    );
+    _nextSettingsToastId++;
+
+    setState(() {
+      _settingsToasts.add(entry);
+      if (_settingsToasts.length > _maxVisibleSettingsToasts) {
+        _settingsToasts.removeAt(0);
+      }
+    });
+
+    unawaited(
+      Future<void>.delayed(_settingsToastDisplayDuration).then((_) {
+        if (!mounted) {
+          return;
+        }
+
+        setState(() {
+          _settingsToasts.removeWhere((toast) => toast.id == entry.id);
+        });
+      }),
+    );
+  }
+
+  Widget _buildSettingsToastStack(BuildContext context) {
+    if (_settingsToasts.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Positioned(
+      left: _settingsToastOuterPadding,
+      right: _settingsToastOuterPadding,
+      bottom: _settingsToastOuterPadding,
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (final toast in _settingsToasts)
+              Padding(
+                padding: const EdgeInsets.only(top: _settingsToastGap),
+                child: Align(
+                  alignment: Alignment.center,
+                  child: Material(
+                    elevation: 6,
+                    borderRadius: BorderRadius.circular(9999),
+                    color: Theme.of(context).colorScheme.inverseSurface,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: _settingsToastHorizontalPadding,
+                        vertical: _settingsToastVerticalPadding,
+                      ),
+                      child: Text(
+                        toast.message,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onInverseSurface,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -417,12 +512,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final schemaResult = await db.validateImportDatabaseSchema(path);
 
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Selected import file: $path\n\n$schemaResult'),
-          duration: const Duration(seconds: 10),
-        ),
-      );
+      _showSettingsToast('Selected import file: $path');
 
       final selectedTables = await _showImportTableDialog(context);
       if (!context.mounted) return;
@@ -451,12 +541,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         }
 
         if (!context.mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Import complete.'),
-            duration: Duration(seconds: 6),
-          ),
-        );
+        _showSettingsToast('Import complete.');
       } catch (e) {
         if (context.mounted) {
           Navigator.of(context, rootNavigator: true).pop();
@@ -466,12 +551,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       }
     } catch (e) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Import file selection failed: $e'),
-          duration: const Duration(seconds: 8),
-        ),
-      );
+      _showSettingsToast('Import file selection failed: $e');
     }
   }
 
@@ -521,24 +601,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
       );
 
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Database exported to: Downloads/$fileName'),
-            duration: const Duration(seconds: 6),
-          ),
-        );
+        _showSettingsToast('Database exported to: Downloads/$fileName');
       }
     } catch (e) {
       if (context.mounted) {
         debugPrint('Export failed: $e');
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Export failed: $e'),
-            duration: const Duration(
-                seconds: 8), //did we actually hard-code "8 seconds of waiting?" why, I wonder
-          ),
-        );
+        _showSettingsToast('Export failed: $e');
       }
     }
   }
@@ -592,11 +661,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (skip) {
       final deleted = await db.deleteOldTransactionsWithPolicy(days);
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content:
-            Text('Deleted $deleted transactions older than $days days.')),
-      );
+      _showSettingsToast('Deleted $deleted transactions older than $days days.');
       return;
     }
 
@@ -650,11 +715,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               await db.deleteOldTransactionsWithPolicy(days);
                               if (!context.mounted) return;
                               Navigator.of(ctx).pop();
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                    content: Text(
-                                        'Deleted $deleted transactions older than $days days.')),
-                              );
+                              _showSettingsToast('Deleted $deleted transactions older than $days days.');
                             },
                             child: const Text('Proceed'),
                           ),
@@ -699,103 +760,107 @@ class _SettingsScreenState extends State<SettingsScreen> {
           leadingWidth: _settingsLeadingWidth(),
           leading: _buildSettingsLeading(context),
         ),
-        body: CustomScrollView(
-          slivers: [
-            SliverToBoxAdapter(
-              child: Column(
-                children: [
-                  const Divider(),
-                  _ViewTransactionsRow(
-                    onPressed: () {
-                      final s = _MainScreenState._lastMounted;
-                      if (s != null) {
-                        doTransactionViewerSheet(
-                          context: context,
-                          db: s._db,
-                          store: s._store,
-                          parentSetState: s.setState,
-                          parentMounted: () => s.mounted,
-                        );
-                      }
-                    },
-                  ),
-                  const Divider(),
-                  _SummaryStatisticRow(
-                    key: _avgKey,
-                    onDirtyChanged: (v) => _setDirty('avg_window', v),
-                    onBlockedChanged: (v) => _setBlocked('avg_window', v),
-                    onSaved: _markSettingsSaved,
-                  ),
-                  const Divider(),
-                  _TzRow(
-                    key: _tzKey,
-                    onDirtyChanged: (v) => _setDirty('tz', v),
-                    onSaved: _markSettingsSaved,
-                  ),
-                  const Divider(),
-                  _EditCountableItemsRow(
-                    onPressed: () {
-                      doEditCountableItemsSheet(context: context);
-                    },
-                  ),
-                  const Divider(),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+        body: Stack(
+          children: [
+            CustomScrollView(
+              slivers: [
+                SliverToBoxAdapter(
+                  child: Column(
                     children: [
-                      _ExportDatabaseRow(
-                        onPressed: () async {
-                          await _exportDatabase(context);
+                      const Divider(),
+                      _ViewTransactionsRow(
+                        onPressed: () {
+                          final s = _MainScreenState._lastMounted;
+                          if (s != null) {
+                            doTransactionViewerSheet(
+                              context: context,
+                              db: s._db,
+                              store: s._store,
+                              parentSetState: s.setState,
+                              parentMounted: () => s.mounted,
+                            );
+                          }
                         },
                       ),
-                      const SizedBox(width: 12),
-                      _ImportDatabaseRow(
-                        onPressed: () async {
-                          await _pickImportDatabaseFile(context);
+                      const Divider(),
+                      _SummaryStatisticRow(
+                        key: _avgKey,
+                        onDirtyChanged: (v) => _setDirty('avg_window', v),
+                        onBlockedChanged: (v) => _setBlocked('avg_window', v),
+                        onSaved: _markSettingsSaved,
+                        onToast: _showSettingsToast,
+                      ),
+                      const Divider(),
+                      _TzRow(
+                        key: _tzKey,
+                        onDirtyChanged: (v) => _setDirty('tz', v),
+                        onSaved: _markSettingsSaved,
+                      ),
+                      const Divider(),
+                      _EditCountableItemsRow(
+                        onPressed: () {
+                          doEditCountableItemsSheet(context: context);
                         },
                       ),
+                      const Divider(),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          _ExportDatabaseRow(
+                            onPressed: () async {
+                              await _exportDatabase(context);
+                            },
+                          ),
+                          const SizedBox(width: 12),
+                          _ImportDatabaseRow(
+                            onPressed: () async {
+                              await _pickImportDatabaseFile(context);
+                            },
+                          ),
+                        ],
+                      ),
+                      const Divider(),
                     ],
                   ),
-                  const Divider(),
-                ],
-              ),
+                ),
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Column(
+                    children: [
+                      SwitchListTile(
+                        title: Text(
+                          'Settings sheet interactions immediately return you to the home screen',
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                        value: _returnHomeAfterSettingsInteraction,
+                        onChanged: (value) {
+                          setState(() {
+                            _returnHomeAfterSettingsInteraction = value;
+                            _settingsHaveBeenSavedSinceOpening = true;
+                          });
+                          _showSettingsToast('Reminder: Unimplemented');
+                        },
+                      ),
+                      const Spacer(),
+                      const Divider(),
+                      const _DangerZoneHeader(),
+                      _DeleteOutdatedTransactions(
+                        onPressed: () => _showDeleteOldTxDialog(context),
+                      ),
+                      const SizedBox(height: 8),
+                      const Divider(),
+                      _SkipSecondConfirmationSetting(
+                        key: _skipKey,
+                        onDirtyChanged: (v) => _setDirty('skip_second_confirm', v),
+                        onSaved: _markSettingsSaved,
+                      ),
+                      const Divider(),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            SliverFillRemaining(
-              hasScrollBody: false,
-              child: Column(
-                children: [
-                  SwitchListTile(
-                    title: Text(
-                      'Settings sheet interactions immediately return you to the home screen',
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                    value: _returnHomeAfterSettingsInteraction,
-                    onChanged: (value) {
-                      setState(() {
-                        _returnHomeAfterSettingsInteraction = value;
-                        _settingsHaveBeenSavedSinceOpening = true;
-                      });
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Reminder: Unimplemented')),
-                      );
-                    },
-                  ),
-                  const Spacer(),
-                  const Divider(),
-                  const _DangerZoneHeader(),
-                  _DeleteOutdatedTransactions(
-                    onPressed: () => _showDeleteOldTxDialog(context),
-                  ),
-                  const SizedBox(height: 8),
-                  const Divider(),
-                  _SkipSecondConfirmationSetting(
-                    key: _skipKey,
-                    onDirtyChanged: (v) => _setDirty('skip_second_confirm', v),
-                    onSaved: _markSettingsSaved,
-                  ),
-                  const Divider(),
-                ],
-              ),
-            ),
+            _buildSettingsToastStack(context),
           ],
         ),
       ),
