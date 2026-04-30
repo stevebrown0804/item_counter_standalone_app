@@ -20,6 +20,9 @@ Numbers:
     adb shell input text "269"
     adb shell input text "268"
 
+Date strings:
+    adb shell input text "04"; adb shell input keyevent KEYCODE_DPAD_RIGHT; adb shell input text "27"; adb shell input keyevent KEYCODE_DPAD_RIGHT; adb shell input text "2026"
+
 Enter:
      adb shell input keyevent KEYCODE_ENTER
 
