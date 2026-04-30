@@ -273,6 +273,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
   final FocusNode _endDateFocusNode = FocusNode();
 
   bool _canSubmit = false;
+  bool _manualDateEditInProgress = false;
   int? _currentAveragingWindowDays;
   bool _showingDisplayString = false;
   bool _showingEndDateDisplayString = true;
@@ -282,42 +283,67 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
   String? _endDateErrorText;
   _DailyAverageSettings? _loadedSettings;
 
+  void _showAveragingWindowMessage(String message) {
+    if (!mounted) {
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
+  void _setManualDateEditInProgress(bool value) {
+    if (_manualDateEditInProgress == value) {
+      return;
+    }
+
+    setState(() {
+      _manualDateEditInProgress = value;
+    });
+  }
+
   void _setValidationState({
     required bool canSubmit,
     required bool blockedChanges,
     required String? startDateErrorText,
     required String? endDateErrorText,
   }) {
+    final effectiveCanSubmit = _manualDateEditInProgress && canSubmit;
+    final effectiveBlockedChanges = _manualDateEditInProgress && blockedChanges;
+
     final changed =
-        _canSubmit != canSubmit ||
+        _canSubmit != effectiveCanSubmit ||
             _startDateErrorText != startDateErrorText ||
             _endDateErrorText != endDateErrorText;
 
     if (changed) {
       setState(() {
-        _canSubmit = canSubmit;
+        _canSubmit = effectiveCanSubmit;
         _startDateErrorText = startDateErrorText;
         _endDateErrorText = endDateErrorText;
       });
     }
 
-    widget.onDirtyChanged(canSubmit);
-    widget.onBlockedChanged(blockedChanges);
+    widget.onDirtyChanged(effectiveCanSubmit);
+    widget.onBlockedChanged(effectiveBlockedChanges);
   }
 
   void _setCanSubmit(bool v) {
-    if (_canSubmit == v && _startDateErrorText == null && _endDateErrorText == null) {
-      widget.onDirtyChanged(v);
+    final effectiveCanSubmit = _manualDateEditInProgress && v;
+
+    if (_canSubmit == effectiveCanSubmit && _startDateErrorText == null && _endDateErrorText == null) {
+      widget.onDirtyChanged(effectiveCanSubmit);
       widget.onBlockedChanged(false);
       return;
     }
 
     setState(() {
-      _canSubmit = v;
+      _canSubmit = effectiveCanSubmit;
       _startDateErrorText = null;
       _endDateErrorText = null;
     });
-    widget.onDirtyChanged(v);
+    widget.onDirtyChanged(effectiveCanSubmit);
     widget.onBlockedChanged(false);
   }
 
@@ -531,6 +557,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
       if (!mounted) return;
 
       setState(() {
+        _manualDateEditInProgress = false;
         _loadedSettings = settings;
         _applyLoadedSettingsToUi(settings);
       });
@@ -622,11 +649,13 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
     FocusScope.of(context).unfocus();
     final loaded = _loadedSettings;
     if (loaded == null) {
+      _manualDateEditInProgress = false;
       _setCanSubmit(false);
       return;
     }
 
     setState(() {
+      _manualDateEditInProgress = false;
       _applyLoadedSettingsToUi(loaded);
     });
     _setCanSubmit(false);
@@ -716,16 +745,23 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
       final days =
       await _db.computeAveragingWindowDaysFromPickedLocalDate(localDate);
 
+      final pickedText = _formatDateForTextBox(picked);
+
       if (!mounted) return;
       setState(() {
+        _manualDateEditInProgress = false;
         if (_pinStartDate) {
-          _summaryStatisticTextInputBox.text = _formatDateForTextBox(picked);
+          _summaryStatisticTextInputBox.text = pickedText;
         } else {
           _summaryStatisticTextInputBox.text = days.toString();
         }
         _showingDisplayString = false;
       });
-      _recomputeCanSubmit();
+
+      final saved = await _saveCurrentSettings(showSuccessSnackBar: false);
+      if (saved) {
+        _showAveragingWindowMessage('Start date updated to $pickedText.');
+      }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -788,14 +824,21 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
     );
     if (picked == null) return;
 
+    final pickedText = _formatDateForTextBox(picked);
+
     if (!mounted) return;
     setState(() {
+      _manualDateEditInProgress = false;
       _pinEndDate = true;
       _forceStartDatePinnedFromCurrentDays();
-      _endDateTextInputBox.text = _formatDateForTextBox(picked);
+      _endDateTextInputBox.text = pickedText;
       _showingEndDateDisplayString = false;
     });
-    _recomputeCanSubmit();
+
+    final saved = await _saveCurrentSettings(showSuccessSnackBar: false);
+    if (saved) {
+      _showAveragingWindowMessage('End date updated to $pickedText.');
+    }
   }
 
   String _formatDateForTextBox(DateTime date) {
@@ -1011,7 +1054,9 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
     _endDateErrorText = null;
   }
 
-  Future<bool> _submit() async {
+  Future<bool> _saveCurrentSettings({
+    required bool showSuccessSnackBar,
+  }) async {
     final startRaw = _summaryStatisticTextInputBox.text.trim();
     final endRaw = _endDateTextInputBox.text.trim();
 
@@ -1075,18 +1120,25 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
     await _db.saveDailyAverageSettings(settings);
 
     if (!mounted) return false;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Averaging window saved: $displayedIntervalDays days.')),
-    );
+    if (showSuccessSnackBar) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Averaging window saved: $displayedIntervalDays days.')),
+      );
+    }
 
     FocusScope.of(context).unfocus();
     setState(() {
+      _manualDateEditInProgress = false;
       _loadedSettings = settings;
       _applyLoadedSettingsToUi(settings);
     });
     _setCanSubmit(false);
     widget.onSaved();
     return true;
+  }
+
+  Future<bool> _submit() async {
+    return _saveCurrentSettings(showSuccessSnackBar: true);
   }
 
   @override
@@ -1222,7 +1274,10 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
                                       }
                                     }
                                   },
-                                  onChanged: (_) => _recomputeCanSubmit(),
+                                  onChanged: (_) {
+                                    _setManualDateEditInProgress(true);
+                                    _recomputeCanSubmit();
+                                  },
                                   decoration: InputDecoration(
                                     hintText: '#',
                                     isDense: true,
@@ -1276,7 +1331,10 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
                                       }
                                     }
                                   },
-                                  onChanged: (_) => _recomputeCanSubmit(),
+                                  onChanged: (_) {
+                                    _setManualDateEditInProgress(true);
+                                    _recomputeCanSubmit();
+                                  },
                                   decoration: InputDecoration(
                                     isDense: true,
                                     border: const OutlineInputBorder(),
@@ -1327,8 +1385,11 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
                 const SizedBox(width: horizontalGap),
                 Switch(
                   value: _pinStartDate,
-                  onChanged: (value) {
+                  onChanged: (value) async {
+                    late final String message;
+
                     setState(() {
+                      _manualDateEditInProgress = false;
                       _pinStartDate = value;
                       if (!value) {
                         final raw = _summaryStatisticTextInputBox.text.trim();
@@ -1343,8 +1404,10 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
 
                         if (nextDays == null) {
                           _showCurrentDisplayString();
+                          message = 'Start date changed.';
                         } else {
                           _currentAveragingWindowDays = nextDays;
+                          message = 'Start date changed to ${_displayStringForDays(nextDays)}.';
                           if (_loadedSettings != null && nextDays == _loadedSettings!.numberOfDaysAgo) {
                             _showCurrentDisplayString();
                           } else {
@@ -1356,25 +1419,37 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
                         final startDate = DateTime.now().subtract(
                           Duration(days: _currentAveragingWindowDays!),
                         );
-                        _summaryStatisticTextInputBox.text = _formatDateForTextBox(startDate);
+                        final startText = _formatDateForTextBox(startDate);
+                        _summaryStatisticTextInputBox.text = startText;
                         _showingDisplayString = false;
+                        message = 'Start date pinned to $startText.';
                       } else {
                         final raw = _summaryStatisticTextInputBox.text.trim();
                         final hasValidDate = _daysAgoFromTextBoxDate(raw) != null;
                         if (!hasValidDate) {
                           _showStartDateEntryTemplate();
+                          message = 'Start date pinned.';
+                        } else {
+                          message = 'Start date pinned to $raw.';
                         }
                       }
                     });
-                    _recomputeCanSubmit();
+
+                    final saved = await _saveCurrentSettings(showSuccessSnackBar: false);
+                    if (saved) {
+                      _showAveragingWindowMessage(message);
+                    }
                   },
                 ),
                 const Text('...and end date'),
                 const SizedBox(width: horizontalGap),
                 Switch(
                   value: _pinEndDate,
-                  onChanged: (value) {
+                  onChanged: (value) async {
+                    late final String message;
+
                     setState(() {
+                      _manualDateEditInProgress = false;
                       _pinEndDate = value;
                       if (value) {
                         _forceStartDatePinnedFromCurrentDays();
@@ -1382,18 +1457,27 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
                         final hasValidDate = _parseTextBoxDate(raw) != null;
                         if (_showingEndDateDisplayString) {
                           final today = DateTime.now();
-                          _endDateTextInputBox.text = _formatDateForTextBox(today);
+                          final todayText = _formatDateForTextBox(today);
+                          _endDateTextInputBox.text = todayText;
                           _showingEndDateDisplayString = false;
+                          message = 'End date pinned to $todayText.';
                         } else if (!hasValidDate) {
                           _showEndDateEntryTemplate();
+                          message = 'End date pinned.';
                         } else {
                           _normalizePinnedEndDateForEditing();
+                          message = 'End date pinned to ${_endDateTextInputBox.text.trim()}.';
                         }
                       } else {
                         _showEndDateDisplayString();
+                        message = 'End date changed to Today.';
                       }
                     });
-                    _recomputeCanSubmit();
+
+                    final saved = await _saveCurrentSettings(showSuccessSnackBar: false);
+                    if (saved) {
+                      _showAveragingWindowMessage(message);
+                    }
                   },
                 ),
               ],
