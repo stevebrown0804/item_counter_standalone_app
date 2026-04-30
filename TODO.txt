@@ -1,6 +1,8 @@
 ---------------------------------------Public use--------------------------------------------------
-TODO (for 4/30/2026, before we leave): Pin the start date to 12/7/2026
+TODO (for 4/30/2026, before we leave): Pin the start date to 12/7/2026 (143 days ago)
 TODO (for 5/1/2026): Watch the pinned start date; it was set to "12/7/2026" (and should stay there).
+
+TODO: Uh...I just pinned 12/7/2025, toggled "pin start date" and it says "12/8/2025."  Why the date change, exactly?  That doesn't seem necessary...or desirable.
 
 TODO (Waiting for keyboard input to reach the emulator again): Resume working on 'manually entered date string' stuff.
 
@@ -16,9 +18,10 @@ TODO (After adding path-specifying to DB exporting) (Switch added but not implem
         * Toggling the "Skip second confirmation..." switch
     * btw we'll have any toasts show up after returning to the home screen
 
-TODO: the DB import process is likely saying that existing DB files are incompatible because they lack some rows from the settings table; let's try to add those rows before we have the app decide it the DB file is compatible or not.
+TODO: the DB import process might be saying that existing DB files are incompatible because they lack some rows from the settings table; let's try to add those rows before we have the app decide it the DB file is compatible or not.
 
 TODO: Add a 'reset' (or 'clear', maybe) button to the RHS of the end Date textbox (in the Averaging Window area); have it revert the contents of the textbox to 'Today' (and force the 'pin end date' switch to off)
+    *A THOUGHT: A button seems a bit tedious; have we considered doing some kind of "long-press pop-up menu with a "Reset to 'today'" option?  that might work.
 
 TODO: Answer the question, "With the start date and end date, we're assuming mm/dd/yyyy, as far as I can tell.  Does Android change that, in other regions (where yyyy/mm/dd, etc. are common)?  Do we need to adapt (ie. by adding some i18n to the project)? TBD"
 
