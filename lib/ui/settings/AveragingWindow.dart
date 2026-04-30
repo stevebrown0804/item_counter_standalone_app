@@ -1128,6 +1128,8 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
     const horizontalContentPadding = 12.0;
     const borderWidthPerSide = 1.0;
     const extraInteriorSlack = 20.0;
+    const horizontalGap = 8.0;
+    const rowGap = 8.0;
 
     final textWidthForDisplayString = measureTextWidth(displayText, inputStyle);
     final startTextFieldWidth =
@@ -1163,148 +1165,166 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
               style: TextStyle(fontWeight: FontWeight.w500),
             ),
           ),
-          const SizedBox(height: 8),
-          Center(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(
-                  width: startTextFieldWidth,
-                  child: TextField(
-                    controller: _summaryStatisticTextInputBox,
-                    focusNode: _summaryStatisticFocusNode,
-                    keyboardType: _pinStartDate
-                        ? TextInputType.datetime
-                        : TextInputType.number,
-                    readOnly: _showingDisplayString,
-                    style: _showingDisplayString
-                        ? inputStyle?.copyWith(color: Theme.of(context).hintColor)
-                        : inputStyle,
-                    inputFormatters: _pinStartDate
-                        ? <TextInputFormatter>[
-                      _MaskedDateTextInputFormatter(),
-                    ]
-                        : <TextInputFormatter>[
-                      FilteringTextInputFormatter.digitsOnly,
-                      LengthLimitingTextInputFormatter(5),
+          const SizedBox(height: rowGap),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              return Center(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              SizedBox(
+                                width: startTextFieldWidth,
+                                child: TextField(
+                                  controller: _summaryStatisticTextInputBox,
+                                  focusNode: _summaryStatisticFocusNode,
+                                  keyboardType: _pinStartDate
+                                      ? TextInputType.datetime
+                                      : TextInputType.number,
+                                  readOnly: _showingDisplayString,
+                                  style: _showingDisplayString
+                                      ? inputStyle?.copyWith(color: Theme.of(context).hintColor)
+                                      : inputStyle,
+                                  inputFormatters: _pinStartDate
+                                      ? <TextInputFormatter>[
+                                    _MaskedDateTextInputFormatter(),
+                                  ]
+                                      : <TextInputFormatter>[
+                                    FilteringTextInputFormatter.digitsOnly,
+                                    LengthLimitingTextInputFormatter(5),
+                                  ],
+                                  onTap: () {
+                                    if (_showingDisplayString) {
+                                      setState(() {
+                                        _showEditableCurrentDaysWithSelection();
+                                      });
+                                      _recomputeCanSubmit();
+                                      return;
+                                    }
+
+                                    if (_pinStartDate) {
+                                      final raw = _summaryStatisticTextInputBox.text.trim();
+                                      final hasValidDate = _daysAgoFromTextBoxDate(raw) != null;
+                                      if (!hasValidDate && !_isDateEntryTemplate(raw)) {
+                                        setState(() {
+                                          _showStartDateEntryTemplate();
+                                        });
+                                        _recomputeCanSubmit();
+                                      }
+                                    }
+                                  },
+                                  onChanged: (_) => _recomputeCanSubmit(),
+                                  decoration: InputDecoration(
+                                    hintText: '#',
+                                    isDense: true,
+                                    border: const OutlineInputBorder(),
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                    errorText: _startDateErrorText,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: horizontalGap),
+                              const Text('to'),
+                              const SizedBox(width: horizontalGap),
+                              SizedBox(
+                                width: endTextFieldWidth,
+                                child: TextField(
+                                  controller: _endDateTextInputBox,
+                                  focusNode: _endDateFocusNode,
+                                  keyboardType: _pinEndDate
+                                      ? TextInputType.datetime
+                                      : TextInputType.text,
+                                  style: _showingEndDateDisplayString
+                                      ? inputStyle?.copyWith(color: Theme.of(context).hintColor)
+                                      : inputStyle,
+                                  readOnly: _showingEndDateDisplayString,
+                                  inputFormatters: _pinEndDate
+                                      ? <TextInputFormatter>[
+                                    _MaskedDateTextInputFormatter(),
+                                  ]
+                                      : const <TextInputFormatter>[],
+                                  onTap: () {
+                                    if (_showingEndDateDisplayString) {
+                                      final today = DateTime.now();
+                                      setState(() {
+                                        _pinEndDate = true;
+                                        _forceStartDatePinnedFromCurrentDays();
+                                        _endDateTextInputBox.text = _formatDateForTextBox(today);
+                                        _showingEndDateDisplayString = false;
+                                      });
+                                      _recomputeCanSubmit();
+                                      return;
+                                    }
+
+                                    if (_pinEndDate) {
+                                      final raw = _endDateTextInputBox.text.trim();
+                                      final hasValidDate = _parseTextBoxDate(raw) != null;
+                                      if (!hasValidDate && !_isDateEntryTemplate(raw)) {
+                                        setState(() {
+                                          _showEndDateEntryTemplate();
+                                        });
+                                        _recomputeCanSubmit();
+                                      }
+                                    }
+                                  },
+                                  onChanged: (_) => _recomputeCanSubmit(),
+                                  decoration: InputDecoration(
+                                    isDense: true,
+                                    border: const OutlineInputBorder(),
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                    errorText: _endDateErrorText,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: rowGap),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              OutlinedButton.icon(
+                                icon: const Icon(Icons.date_range, size: 10),
+                                label: const Text('Pick start date'),
+                                onPressed: _pickDate,
+                              ),
+                              const SizedBox(width: horizontalGap),
+                              OutlinedButton.icon(
+                                icon: const Icon(Icons.date_range, size: 10),
+                                label: const Text('Pick end date'),
+                                onPressed: _pickEndDate,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      const SizedBox(width: horizontalGap),
+                      FilledButton(
+                        onPressed: _canSubmit ? () async => await _submit() : null,
+                        child: const Text('Save'),
+                      ),
                     ],
-                    onTap: () {
-                      if (_showingDisplayString) {
-                        setState(() {
-                          _showEditableCurrentDaysWithSelection();
-                        });
-                        _recomputeCanSubmit();
-                        return;
-                      }
-
-                      if (_pinStartDate) {
-                        final raw = _summaryStatisticTextInputBox.text.trim();
-                        final hasValidDate = _daysAgoFromTextBoxDate(raw) != null;
-                        if (!hasValidDate && !_isDateEntryTemplate(raw)) {
-                          setState(() {
-                            _showStartDateEntryTemplate();
-                          });
-                          _recomputeCanSubmit();
-                        }
-                      }
-                    },
-                    onChanged: (_) => _recomputeCanSubmit(),
-                    decoration: InputDecoration(
-                      hintText: '#',
-                      isDense: true,
-                      border: const OutlineInputBorder(),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      errorText: _startDateErrorText,
-                    ),
                   ),
                 ),
-                const SizedBox(width: 8),
-                const Padding(
-                  padding: EdgeInsets.only(top: 10),
-                  child: Text('to'),
-                ),
-                const SizedBox(width: 8),
-                SizedBox(
-                  width: endTextFieldWidth,
-                  child: TextField(
-                    controller: _endDateTextInputBox,
-                    focusNode: _endDateFocusNode,
-                    keyboardType: _pinEndDate
-                        ? TextInputType.datetime
-                        : TextInputType.text,
-                    style: _showingEndDateDisplayString
-                        ? inputStyle?.copyWith(color: Theme.of(context).hintColor)
-                        : inputStyle,
-                    readOnly: _showingEndDateDisplayString,
-                    inputFormatters: _pinEndDate
-                        ? <TextInputFormatter>[
-                      _MaskedDateTextInputFormatter(),
-                    ]
-                        : const <TextInputFormatter>[],
-                    onTap: () {
-                      if (_showingEndDateDisplayString) {
-                        final today = DateTime.now();
-                        setState(() {
-                          _pinEndDate = true;
-                          _forceStartDatePinnedFromCurrentDays();
-                          _endDateTextInputBox.text = _formatDateForTextBox(today);
-                          _showingEndDateDisplayString = false;
-                        });
-                        _recomputeCanSubmit();
-                        return;
-                      }
-
-                      if (_pinEndDate) {
-                        final raw = _endDateTextInputBox.text.trim();
-                        final hasValidDate = _parseTextBoxDate(raw) != null;
-                        if (!hasValidDate && !_isDateEntryTemplate(raw)) {
-                          setState(() {
-                            _showEndDateEntryTemplate();
-                          });
-                          _recomputeCanSubmit();
-                        }
-                      }
-                    },
-                    onChanged: (_) => _recomputeCanSubmit(),
-                    decoration: InputDecoration(
-                      isDense: true,
-                      border: const OutlineInputBorder(),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      errorText: _endDateErrorText,
-                    ),
-                  ),
-                ),
-              ],
-            ),
+              );
+            },
           ),
-          const SizedBox(height: 8),
-          Center(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                OutlinedButton.icon(
-                  icon: const Icon(Icons.date_range, size: 10),
-                  label: const Text('Pick start date'),
-                  onPressed: _pickDate,
-                ),
-                const SizedBox(width: 8),
-                OutlinedButton.icon(
-                  icon: const Icon(Icons.date_range, size: 10),
-                  label: const Text('Pick end date'),
-                  onPressed: _pickEndDate,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
+          const SizedBox(height: rowGap),
           Center(
             child: Row(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 const Text('Pin start date'),
-                const SizedBox(width: 8),
+                const SizedBox(width: horizontalGap),
                 Switch(
                   value: _pinStartDate,
                   onChanged: (value) {
@@ -1350,7 +1370,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
                   },
                 ),
                 const Text('...and end date'),
-                const SizedBox(width: 8),
+                const SizedBox(width: horizontalGap),
                 Switch(
                   value: _pinEndDate,
                   onChanged: (value) {
@@ -1379,14 +1399,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
               ],
             ),
           ),
-          const SizedBox(height: 8),
-          Align(
-            alignment: Alignment.center,
-            child: FilledButton(
-              onPressed: _canSubmit ? () async => await _submit() : null,
-              child: const Text('Save'),
-            ),
-          ),
+          const SizedBox(height: rowGap),
           // TODO: Consider adding a planned end-date mode for date ranges whose intended end date is in the future. In that mode, the configured end date would remain fixed as the planned future endpoint, but the averaging calculation would use min(today, plannedEndDate) as the effective end date until the planned end date is reached.
         ],
       ),
