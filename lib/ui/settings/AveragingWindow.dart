@@ -725,7 +725,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
   }
 
   void discardChanges() {
-    FocusScope.of(context).unfocus();
+    unfocusDateTextBoxes();
     final loaded = _loadedSettings;
     if (loaded == null) {
       _manualDateEditInProgress = false;
@@ -738,6 +738,12 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
       _applyLoadedSettingsToUi(loaded);
     });
     _setCanSubmit(false);
+  }
+
+  void unfocusDateTextBoxes() {
+    _summaryStatisticFocusNode.unfocus();
+    _endDateFocusNode.unfocus();
+    FocusManager.instance.primaryFocus?.unfocus();
   }
 
   @override

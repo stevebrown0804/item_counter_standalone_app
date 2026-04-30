@@ -44,6 +44,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   bool get _hasUnsavedChanges => _dirty.values.any((v) => v);
   bool get _hasBlockedChanges => _blocked.values.any((v) => v);
+  bool get _averagingWindowHasPendingChanges =>
+      (_dirty['avg_window'] ?? false) || (_blocked['avg_window'] ?? false);
 
   void _measureSettingsBackArrowIconAfterLayout() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -298,6 +300,66 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
       if (mounted) Navigator.of(context).pop();
     }
+  }
+
+  Future<bool> _resolveAveragingWindowBeforeDeletingTransactions() async {
+    if (!_averagingWindowHasPendingChanges) {
+      return true;
+    }
+
+    final action = await showDialog<String>(
+      context: context,
+      builder: (ctx) =>
+          AlertDialog(
+            title: const Text('Unsaved averaging window changes'),
+            content: const Text(
+              'There are unsaved changes with the Averaging Window settings.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop('abandon'),
+                child: const Text('Abandon changes'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(ctx).pop('save'),
+                child: const Text('Save changes'),
+              ),
+            ],
+          ),
+    );
+
+    if (action == null) {
+      return false;
+    }
+
+    if (action == 'save') {
+      final saved = await (_avgKey.currentState?._submit() ?? Future<bool>.value(true));
+      if (saved) {
+        _avgKey.currentState?.unfocusDateTextBoxes();
+      }
+      return saved;
+    }
+
+    if (action == 'abandon') {
+      _avgKey.currentState?.discardChanges();
+      _avgKey.currentState?.unfocusDateTextBoxes();
+      return true;
+    }
+
+    throw StateError('Unexpected averaging window delete-precheck action: $action');
+  }
+
+  Future<void> _beginDeleteOldTxProcess(BuildContext context) async {
+    final resolved = await _resolveAveragingWindowBeforeDeletingTransactions();
+    if (!resolved) {
+      return;
+    }
+
+    if (!context.mounted) {
+      return;
+    }
+
+    await _showDeleteOldTxDialog(context);
   }
 
   Future<Map<String, bool>?> _showImportTableDialog(BuildContext context) async {
@@ -845,7 +907,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       const Divider(),
                       const _DangerZoneHeader(),
                       _DeleteOutdatedTransactions(
-                        onPressed: () => _showDeleteOldTxDialog(context),
+                        onPressed: () => unawaited(_beginDeleteOldTxProcess(context)),
                       ),
                       const SizedBox(height: 8),
                       const Divider(),
