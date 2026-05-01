@@ -31,9 +31,71 @@ class _SettingsScreenState extends State<SettingsScreen> {
       (_dirty['avg_window'] ?? false) || (_blocked['avg_window'] ?? false);
 
   @override
+  void initState() {
+    super.initState();
+    unawaited(_loadReturnHomeAfterSettingsInteraction());
+  }
+
+  @override
   void dispose() {
     _settingsToastController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadReturnHomeAfterSettingsInteraction() async {
+    try {
+      final db = _Db();
+      final value = await db.readReturnHomeAfterSettingsInteraction();
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _returnHomeAfterSettingsInteraction = value;
+      });
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+
+      _showSettingsToast('Failed to load return-home setting: $e');
+    }
+  }
+
+  Future<void> _setReturnHomeAfterSettingsInteraction(bool value) async {
+    final previousValue = _returnHomeAfterSettingsInteraction;
+
+    setState(() {
+      _returnHomeAfterSettingsInteraction = value;
+      _settingsHaveBeenSavedSinceOpening = true;
+    });
+
+    try {
+      final db = _Db();
+      await db.setReturnHomeAfterSettingsInteraction(value);
+
+      if (!mounted) {
+        return;
+      }
+
+      _showSettingsToast(
+        value
+            ? 'Settings interactions will return to the home screen.'
+            : 'Settings interactions will remain on the Settings screen.',
+      );
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _returnHomeAfterSettingsInteraction = previousValue;
+        _settingsHaveBeenSavedSinceOpening = false;
+      });
+
+      _showSettingsToast('Failed to save return-home setting: $e');
+    }
   }
 
   void _measureSettingsBackArrowIconAfterLayout() {
@@ -135,6 +197,43 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
 
     _settingsToastController.show(message);
+  }
+
+  Future<void> _refreshMainScreenAfterSettingsInteraction() async {
+    final main = _MainScreenState._lastMounted;
+    if (main == null || !main.mounted) {
+      return;
+    }
+
+    await main._store.refreshFromDatabase();
+    await main._loadActiveTzDisplay();
+
+    if (!main.mounted) {
+      return;
+    }
+
+    main.setState(() {});
+  }
+
+  Future<void> _completeSettingsInteraction(String message) async {
+    if (_returnHomeAfterSettingsInteraction) {
+      await _refreshMainScreenAfterSettingsInteraction();
+
+      final main = _MainScreenState._lastMounted;
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (main != null && main.mounted) {
+          main.showHomeToast(message);
+        }
+      });
+
+      return;
+    }
+
+    _showSettingsToast(message);
   }
 
   void _setDirty(String key, bool isDirty) {
@@ -491,7 +590,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       }
 
       final db = _Db();
-      final schemaResult = await db.validateImportDatabaseSchema(path);
+      await db.validateImportDatabaseSchema(path);
 
       if (!context.mounted) return;
       _showSettingsToast('Selected import file: $path');
@@ -816,11 +915,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                         value: _returnHomeAfterSettingsInteraction,
                         onChanged: (value) {
-                          setState(() {
-                            _returnHomeAfterSettingsInteraction = value;
-                            _settingsHaveBeenSavedSinceOpening = true;
-                          });
-                          _showSettingsToast('Reminder: Unimplemented');
+                          unawaited(_setReturnHomeAfterSettingsInteraction(value));
                         },
                       ),
                       const Spacer(),
