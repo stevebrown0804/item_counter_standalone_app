@@ -66,6 +66,7 @@ CREATE TABLE IF NOT EXISTS logical_batch_items (
     await _ensureSettingDefault(db, 'daily_average.pin_start_date', '0');
     await _ensureSettingDefault(db, 'daily_average.pin_end_date', '0');
     await _ensureSettingDefault(db, 'skip_delete_transactions_second_dialog_confirmation', '0');
+    await _ensureSettingDefault(db, 'settings.return_home_after_interaction', '0');
     await _ensureSettingDefault(db, 'time_zone_id', '0');
     await _ensureSettingDefault(db, 'appbar_title', 'Item Counter');
     await _ensureSettingDefault(db, 'lhs_column_header', 'Item');
@@ -143,6 +144,7 @@ LIMIT 1
     await _ensureSettingDefault(db, 'daily_average.pin_start_date', '0');
     await _ensureSettingDefault(db, 'daily_average.pin_end_date', '0');
     await _ensureSettingDefault(db, 'skip_delete_transactions_second_dialog_confirmation', '0');
+    await _ensureSettingDefault(db, 'settings.return_home_after_interaction', '0');
     await _ensureSettingDefault(db, 'time_zone_id', '0');
     await _ensureSettingDefault(db, 'appbar_title', 'Item Counter');
     await _ensureSettingDefault(db, 'lhs_column_header', 'Item');

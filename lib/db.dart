@@ -399,6 +399,45 @@ LIMIT 1
     }
   }
 
+  Future<bool> readReturnHomeAfterSettingsInteraction() async {
+    final db = await open();
+    final rows = await db.rawQuery(
+      '''
+SELECT value
+FROM settings
+WHERE key = 'settings.return_home_after_interaction'
+LIMIT 1
+''',
+    );
+    if (rows.isEmpty) {
+      return false;
+    }
+    final raw = rows.first['value']?.toString().trim() ?? '0';
+    return raw == '1' || raw.toLowerCase() == 'true';
+  }
+
+  Future<void> setReturnHomeAfterSettingsInteraction(bool returnHome) async {
+    final db = await open();
+    final value = returnHome ? '1' : '0';
+
+    final updated = await db.update(
+      'settings',
+      {'value': value},
+      where: 'key = ?',
+      whereArgs: ['settings.return_home_after_interaction'],
+    );
+
+    if (updated == 0) {
+      await db.insert(
+        'settings',
+        {
+          'key': 'settings.return_home_after_interaction',
+          'value': value,
+        },
+      );
+    }
+  }
+
   Future<int> deleteTransactionsOlderThanDays(int days) async {
     final db = await open();
     if (days <= 0) {
