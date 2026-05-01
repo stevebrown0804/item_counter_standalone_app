@@ -126,6 +126,23 @@ class _EditCountableItemsSheetState extends State<_EditCountableItemsSheet> {
 
     setState(() {
       _rows.remove(row);
+
+      final sortedRows = List<_EditableCountableItemRow>.from(_rows)
+        ..sort((a, b) {
+          final aOrder = a.displayOrder ?? 1 << 30;
+          final bOrder = b.displayOrder ?? 1 << 30;
+
+          final orderCompare = aOrder.compareTo(bOrder);
+          if (orderCompare != 0) {
+            return orderCompare;
+          }
+
+          return _rows.indexOf(a).compareTo(_rows.indexOf(b));
+        });
+
+      for (var i = 0; i < sortedRows.length; i++) {
+        sortedRows[i].displayOrder = i + 1;
+      }
     });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
