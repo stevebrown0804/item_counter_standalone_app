@@ -32,6 +32,7 @@ part 'ui/settings/ImportDatabase.dart';
 part 'ui/settings/DangerZoneHeader.dart';
 part 'ui/settings/DeleteOutdatedTransactions.dart';
 part 'ui/sheets/AddItemsSheet.dart';
+part 'ui/widgets/StackedToastHost.dart';
 
 /// The DB's filename
 const String kDbFileName = 'daily-pill-tracking.db';

@@ -2,16 +2,6 @@
 
 part of '../../main.dart';
 
-class _SettingsToastEntry {
-  const _SettingsToastEntry({
-    required this.id,
-    required this.message,
-  });
-
-  final int id;
-  final String message;
-}
-
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
 
@@ -30,22 +20,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final Map<String, bool> _blocked = <String, bool>{};
   final GlobalKey _settingsBackArrowIconKey = GlobalKey();
   static const double _settingsIndicatorLightDiameterScale = 1.0 / 3.0;
-  static const int _maxVisibleSettingsToasts = 3;
-  static const Duration _settingsToastDisplayDuration = Duration(milliseconds: 2200);
-  static const double _settingsToastOuterPadding = 16.0;
-  static const double _settingsToastGap = 6.0;
-  static const double _settingsToastHorizontalPadding = 14.0;
-  static const double _settingsToastVerticalPadding = 10.0;
   Size? _settingsBackArrowIconSize;
   bool _returnHomeAfterSettingsInteraction = false;
   bool _settingsHaveBeenSavedSinceOpening = false;
-  int _nextSettingsToastId = 0;
-  final List<_SettingsToastEntry> _settingsToasts = <_SettingsToastEntry>[];
+  final _settingsToastController = _StackedToastController();
 
   bool get _hasUnsavedChanges => _dirty.values.any((v) => v);
   bool get _hasBlockedChanges => _blocked.values.any((v) => v);
   bool get _averagingWindowHasPendingChanges =>
       (_dirty['avg_window'] ?? false) || (_blocked['avg_window'] ?? false);
+
+  @override
+  void dispose() {
+    _settingsToastController.dispose();
+    super.dispose();
+  }
 
   void _measureSettingsBackArrowIconAfterLayout() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -145,76 +134,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       return;
     }
 
-    final entry = _SettingsToastEntry(
-      id: _nextSettingsToastId,
-      message: message,
-    );
-    _nextSettingsToastId++;
-
-    setState(() {
-      _settingsToasts.add(entry);
-      if (_settingsToasts.length > _maxVisibleSettingsToasts) {
-        _settingsToasts.removeAt(0);
-      }
-    });
-
-    unawaited(
-      Future<void>.delayed(_settingsToastDisplayDuration).then((_) {
-        if (!mounted) {
-          return;
-        }
-
-        setState(() {
-          _settingsToasts.removeWhere((toast) => toast.id == entry.id);
-        });
-      }),
-    );
-  }
-
-  Widget _buildSettingsToastStack(BuildContext context) {
-    if (_settingsToasts.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    return Positioned(
-      left: _settingsToastOuterPadding,
-      right: _settingsToastOuterPadding,
-      bottom: _settingsToastOuterPadding,
-      child: SafeArea(
-        top: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            for (final toast in _settingsToasts)
-              Padding(
-                padding: const EdgeInsets.only(top: _settingsToastGap),
-                child: Align(
-                  alignment: Alignment.center,
-                  child: Material(
-                    elevation: 6,
-                    borderRadius: BorderRadius.circular(9999),
-                    color: Theme.of(context).colorScheme.inverseSurface,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: _settingsToastHorizontalPadding,
-                        vertical: _settingsToastVerticalPadding,
-                      ),
-                      child: Text(
-                        toast.message,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.onInverseSurface,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
+    _settingsToastController.show(message);
   }
 
   void _setDirty(String key, bool isDirty) {
@@ -922,7 +842,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ],
             ),
-            _buildSettingsToastStack(context),
+            _StackedToastHost(controller: _settingsToastController),
           ],
         ),
       ),

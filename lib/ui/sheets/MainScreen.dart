@@ -2,16 +2,6 @@
 
 part of '../../main.dart';
 
-class _MainToastEntry {
-  const _MainToastEntry({
-    required this.id,
-    required this.message,
-  });
-
-  final int id;
-  final String message;
-}
-
 class _MainScreen extends StatefulWidget {
   const _MainScreen();
 
@@ -40,14 +30,7 @@ class _MainScreenState extends State<_MainScreen> {
   String? _lhsColumnHeader;
   String? _rhsHeaderTemplate;
 
-  static const int _maxVisibleMainToasts = 3;
-  static const Duration _mainToastDisplayDuration = Duration(milliseconds: 2200);
-  static const double _mainToastOuterPadding = 16.0;
-  static const double _mainToastGap = 6.0;
-  static const double _mainToastHorizontalPadding = 14.0;
-  static const double _mainToastVerticalPadding = 10.0;
-  int _nextMainToastId = 0;
-  final List<_MainToastEntry> _mainToasts = <_MainToastEntry>[];
+  final _homeToastController = _StackedToastController();
 
   Future<void> _loadActiveTzDisplay() async {
     final s = await _db.readActiveTzAliasString();
@@ -112,76 +95,7 @@ class _MainScreenState extends State<_MainScreen> {
       return;
     }
 
-    final entry = _MainToastEntry(
-      id: _nextMainToastId,
-      message: message,
-    );
-    _nextMainToastId++;
-
-    setState(() {
-      _mainToasts.add(entry);
-      if (_mainToasts.length > _maxVisibleMainToasts) {
-        _mainToasts.removeAt(0);
-      }
-    });
-
-    unawaited(
-      Future<void>.delayed(_mainToastDisplayDuration).then((_) {
-        if (!mounted) {
-          return;
-        }
-
-        setState(() {
-          _mainToasts.removeWhere((toast) => toast.id == entry.id);
-        });
-      }),
-    );
-  }
-
-  Widget _buildHomeToastStack(BuildContext context) {
-    if (_mainToasts.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    return Positioned(
-      left: _mainToastOuterPadding,
-      right: _mainToastOuterPadding,
-      bottom: _mainToastOuterPadding,
-      child: SafeArea(
-        top: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            for (final toast in _mainToasts)
-              Padding(
-                padding: const EdgeInsets.only(top: _mainToastGap),
-                child: Align(
-                  alignment: Alignment.center,
-                  child: Material(
-                    elevation: 6,
-                    borderRadius: BorderRadius.circular(9999),
-                    color: Theme.of(context).colorScheme.inverseSurface,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: _mainToastHorizontalPadding,
-                        vertical: _mainToastVerticalPadding,
-                      ),
-                      child: Text(
-                        toast.message,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.onInverseSurface,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
+    _homeToastController.show(message);
   }
 
   @override
@@ -216,6 +130,7 @@ class _MainScreenState extends State<_MainScreen> {
   @override
   void dispose() {
     _lastMounted = null;
+    _homeToastController.dispose();
     super.dispose();
   }
 
@@ -547,7 +462,7 @@ class _MainScreenState extends State<_MainScreen> {
           Positioned.fill(
             child: mainBody,
           ),
-          _buildHomeToastStack(context),
+          _StackedToastHost(controller: _homeToastController),
         ],
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
