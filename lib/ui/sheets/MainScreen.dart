@@ -2,6 +2,16 @@
 
 part of '../../main.dart';
 
+class _MainToastEntry {
+  const _MainToastEntry({
+    required this.id,
+    required this.message,
+  });
+
+  final int id;
+  final String message;
+}
+
 class _MainScreen extends StatefulWidget {
   const _MainScreen();
 
@@ -29,6 +39,15 @@ class _MainScreenState extends State<_MainScreen> {
   String? _appBarTitle;
   String? _lhsColumnHeader;
   String? _rhsHeaderTemplate;
+
+  static const int _maxVisibleMainToasts = 3;
+  static const Duration _mainToastDisplayDuration = Duration(milliseconds: 2200);
+  static const double _mainToastOuterPadding = 16.0;
+  static const double _mainToastGap = 6.0;
+  static const double _mainToastHorizontalPadding = 14.0;
+  static const double _mainToastVerticalPadding = 10.0;
+  int _nextMainToastId = 0;
+  final List<_MainToastEntry> _mainToasts = <_MainToastEntry>[];
 
   Future<void> _loadActiveTzDisplay() async {
     final s = await _db.readActiveTzAliasString();
@@ -86,6 +105,83 @@ class _MainScreenState extends State<_MainScreen> {
     } catch (e) {
       debugPrint('Failed to load last-added banner: $e');
     }
+  }
+
+  void showHomeToast(String message) {
+    if (!mounted) {
+      return;
+    }
+
+    final entry = _MainToastEntry(
+      id: _nextMainToastId,
+      message: message,
+    );
+    _nextMainToastId++;
+
+    setState(() {
+      _mainToasts.add(entry);
+      if (_mainToasts.length > _maxVisibleMainToasts) {
+        _mainToasts.removeAt(0);
+      }
+    });
+
+    unawaited(
+      Future<void>.delayed(_mainToastDisplayDuration).then((_) {
+        if (!mounted) {
+          return;
+        }
+
+        setState(() {
+          _mainToasts.removeWhere((toast) => toast.id == entry.id);
+        });
+      }),
+    );
+  }
+
+  Widget _buildHomeToastStack(BuildContext context) {
+    if (_mainToasts.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Positioned(
+      left: _mainToastOuterPadding,
+      right: _mainToastOuterPadding,
+      bottom: _mainToastOuterPadding,
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (final toast in _mainToasts)
+              Padding(
+                padding: const EdgeInsets.only(top: _mainToastGap),
+                child: Align(
+                  alignment: Alignment.center,
+                  child: Material(
+                    elevation: 6,
+                    borderRadius: BorderRadius.circular(9999),
+                    color: Theme.of(context).colorScheme.inverseSurface,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: _mainToastHorizontalPadding,
+                        vertical: _mainToastVerticalPadding,
+                      ),
+                      child: Text(
+                        toast.message,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onInverseSurface,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -233,6 +329,182 @@ class _MainScreenState extends State<_MainScreen> {
     final rhsHeaderText = (_rhsHeaderTemplate ?? 'Avg. ({days} day(s))')
         .replaceAll('{days}', titleDays.toString());
 
+    final mainBody = _loading
+        ? const Center(child: CircularProgressIndicator())
+        : _error != null
+        ? Padding(
+      padding: const EdgeInsets.all(16),
+      child: Text(
+        _error!,
+        style: const TextStyle(color: Colors.red),
+      ),
+    )
+        : AnimatedBuilder(
+      animation: _store,
+      builder: (context, _) {
+        return Column(
+          children: [
+            const SizedBox.shrink(),
+            const SizedBox(height: 4),
+            if (_lastAdded != null) ...[
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Card(
+                  elevation: 0,
+                  color: Theme.of(context)
+                      .colorScheme
+                      .surfaceContainerHighest,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 8,
+                      horizontal: 12,
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Padding(
+                          padding: EdgeInsets.only(top: 2),
+                          child: Icon(Icons.history),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              maxHeight:
+                              MediaQuery.of(context).size.height *
+                                  0.35,
+                            ),
+                            child: SingleChildScrollView(
+                              padding:
+                              const EdgeInsets.only(right: 8),
+                              child: SelectionArea(
+                                child: Text(
+                                  _lastAdded!,
+                                  softWrap: true,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: 'Clear',
+                          icon: const Icon(Icons.close),
+                          onPressed: () async {
+                            setState(() {
+                              _lastAdded = null;
+                            });
+                            await _persistBannerHidden();
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 6,
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      _lhsColumnHeader ?? 'Item',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        rhsHeaderText,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      if (averageWindowTooltip != null) ...[
+                        const SizedBox(width: 6),
+                        Tooltip(
+                          message: averageWindowTooltip,
+                          child: const Text(
+                            'ⓘ',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            Expanded(
+              child: ListView.builder(
+                itemCount: _store.rows.length,
+                itemExtent: 28.0,
+                itemBuilder: (context, i) {
+                  final r = _store.rows[i];
+                  return Stack(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                r.itemName,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  height: 1.0,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              r.avg.toStringAsFixed(2),
+                              style: const TextStyle(
+                                fontSize: 14,
+                                height: 1.0,
+                              ),
+                              textAlign: TextAlign.right,
+                            ),
+                          ],
+                        ),
+                      ),
+                      Positioned.fill(
+                        child: Align(
+                          alignment: Alignment.bottomCenter,
+                          child: Container(
+                            height: 1,
+                            color: Colors.grey.shade300,
+                            margin: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
     return Scaffold(
       appBar: AppBar(
         title: Column(
@@ -270,180 +542,13 @@ class _MainScreenState extends State<_MainScreen> {
           ),
         ],
       ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _error != null
-          ? Padding(
-        padding: const EdgeInsets.all(16),
-        child: Text(
-          _error!,
-          style: const TextStyle(color: Colors.red),
-        ),
-      )
-          : AnimatedBuilder(
-        animation: _store,
-        builder: (context, _) {
-          return Column(
-            children: [
-              const SizedBox.shrink(),
-              const SizedBox(height: 4),
-              if (_lastAdded != null) ...[
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: Card(
-                    elevation: 0,
-                    color: Theme.of(context)
-                        .colorScheme
-                        .surfaceContainerHighest,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 8,
-                        horizontal: 12,
-                      ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Padding(
-                            padding: EdgeInsets.only(top: 2),
-                            child: Icon(Icons.history),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: ConstrainedBox(
-                              constraints: BoxConstraints(
-                                maxHeight:
-                                MediaQuery.of(context).size.height *
-                                    0.35,
-                              ),
-                              child: SingleChildScrollView(
-                                padding:
-                                const EdgeInsets.only(right: 8),
-                                child: SelectionArea(
-                                  child: Text(
-                                    _lastAdded!,
-                                    softWrap: true,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                          IconButton(
-                            tooltip: 'Clear',
-                            icon: const Icon(Icons.close),
-                            onPressed: () async {
-                              setState(() {
-                                _lastAdded = null;
-                              });
-                              await _persistBannerHidden();
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-              ],
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        _lhsColumnHeader ?? 'Item',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          rhsHeaderText,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        if (averageWindowTooltip != null) ...[
-                          const SizedBox(width: 6),
-                          Tooltip(
-                            message: averageWindowTooltip,
-                            child: const Text(
-                              'ⓘ',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              const Divider(height: 1),
-              Expanded(
-                child: ListView.builder(
-                  itemCount: _store.rows.length,
-                  itemExtent: 28.0,
-                  itemBuilder: (context, i) {
-                    final r = _store.rows[i];
-                    return Stack(
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  r.itemName,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    height: 1.0,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                r.avg.toStringAsFixed(2),
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  height: 1.0,
-                                ),
-                                textAlign: TextAlign.right,
-                              ),
-                            ],
-                          ),
-                        ),
-                        Positioned.fill(
-                          child: Align(
-                            alignment: Alignment.bottomCenter,
-                            child: Container(
-                              height: 1,
-                              color: Colors.grey.shade300,
-                              margin: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    );
-                  },
-                ),
-              ),
-            ],
-          );
-        },
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: mainBody,
+          ),
+          _buildHomeToastStack(context),
+        ],
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: Row(
