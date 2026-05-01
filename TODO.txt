@@ -1,12 +1,10 @@
 ---------------------------------------Public use--------------------------------------------------
-TODO (for 4/30/2026, before we leave): Pin the start date to 12/7/2026 (143 days ago)
-TODO (for 5/1/2026): Watch the pinned start date; it was set to "12/7/2026" (and should stay there).
-
-TODO: Uh...I just pinned 12/7/2025, toggled "pin start date" and it says "12/8/2025."  Why the date change, exactly?  That doesn't seem necessary...or desirable.
+TODO (for 5/1/2026, before we leave): Pin the start date to 12/7/2026 (144 days ago)
+TODO (for 5/2/2026 or later): Watch the pinned start date; it was set to "12/7/2026" (and should stay there).
 
 TODO (Waiting for keyboard input to reach the emulator again): Resume working on 'manually entered date string' stuff.
 
-TODO (After adding path-specifying to DB exporting) (Switch added but not implemented yet): Add a switch on the settings screen for "Settings sheet interactions immediately return you to the home screen"
+TODO (IN PROGRESS): Add a switch on the settings screen for "Settings sheet interactions immediately return you to the home screen"
     *The following this will return the user directly to the home screen:
         * Clicking the back button on the Transaction Viewer
         * Clicking the save button in the Averaging Window area
