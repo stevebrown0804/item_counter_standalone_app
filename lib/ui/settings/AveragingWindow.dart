@@ -1076,9 +1076,21 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
   void _forceStartDatePinnedFromCurrentDays() {
     _pinStartDate = true;
 
-    if (_currentAveragingWindowDays != null) {
-      final startDate = DateTime.now().subtract(
-        Duration(days: _currentAveragingWindowDays!),
+    final raw = _summaryStatisticTextInputBox.text.trim();
+    final parsedDate = _parseTextBoxDate(raw);
+    if (parsedDate != null && !_isOutsideAllowableDateRange(parsedDate)) {
+      _summaryStatisticTextInputBox.text = _formatDateForTextBox(parsedDate);
+      _showingDisplayString = false;
+      return;
+    }
+
+    final parsedDays = int.tryParse(raw);
+    final days = parsedDays ?? _currentAveragingWindowDays;
+
+    if (days != null) {
+      final clampedDays = days > 99999 ? 99999 : days;
+      final startDate = _todayDateOnly().subtract(
+        Duration(days: clampedDays),
       );
       _summaryStatisticTextInputBox.text = _formatDateForTextBox(startDate);
       _showingDisplayString = false;
@@ -1110,7 +1122,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
         _summaryStatisticTextInputBox.text = settings.startDate;
         _showingDisplayString = false;
       } else {
-        final startDate = DateTime.now().subtract(
+        final startDate = _todayDateOnly().subtract(
           Duration(days: settings.numberOfDaysAgo),
         );
         _summaryStatisticTextInputBox.text = _formatDateForTextBox(startDate);
@@ -1517,7 +1529,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
                           }
                         }
                       } else if (_showingDisplayString && _currentAveragingWindowDays != null) {
-                        final startDate = DateTime.now().subtract(
+                        final startDate = _todayDateOnly().subtract(
                           Duration(days: _currentAveragingWindowDays!),
                         );
                         final startText = _formatDateForTextBox(startDate);

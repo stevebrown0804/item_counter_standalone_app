@@ -165,55 +165,94 @@ LIMIT 1
   }
 
   Future<int> _computeEffectiveAveragingWindowDaysFromDb(Database db) async {
-    final cfgRows = await db.rawQuery(
+    final rows = await db.rawQuery(
       '''
-SELECT value
+SELECT key, value
 FROM settings
-WHERE key = 'avg_window_days'
-LIMIT 1
+WHERE key IN (
+  'avg_window_days',
+  'daily_average.number_of_days_ago',
+  'daily_average.start_date',
+  'daily_average.end_date',
+  'daily_average.pin_start_date',
+  'daily_average.pin_end_date'
+)
 ''',
     );
 
-    int configuredDays = 0;
-    if (cfgRows.isNotEmpty) {
-      final raw = cfgRows.first['value'];
-      if (raw is num) {
-        configuredDays = raw.toInt();
-      } else {
-        configuredDays = int.tryParse(raw?.toString() ?? '0') ?? 0;
+    final values = <String, String>{};
+    for (final row in rows) {
+      final key = row['key']?.toString();
+      if (key == null || key.isEmpty) {
+        continue;
       }
+
+      values[key] = row['value']?.toString() ?? '';
     }
 
-    if (configuredDays <= 0) {
-      return 0;
+    int parsePositiveInt(String? raw, int fallback) {
+      final parsed = int.tryParse(raw?.trim() ?? '');
+      if (parsed == null || parsed <= 0) {
+        return fallback;
+      }
+
+      return parsed;
     }
 
-    final globalRows = await db.rawQuery(
-      '''
-SELECT DATE('now') AS today,
-       MIN(DATE(timestamp_utc)) AS min_date
-FROM item_transactions
-''',
+    bool parseStoredBool(String? raw) {
+      final trimmed = raw?.trim().toLowerCase() ?? '';
+      return trimmed == '1' || trimmed == 'true';
+    }
+
+    DateTime? parseTextBoxDate(String raw) {
+      final parts = raw.trim().split('/');
+      if (parts.length != 3) {
+        return null;
+      }
+
+      final month = int.tryParse(parts[0]);
+      final day = int.tryParse(parts[1]);
+      final year = int.tryParse(parts[2]);
+      if (month == null || day == null || year == null) {
+        return null;
+      }
+
+      final parsedDate = DateTime(year, month, day);
+      if (parsedDate.year != year || parsedDate.month != month || parsedDate.day != day) {
+        return null;
+      }
+
+      return DateTime(parsedDate.year, parsedDate.month, parsedDate.day);
+    }
+
+    DateTime todayDateOnly() {
+      final now = DateTime.now();
+      return DateTime(now.year, now.month, now.day);
+    }
+
+    final legacyDays = parsePositiveInt(values['avg_window_days'], 30);
+    final configuredDays = parsePositiveInt(
+      values['daily_average.number_of_days_ago'],
+      legacyDays,
     );
 
-    if (globalRows.isEmpty) {
-      return 0;
+    final pinStartDate = parseStoredBool(values['daily_average.pin_start_date']);
+    final pinEndDate = parseStoredBool(values['daily_average.pin_end_date']);
+
+    if (!pinStartDate) {
+      return configuredDays;
     }
 
-    final todayRaw = globalRows.first['today']?.toString();
-    final minDateRaw = globalRows.first['min_date']?.toString();
+    final today = todayDateOnly();
+    final startDate = parseTextBoxDate(values['daily_average.start_date'] ?? '') ??
+        today.subtract(Duration(days: configuredDays));
 
-    if (todayRaw == null || todayRaw.isEmpty || minDateRaw == null || minDateRaw.isEmpty) {
-      return 0;
-    }
+    final endDate = pinEndDate
+        ? parseTextBoxDate(values['daily_average.end_date'] ?? '') ?? today
+        : today;
 
-    final today = DateTime.parse(todayRaw);
-    final minDate = DateTime.parse(minDateRaw);
-    final configuredStart = today.subtract(Duration(days: configuredDays - 1));
-    final effectiveStart = minDate.isAfter(configuredStart) ? minDate : configuredStart;
-    final effectiveDays = today.difference(effectiveStart).inDays + 1;
-
-    return effectiveDays <= 0 ? 0 : effectiveDays;
+    final rawDays = endDate.difference(startDate).inDays;
+    return rawDays <= 0 ? 1 : rawDays;
   }
 
   Future<void> _ensureSettingDefault(Database db, String key, String value) async {
