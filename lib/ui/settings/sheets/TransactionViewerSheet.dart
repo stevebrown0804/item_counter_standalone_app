@@ -33,6 +33,7 @@ Future<void> doTransactionViewerSheet({
   required _Store store,
   required void Function(VoidCallback) parentSetState,
   required bool Function() parentMounted,
+  required Future<void> Function() onBackPressed,
 })
 async {
   final tzName = store.activeTz.tzName;
@@ -160,7 +161,10 @@ async {
                       IconButton(
                         tooltip: 'Back',
                         icon: const Icon(Icons.arrow_back),
-                        onPressed: () => Navigator.of(ctx).pop(),
+                        onPressed: () async {
+                          Navigator.of(ctx).pop();
+                          await onBackPressed();
+                        },
                       ),
                       const SizedBox(width: 4),
                       const Text('Transaction Viewer',
@@ -332,7 +336,6 @@ async {
                       )),
                   const Divider(),
                   radioRow(_TxMode.all, const Text('All')),
-                  //const SizedBox(height: 4),
                   Align(
                     alignment: Alignment.center,
                     child: ElevatedButton.icon(

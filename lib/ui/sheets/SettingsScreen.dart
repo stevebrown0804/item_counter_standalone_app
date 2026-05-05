@@ -236,6 +236,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _showSettingsToast(message);
   }
 
+  Future<void> _returnHomeAfterNestedSettingsSheetClosed() async {
+    if (!_returnHomeAfterSettingsInteraction) {
+      return;
+    }
+
+    await _refreshMainScreenAfterSettingsInteraction();
+
+    if (mounted) {
+      Navigator.of(context).pop();
+    }
+  }
+
   void _setDirty(String key, bool isDirty) {
     final prev = _dirty[key];
     if (prev == isDirty) return;
@@ -859,6 +871,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               store: s._store,
                               parentSetState: s.setState,
                               parentMounted: () => s.mounted,
+                              onBackPressed: _returnHomeAfterNestedSettingsSheetClosed,
                             );
                           }
                         },
@@ -870,17 +883,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         onBlockedChanged: (v) => _setBlocked('avg_window', v),
                         onSaved: _markSettingsSaved,
                         onToast: _showSettingsToast,
+                        onInteractionComplete: _completeSettingsInteraction,
                       ),
                       const Divider(),
                       _TzRow(
                         key: _tzKey,
                         onDirtyChanged: (v) => _setDirty('tz', v),
                         onSaved: _markSettingsSaved,
+                        onInteractionComplete: _completeSettingsInteraction,
                       ),
                       const Divider(),
                       _EditCountableItemsRow(
                         onPressed: () {
-                          doEditCountableItemsSheet(context: context);
+                          doEditCountableItemsSheet(
+                            context: context,
+                            onInteractionComplete: _completeSettingsInteraction,
+                          );
                         },
                       ),
                       const Divider(),
@@ -930,6 +948,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         key: _skipKey,
                         onDirtyChanged: (v) => _setDirty('skip_second_confirm', v),
                         onSaved: _markSettingsSaved,
+                        onInteractionComplete: _completeSettingsInteraction,
                       ),
                       const Divider(),
                     ],

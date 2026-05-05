@@ -256,12 +256,14 @@ class _SummaryStatisticRow extends StatefulWidget {
     required this.onBlockedChanged,
     required this.onSaved,
     required this.onToast,
+    required this.onInteractionComplete,
   });
 
   final void Function(bool) onDirtyChanged;
   final void Function(bool) onBlockedChanged;
   final VoidCallback onSaved;
   final void Function(String) onToast;
+  final Future<void> Function(String) onInteractionComplete;
 
   @override
   State<_SummaryStatisticRow> createState() => _SummaryStatisticRowState();
@@ -1149,6 +1151,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
 
   Future<bool> _saveCurrentSettings({
     required bool showSuccessSnackBar,
+    Future<void> Function(String)? onSuccess,
   }) async {
     final startRaw = _summaryStatisticTextInputBox.text.trim();
     final endRaw = _endDateTextInputBox.text.trim();
@@ -1223,8 +1226,11 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
     await _db.saveDailyAverageSettings(settings);
 
     if (!mounted) return false;
+
+    final successMessage = 'Averaging window saved: $displayedIntervalDays days.';
+
     if (showSuccessSnackBar) {
-      _showAveragingWindowMessage('Averaging window saved: $displayedIntervalDays days.');
+      _showAveragingWindowMessage(successMessage);
     }
 
     FocusScope.of(context).unfocus();
@@ -1235,11 +1241,19 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
     });
     _setCanSubmit(false);
     widget.onSaved();
+
+    if (!showSuccessSnackBar && onSuccess != null) {
+      await onSuccess(successMessage);
+    }
+
     return true;
   }
 
   Future<bool> _submit() async {
-    return _saveCurrentSettings(showSuccessSnackBar: true);
+    return _saveCurrentSettings(
+      showSuccessSnackBar: false,
+      onSuccess: widget.onInteractionComplete,
+    );
   }
 
   @override

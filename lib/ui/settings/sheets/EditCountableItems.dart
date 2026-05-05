@@ -2,6 +2,7 @@ part of '../../../main.dart';
 
 Future<void> doEditCountableItemsSheet({
   required BuildContext context,
+  required Future<void> Function(String) onInteractionComplete,
 }) async {
   await showModalBottomSheet(
     context: context,
@@ -11,7 +12,9 @@ Future<void> doEditCountableItemsSheet({
       borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
     ),
     builder: (ctx) {
-      return const _EditCountableItemsSheet();
+      return _EditCountableItemsSheet(
+        onInteractionComplete: onInteractionComplete,
+      );
     },
   );
 }
@@ -69,7 +72,11 @@ class _SubmittedCountableItemRow {
 }
 
 class _EditCountableItemsSheet extends StatefulWidget {
-  const _EditCountableItemsSheet();
+  const _EditCountableItemsSheet({
+    required this.onInteractionComplete,
+  });
+
+  final Future<void> Function(String) onInteractionComplete;
 
   @override
   State<_EditCountableItemsSheet> createState() => _EditCountableItemsSheetState();
@@ -326,6 +333,7 @@ class _EditCountableItemsSheetState extends State<_EditCountableItemsSheet> {
 
       if (!mounted) return;
       Navigator.of(context).pop();
+      await widget.onInteractionComplete('Countable items saved.');
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
