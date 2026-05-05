@@ -1538,12 +1538,31 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
                         message = 'Start date pinned to $startText.';
                       } else {
                         final raw = _summaryStatisticTextInputBox.text.trim();
-                        final hasValidDate = _isValidDateInsideAllowableRange(raw);
-                        if (!hasValidDate) {
-                          _showStartDateEntryTemplate();
-                          message = 'Start date pinned.';
+                        final parsedDate = _parseTextBoxDate(raw);
+
+                        if (parsedDate != null && !_isOutsideAllowableDateRange(parsedDate)) {
+                          final startText = _formatDateForTextBox(parsedDate);
+                          _summaryStatisticTextInputBox.text = startText;
+                          _showingDisplayString = false;
+                          message = 'Start date pinned to $startText.';
                         } else {
-                          message = 'Start date pinned to $raw.';
+                          final parsedDays = int.tryParse(raw);
+                          final days = parsedDays ?? _currentAveragingWindowDays;
+
+                          if (days == null || days <= 0) {
+                            _showStartDateEntryTemplate();
+                            message = 'Start date pinned.';
+                          } else {
+                            final clampedDays = days > 99999 ? 99999 : days;
+                            final startDate = _todayDateOnly().subtract(
+                              Duration(days: clampedDays),
+                            );
+                            final startText = _formatDateForTextBox(startDate);
+                            _currentAveragingWindowDays = clampedDays;
+                            _summaryStatisticTextInputBox.text = startText;
+                            _showingDisplayString = false;
+                            message = 'Start date pinned to $startText.';
+                          }
                         }
                       }
                     });
