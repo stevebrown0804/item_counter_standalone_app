@@ -9,7 +9,7 @@ class _MainScreen extends StatefulWidget {
   State<_MainScreen> createState() => _MainScreenState();
 }
 
-class _MainScreenState extends State<_MainScreen> {
+class _MainScreenState extends State<_MainScreen> with WidgetsBindingObserver {
   static _MainScreenState? _lastMounted;
 
   final _store = _Store(_Db());
@@ -101,6 +101,7 @@ class _MainScreenState extends State<_MainScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _lastMounted = this;
     _loadActiveTzDisplay();
     _loadUiTextFromSettings();
@@ -129,9 +130,43 @@ class _MainScreenState extends State<_MainScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _lastMounted = null;
     _homeToastController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) {
+      return;
+    }
+
+    unawaited(_refreshHomeScreenAfterResume());
+  }
+
+  Future<void> _refreshHomeScreenAfterResume() async {
+    try {
+      await _store.refreshFromDatabase();
+      await _loadActiveTzDisplay();
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {});
+    } catch (e, st) {
+      debugPrint('[MAIN] resume refresh failed: $e');
+      debugPrint('$st');
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _error = e.toString();
+      });
+    }
   }
 
   void _pushBannerMessage(String message) {
