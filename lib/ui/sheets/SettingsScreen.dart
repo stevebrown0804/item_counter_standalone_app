@@ -622,7 +622,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         }
 
         if (!context.mounted) return;
-        _showSettingsToast('Import complete.');
+        await _completeSettingsInteraction('Import complete.');
       } catch (e) {
         if (context.mounted) {
           Navigator.of(context, rootNavigator: true).pop();
@@ -682,7 +682,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       );
 
       if (context.mounted) {
-        _showSettingsToast('Database exported to: Downloads/$fileName');
+        await _completeSettingsInteraction('Database exported to: Downloads/$fileName');
       }
     } catch (e) {
       if (context.mounted) {
@@ -742,7 +742,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (skip) {
       final deleted = await db.deleteOldTransactionsWithPolicy(days);
       if (!context.mounted) return;
-      _showSettingsToast('Deleted $deleted transactions older than $days days.');
+      await _completeSettingsInteraction('Deleted $deleted transactions older than $days days.');
       return;
     }
 
@@ -796,7 +796,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               await db.deleteOldTransactionsWithPolicy(days);
                               if (!context.mounted) return;
                               Navigator.of(ctx).pop();
-                              _showSettingsToast('Deleted $deleted transactions older than $days days.');
+                              await _completeSettingsInteraction('Deleted $deleted transactions older than $days days.');
                             },
                             child: const Text('Proceed'),
                           ),
