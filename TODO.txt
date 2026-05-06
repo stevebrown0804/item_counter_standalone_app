@@ -1,48 +1,31 @@
 ---------------------------------------Public use--------------------------------------------------
-TODO (for 5/1/2026, before we leave): Pin the start date to 12/7/2026 (144 days ago)
-TODO (for 5/2/2026 or later): Watch the pinned start date; it was set to "12/7/2026" (and should stay there).
+TODO (for 5/5/2026): Leave the start date pinned to 12/7/2026 (148 days ago)
+TODO (for 5/6/2026 or later): Watch the pinned start date; it was set to "12/7/2026" (and should stay there), and the duration-on-load (as the column header on the main screen) should read 149 days (or more, if we go a few days without working on the project).
 
-TODO (Waiting for keyboard input to reach the emulator again): Resume working on 'manually entered date string' stuff.
+TODO (Waiting for keyboard input to reach the emulator again): Resume working on 'manually entered date string' stuff (if needed).
 
-TODO (IN PROGRESS): Add a switch on the settings screen for "Settings sheet interactions immediately return you to the home screen"
-    *The following this will return the user directly to the home screen:
-        * Clicking the back button on the Transaction Viewer
-        * Clicking the save button in the Averaging Window area
-        * Selecting a new Time Zone
-        * Clicking the back button on the Edit Countable Items sheet
-        * Successfully completing the "Export database" process (meaning the DB file was written)
-        * Successfully completing the "Import database" process (meaning the DB file was successfully imported)
-        * Finishing the "Delete outdated transactions" process (unless it's canceled/aborted)
-        * Toggling the "Skip second confirmation..." switch
-    * btw we'll have any toasts show up after returning to the home screen
 
-TODO: the DB import process might be saying that existing DB files are incompatible because they lack some rows from the settings table; let's try to add those rows before we have the app decide it the DB file is compatible or not.
-
-TODO: Add a 'reset' (or 'clear', maybe) button to the RHS of the end Date textbox (in the Averaging Window area); have it revert the contents of the textbox to 'Today' (and force the 'pin end date' switch to off)
-    *A THOUGHT: A button seems a bit tedious; have we considered doing some kind of "long-press pop-up menu with a "Reset to 'today'" option?  that might work.
-
-TODO: Answer the question, "With the start date and end date, we're assuming mm/dd/yyyy, as far as I can tell.  Does Android change that, in other regions (where yyyy/mm/dd, etc. are common)?  Do we need to adapt (ie. by adding some i18n to the project)? TBD"
-
-TODO: Answer the question, "Do we want a 'Use default path' switch beneath the Export Database button?  If it's disabled we can let the user choose the path to which to save the DB file."
-    * (Or we might reword the switch and have its default state be off; we'll see.)
-    * btw This introduces the possibility of the DB export process being canceled; we should consider that when thinking about the "Settings sheet interactions...." switch's behavior (when set to 'on').
-
-TODO: Add a "use timezones or do not....there is no try" (wording to be adjusted later) switch to the Settings sheet; default value: On
-    * On -- use the existing timezone functionality
-    * Off -- hide the timezone-related stuff, I guess; just use UTC, but keep the specifics "as hidden as we can manage, without it becoming ridiculous"
-
+-------Transaction Viewer
 TODO: In the Transaction Viewer, let's either have the "Apply filter" button be lit up when any UI interaction takes place while would necessitate it being clicked before the new filter is changed, or just get rid of it.
     Or both, and allow a setting to control which.  *shrug*
 
+TODO: In the Transaction Viewer, let's:
+    * Get rid of the '7' in the "last # days" box, either emptying that box or maybe replacing it with a (more useful imo) 2
+    * In the "to" box under the date range picker boxes, default to displaying a grayed-out "Today"
+
 TODO: The Transaction Viewer's state/end dates extend well beyond the range of existing transactions within the DB; let's trim down the allowable dates to ones that actually have transactions.
 
-TODO (Lower priority): Item metadata
-    * Create a table to hold key/value pairs
-    * Create a UI for defining those pairs
-        * atm I'm thinking "one set of keys that applies to the entire item set" (...although that's making me think about ways to allow multiple item sets.🤔  we'll think about that later, though.)
-         * eg. Manufacturer, Product Name
-    * Add this table as an option for importing
 
+-------DB importing
+TODO: the DB import process might be saying that existing DB files are incompatible because they lack some rows from the settings table; let's try to add those rows before we have the app decide it the DB file is compatible or not.
+
+TODO re: Database importing:
+    * For the time being, the app's going to enforce "only import (item transactions / settings) if (items / time zones) (respectively) is imported;" we should communicate this somewhere, so as not to overly-aggravate those trying to import one table, then import the 2nd table in a later operation.
+    * Whatever directory the "import DB" file picker starts in, we should also communicate that directory that is (to reduce guesswork about where best to place a DB file).
+        *FOR THE TIME BEING: We could just communciate this via the readme or something.  That'll get the job done, I think.
+
+
+-------Generating a migration
 TODO (Just before trying to install the dev. version onto our phone): Give ChatGPT a DB exported from the version running out our phone and a copy of the db.*.dart files, and tell it to generate a migration.
     * Run the (debug version, on the emulator) app with that DB file in-place and see if it brings it up-to-date with the current schema.
     * Assuming it does, then I ~think~ that means we can deploy versions-in-development to our phone, with confidence that the app will bring the DB up to speed.
@@ -50,6 +33,8 @@ TODO (Just before trying to install the dev. version onto our phone): Give ChatG
         * some missing rows (date pinning-related) in the settings table
         * a uniqueness contraints on the items.display_order field
 
+
+-------Time-zone alias UI
 TODO (POSSIBLY OUT-OF-DATE; NEEDS CLARIFICATION): Time-zone specifying
     * Add a "Specify time zone by alias" checkbox  <---4/21/26 Where, exactly?🤨 Settings sheet?
         * If it's checked, present a button labeled "Specify a time zone alias"  <---4/21/26 Again...where?🤨 In a modal dialog?
@@ -62,6 +47,18 @@ TODO (POSSIBLY OUT-OF-DATE; NEEDS CLARIFICATION): Time-zone specifying
 
         sub-TODO: Answer the question, "Seeing as how the previous TODO doesn't really make a lot of sense, should we edit it until it makes sense or just scrap it and start over with an "Add a TZ alias-adding UI" TODO, which sounds much more straightforward?"
             RESPONSE: Yes, at this point I absolutely think we SHOULD! ...because heck if I can make sense of that TODO.😂
+
+
+-------New DB wizard
+TODO (after adding a TZ alias-adding UI): "It's like a new-DB wizard, kinda"
+    When a DB's items table is empty, replace the 'add' button on the home screen with an 'add items' button, which brings up the 'edit countable items' sheet.
+    We'll also give the user a change to add some time zone aliases; specifics TBD.
+
+
+---------------------------------------
+Probably saving for the next pass
+
+TODO: Answer the question, "With the start date and end date, we're assuming mm/dd/yyyy, as far as I can tell.  Does Android change that, in other regions (where yyyy/mm/dd, etc. are common)?  Do we need to adapt (ie. by adding some i18n to the project)? TBD"
 
 TODO: Add a drop-down or something in the settings sheet to select the summary statistic
     Possible default: With the 'monthly average' statistic selected and the drop-down disabled.
@@ -77,18 +74,49 @@ TODO (After 'pinning dates' and 'summary statistic selection drop-down'):
                   (for a 'pinned duration'): "[pinned start date] through [pinned end date]"
               * We should probably also state this on the home screen...at least, if it's at all unusual (ie. pinned durations).  Maybe change the header of the averages column?  We'll think about this.
 
-TODO (after adding a TZ alias-adding UI): "It's like a new-DB wizard, kinda"
-    When a DB's items table is empty, replace the 'add' button on the home screen with an 'add items' button, which brings up the 'edit countable items' sheet.
-    A THOUGHT: Do we want this same wizard to also help set up time zone aliases, or at least ask if the user wants to use them?  If so, we should probably wait until we have a TZ-adding UI before we do this.
+    From an older TODO:
+        ChatGPT describes the current summary statistic as:
+        "In plain terms, the statistic is:
+            Average per day over the last N days (including days with no logs).
 
-TODO re: Database importing:
-    * For the time being, the app's going to enforce "only import (item transactions / settings) if (items / time zones) (respectively) is imported;" we should communicate this somewhere, so as not to overly-aggravate those trying to import one table, then import the 2nd table in a later operation.
-    * Whatever directory the "import DB" file picker starts in, we should also communicate that directory that is (to reduce guesswork about where best to place a DB file).
+        More precise description you can use in a setting name/tooltip:
+            “For each pill, sum all quantities from max(today − (N−1) days, first transaction date) through today (inclusive), then divide by the number of calendar days in that range, counting days with zero intake.”"
+
+TODO: Answer the question, "Do we want a 'Use default path' switch beneath the Export Database button?  If it's disabled we can let the user choose the path to which to save the DB file."
+    * (Or we might reword the switch and have its default state be off; we'll see.)
+    * btw This introduces the possibility of the DB export process being canceled; we should consider that when thinking about the "Settings sheet interactions...." switch's behavior (when set to 'on').
 
 TODO: Answer the question, "When it comes to the end date, do we want to allow (and parse) arithmetic formulas involving the word 'today,' such as "today - 1" (for 'yesterday')?  It seems "possibly" useful to someone...maybe.
     * A THOUGHT: Maybe this is the sort of thing we should let someone who WANTS that feature, to implement it.
 
+TODO: Add a "use timezones or do not....there is no try" (wording to be adjusted later) switch to the Settings sheet; default value: On
+    * On -- use the existing timezone functionality
+    * Off -- hide the timezone-related stuff, I guess; just use UTC, but keep the specifics "as hidden as we can manage, without it becoming ridiculous"
+
+TODO (Lower priority): Item metadata
+    * Create a table to hold key/value pairs
+    * Create a UI for defining those pairs
+        * atm I'm thinking "one set of keys that applies to the entire item set" (...although that's making me think about ways to allow multiple item sets.🤔  we'll think about that later, though.)
+         * eg. Manufacturer, Product Name
+    * Add this table as an option for importing
+
 TODO (MAYBE): Rather than allowing end dates in the future, we might add some sort of "give a fixed date range a target date in the future, but have the actual interval be (start date) to (today), then move the interval forward by a day, each day until that target end date."  Maybe.  Either way, I want to avoid allowing the user to pick interval start/end dates in the future.
+
+
+-----Dated but possibly still relevant (esp. if re-written)
+TODO: UI minutiae
+    Add a button to the settings sheet with label "UI minutiae"; it'll bring up a sheet of settings of various minutiae.
+    eg.:
+        * checkbox: auto-return to main sheet after the user clicks 'Save' on the settings sheet
+            * Default value: false, I guess? *shrug*
+        * checkbox: 'Show time zone'
+              * Default value: True
+              * When it's checked, show the "Time zone: [Alias/name]" box beneath the app title on the main view
+              * When it's unchecked, hide that text
+        * sliders controlling the amount of vertical paddings between rows, maybe?  *shrug*
+        * (tbc as we think of things to add)
+
+
 
 ---------------------------------------
 Polishing
@@ -97,12 +125,17 @@ Polishing
 TODO (Waiting for the UI minutiae interface to be started): Toast shape, duration and max. # of toasts displayed at once are configurable, so we should let the user configure them.
     * Those probably belong in the UI minutiae interface.
 
+*Main screen
+TODO: The home screen toasts are overlapping with the Add/Undo/Redo buttons; can we move them up a bit?
+
 *Settings sheet
 
 *Averaging Window area
+TODO: When a start date is currently pinned, can we change the active month of the date picker to show the current start date's month?  Seems like a nice thing to do.  And possibly some indication of that current state date being "current," like circling the date or something.
 TODO: The mm and dd fields in the start date text box (and presumably the end date text box as well) have leading 0s again, which I don't really want.
 TODO: The "ENTER A VALID STRING😠" indicator while editing the pinned start date is awfully strict; let's relax it to not announce the result of the string's validity check until the user clicks save or the textbox otherwise loses focus.
     *If the date string is invalid, Let's (1) announce it in a toast and (2) not save it yet.  (And keep the save button activated.)  Or maybe (1) auto-show a message over the textbox with a 'friendly-ish' message such as "12/0/2026" isn't a valid date", then (2) not save it yet.
+TODO: iirc the end date (eg. "Today") and a 'pinned end date' are stored separately; if they are, let's have toggling the "...and end date" switch alternative between Today and the previously-pinned end date.
 TODO: (Background) With the "Averaging window" textboxes, we're using TextPainter to determine the minimum interior width necessary to display things (assuming the longest possibly averaging window is 99999 days); thing is, it's producing widths wider than necessary.
     (Actual TODO): Answer the question, "Is the font being used by TextPainter to make those measurements the same font that's actually used to render the elements and their contents?  "Not using the right font" seems like the kind of bonehead mistake ChatGPT might make."
 TODO: The latest allowable date for start dates really ought to be "yesterday," rather than "today."  It's being compressed to a '1 day average' in the UI, but I dunno if it's actually doing that full day or what.  Either way, let's just make 'yesterday' the latest allowable date.
@@ -123,6 +156,13 @@ TODO: Man....there are a lot of hard-coded values in this code.  And every one o
     Anyhow, let's work on getting rid of hard-coded constants and replacing them with "formulas based on information from the OS."
 
 
+--Possibly out-of-date polishing TODOs
+TODO (MAYBE): Make the Transaction Viewer sheet more compact
+    Maybe move the "last # days" radio onto the first row, compress the input boxes vertically, remove space between the "All" row and the "Apply filter" button, etc.
+
+TODO (MAYBE): Let the user long-tap & drag them to rearrange the rows of the settings sheet
+    *(5/5/2026): I still like the idea of UI customization, but I'm wondering if we should have a "UI editing mode" that shows controls on the sides of rows that can be long-tapped to do this kind of rearranging; they would then disappear when we end 'UI editing mode.'
+
 ---------------------------------------------------------------------------------------------------
 
 [REMINDER: From here down we have TODOs written during the first pass at app development; they may or may not still apply.  We'll get around to evaluating them 'eventually.']
@@ -131,8 +171,6 @@ TODO: Man....there are a lot of hard-coded values in this code.  And every one o
 
 
 ---Major initiatives---
-
-TODO (Once we've implemented Time-zone specifying and "Add item(s) to count"): Create a "new install" wizard that prompts the user to do those two things (or possibly import a DB or something)
 
 TODO: UI customizing
     * Let the user long-tap the (modifiable) text fields to begin editing them
@@ -144,46 +182,16 @@ TODO: UI customizing
         * Sounds like this sheet just needs a "Close" button
         * Although...that depends on the UI for editing a text field.  In-place?  Modal dialog w/ input box? tbd.
 
-TODO: UI minutiae
-    Add a button to the settings sheet with label "UI minutiae"; it'll bring up a sheet of settings of various minutiae.
-    eg.:
-        * checkbox: auto-return to main sheet after the user clicks 'Save' on the settings sheet
-            * Default value: false, I guess? *shrug*
-        * checkbox: 'Show time zone'
-              * Default value: True
-              * When it's checked, show the "Time zone: [Alias/name]" box beneath the app title on the main view
-              * When it's unchecked, hide that text
-        * sliders controlling the amount of vertical paddings between rows, maybe?  *shrug*
-        * (tbc as we think of things to add)
-
-
 
 ---UI stuff---
 
-TODO (MAYBE): Make the Transaction Viewer sheet more compact
-    Maybe move the "last # days" radio onto the first row, compress the input boxes vertically, remove space between the "All" row and the "Apply filter" button, etc.
-
-
 
 ---TBD---
-TODO: Give a way to choose other summary statistics (which we probably won't implement, but maybe someone else will want to)
-
-    ChatGPT describes the current summary statistic as:
-    "In plain terms, the statistic is:
-        Average per day over the last N days (including days with no logs).
-
-    More precise description you can use in a setting name/tooltip:
-        “For each pill, sum all quantities from max(today − (N−1) days, first transaction date) through today (inclusive), then divide by the number of calendar days in that range, counting days with zero intake.”"
-
 
 
 ---MAYBE---
-
-TODO (MAYBE): Let the user long-tap & drag them to rearrange the rows of the settings sheet
-
 
 
 
 --------------------------------------Personal use-------------------------------------------------
 
-TODO (Once we've implemented the backend project as a WASM module): Create a branch where we remove the FFI stuff and slot in a WASM module.  See which one's shorter (or simpler).
