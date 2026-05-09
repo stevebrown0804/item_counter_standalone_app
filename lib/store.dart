@@ -1,5 +1,3 @@
-// store.dart
-
 part of 'main.dart';
 
 class _Store extends ChangeNotifier {
@@ -21,52 +19,6 @@ class _Store extends ChangeNotifier {
   bool get canUndo => _undoTokens.isNotEmpty;
   final List<String> _redoTokens = [];
   bool get canRedo => _redoTokens.isNotEmpty;
-
-  DateTime _todayDateOnly() {
-    final now = DateTime.now();
-    return DateTime(now.year, now.month, now.day);
-  }
-
-  DateTime? _parseTextBoxDate(String raw) {
-    final parts = raw.trim().split('/');
-    if (parts.length != 3) {
-      return null;
-    }
-
-    final month = int.tryParse(parts[0]);
-    final day = int.tryParse(parts[1]);
-    final year = int.tryParse(parts[2]);
-    if (month == null || day == null || year == null) {
-      return null;
-    }
-
-    final parsedDate = DateTime(year, month, day);
-    if (parsedDate.year != year || parsedDate.month != month || parsedDate.day != day) {
-      return null;
-    }
-
-    return DateTime(parsedDate.year, parsedDate.month, parsedDate.day);
-  }
-
-  String _formatTooltipDate(DateTime date) {
-    return '${date.month}/${date.day}/${date.year}';
-  }
-
-  String? _buildAverageWindowTooltip(_DailyAverageSettings settings) {
-    if (!settings.pinStartDate) {
-      return null;
-    }
-
-    final startDate = _parseTextBoxDate(settings.startDate) ??
-        _todayDateOnly().subtract(Duration(days: settings.numberOfDaysAgo));
-
-    if (!settings.pinEndDate) {
-      return '${_formatTooltipDate(startDate)} to today';
-    }
-
-    final endDate = _parseTextBoxDate(settings.endDate) ?? _todayDateOnly();
-    return '${_formatTooltipDate(startDate)} to ${_formatTooltipDate(endDate)}';
-  }
 
   void clearUndoRedo() {
     _undoTokens.clear();
@@ -111,7 +63,10 @@ class _Store extends ChangeNotifier {
     _activeTz = await _db.readActiveTz() ?? _Tz('UTC', 'UTC');
     final averageSettings = await _db.readDailyAverageSettings();
     _days = await _db.readAveragingWindowDays();
-    _averageWindowTooltip = _buildAverageWindowTooltip(averageSettings);
+    _averageWindowTooltip = _AppDateLogic.buildAverageWindowTooltip(
+      averageSettings,
+      activeTz.tzName,
+    );
     _items = await _db.listItemsOrdered();
 
     final list = await _db.readDailyAverages();
