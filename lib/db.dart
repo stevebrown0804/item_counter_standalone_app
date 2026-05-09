@@ -1,5 +1,3 @@
-// db.dart
-
 part of 'main.dart';
 
 // ── the DB wrapper ──
@@ -66,104 +64,7 @@ class _Db {
   Future<_DailyAverageSettings> readDailyAverageSettings() async {
     return _timed('readDailyAverageSettings()', () async {
       final db = await open();
-
-      final avgRows = await db.rawQuery(
-        '''
-SELECT value
-FROM settings
-WHERE key = 'daily_average.number_of_days_ago'
-LIMIT 1
-''',
-      );
-
-      final legacyRows = await db.rawQuery(
-        '''
-SELECT value
-FROM settings
-WHERE key = 'avg_window_days'
-LIMIT 1
-''',
-      );
-
-      final startDateRows = await db.rawQuery(
-        '''
-SELECT value
-FROM settings
-WHERE key = 'daily_average.start_date'
-LIMIT 1
-''',
-      );
-
-      final endDateRows = await db.rawQuery(
-        '''
-SELECT value
-FROM settings
-WHERE key = 'daily_average.end_date'
-LIMIT 1
-''',
-      );
-
-      final pinStartRows = await db.rawQuery(
-        '''
-SELECT value
-FROM settings
-WHERE key = 'daily_average.pin_start_date'
-LIMIT 1
-''',
-      );
-
-      final pinEndRows = await db.rawQuery(
-        '''
-SELECT value
-FROM settings
-WHERE key = 'daily_average.pin_end_date'
-LIMIT 1
-''',
-      );
-
-      int parseIntRow(List<Map<String, Object?>> rows, int fallback) {
-        if (rows.isEmpty) {
-          return fallback;
-        }
-        final raw = rows.first['value'];
-        if (raw is num) {
-          return raw.toInt();
-        }
-        return int.tryParse(raw?.toString() ?? '') ?? fallback;
-      }
-
-      String parseStringRow(List<Map<String, Object?>> rows, String fallback) {
-        if (rows.isEmpty) {
-          return fallback;
-        }
-        return rows.first['value']?.toString() ?? fallback;
-      }
-
-      bool parseBoolRow(List<Map<String, Object?>> rows, bool fallback) {
-        if (rows.isEmpty) {
-          return fallback;
-        }
-        final raw = rows.first['value']?.toString().trim() ?? '';
-        if (raw == '1') {
-          return true;
-        }
-        if (raw == '0') {
-          return false;
-        }
-        return fallback;
-      }
-
-      final legacyDays = parseIntRow(legacyRows, 30);
-      final numberOfDaysAgo = parseIntRow(avgRows, legacyDays);
-      final safeDays = numberOfDaysAgo <= 0 ? 30 : numberOfDaysAgo;
-
-      return _DailyAverageSettings(
-        numberOfDaysAgo: safeDays,
-        startDate: parseStringRow(startDateRows, ''),
-        endDate: parseStringRow(endDateRows, ''),
-        pinStartDate: parseBoolRow(pinStartRows, false),
-        pinEndDate: parseBoolRow(pinEndRows, false),
-      );
+      return _readDailyAverageSettingsFromDb(db);
     });
   }
 
@@ -274,7 +175,20 @@ ORDER BY CAST(display_order AS INTEGER), id
   Future<int> readAveragingWindowDays() async {
     return _timed('readAveragingWindowDays()', () async {
       final db = await open();
-      return _computeEffectiveAveragingWindowDaysFromDb(db);
+      final settings = await _readDailyAverageSettingsFromDb(db);
+      debugPrint(
+        '[AVG-DAYS] settings: '
+            'numberOfDaysAgo=${settings.numberOfDaysAgo}, '
+            'startDate="${settings.startDate}", '
+            'endDate="${settings.endDate}", '
+            'pinStartDate=${settings.pinStartDate}, '
+            'pinEndDate=${settings.pinEndDate}',
+      );
+
+      final days = await _computeEffectiveAveragingWindowDaysFromDb(db);
+      debugPrint('[AVG-DAYS] computed days returned to home screen: $days');
+
+      return days;
     });
   }
 
@@ -300,31 +214,18 @@ ORDER BY CAST(display_order AS INTEGER), id
     final db = await open();
     final tzName = await _activeTzNameOrUtcFromDb(db);
 
-    tz.Location loc;
-    try {
-      loc = tz.getLocation(tzName);
-    } catch (_) {
-      loc = tz.getLocation('Etc/UTC');
-    }
-
-    final parts = localDateYmd.split('-');
-    if (parts.length != 3) {
+    final picked = _AppDateLogic.parseDashDate(localDateYmd);
+    if (picked == null) {
       throw ArgumentError('invalid local date $localDateYmd');
     }
 
-    final year = int.tryParse(parts[0]);
-    final month = int.tryParse(parts[1]);
-    final day = int.tryParse(parts[2]);
-    if (year == null || month == null || day == null) {
-      throw ArgumentError('invalid local date $localDateYmd');
-    }
-
-    final picked = DateTime(year, month, day);
-    final nowLocal = tz.TZDateTime.now(loc);
-    final today = DateTime(nowLocal.year, nowLocal.month, nowLocal.day);
+    final today = _AppDateLogic.todayDateOnly(tzName);
     final effectivePicked = picked.isAfter(today) ? today : picked;
-    final rawDays = today.difference(effectivePicked).inDays;
-    return rawDays <= 0 ? 1 : rawDays;
+
+    return _AppDateLogic.positiveElapsedDays(
+      startDate: effectivePicked,
+      endDate: today,
+    );
   }
 
   Future<DateTime?> readOldestTransactionLocalDate() async {
@@ -343,21 +244,11 @@ ORDER BY CAST(display_order AS INTEGER), id
     }
 
     final oldestUtc = parseDbUtc(tsRaw.toString());
-    final tzInfo = await readActiveTz();
-    var tzName = 'Etc/UTC';
-    if (tzInfo != null && tzInfo.tzName.isNotEmpty) {
-      tzName = tzInfo.tzName;
-    }
-
-    tz.Location loc;
-    try {
-      loc = tz.getLocation(tzName);
-    } catch (_) {
-      loc = tz.getLocation('Etc/UTC');
-    }
-
+    final tzName = await _activeTzNameOrUtcFromDb(db);
+    final loc = _AppDateLogic.locationOrUtc(tzName);
     final local = tz.TZDateTime.from(oldestUtc, loc);
-    return DateTime(local.year, local.month, local.day);
+
+    return _AppDateLogic.dateOnly(local);
   }
 
   Future<bool> readSkipDeleteSecondConfirm() async {
@@ -444,9 +335,21 @@ LIMIT 1
       return 0;
     }
 
+    final tzName = await _activeTzNameOrUtcFromDb(db);
+    final loc = _AppDateLogic.locationOrUtc(tzName);
+    final today = _AppDateLogic.todayDateOnly(tzName);
+    final cutoffDate = today.subtract(Duration(days: days));
+    final cutoffLocal = tz.TZDateTime(
+      loc,
+      cutoffDate.year,
+      cutoffDate.month,
+      cutoffDate.day,
+    );
+    final cutoffUtc = _formatDbTimestamp(cutoffLocal.toUtc());
+
     return db.rawDelete(
-      "DELETE FROM item_transactions WHERE timestamp_utc < datetime('now', ?)",
-      ['-$days days'],
+      'DELETE FROM item_transactions WHERE timestamp_utc < ?1',
+      [cutoffUtc],
     );
   }
 
@@ -456,9 +359,21 @@ LIMIT 1
       return 0;
     }
 
+    final tzName = await _activeTzNameOrUtcFromDb(db);
+    final loc = _AppDateLogic.locationOrUtc(tzName);
+    final today = _AppDateLogic.todayDateOnly(tzName);
+    final cutoffDate = today.subtract(Duration(days: days));
+    final cutoffLocal = tz.TZDateTime(
+      loc,
+      cutoffDate.year,
+      cutoffDate.month,
+      cutoffDate.day,
+    );
+    final cutoffUtc = _formatDbTimestamp(cutoffLocal.toUtc());
+
     final rows = await db.rawQuery(
-      "SELECT COUNT(*) AS cnt FROM item_transactions WHERE timestamp_utc < datetime('now', ?)",
-      ['-$days days'],
+      'SELECT COUNT(*) AS cnt FROM item_transactions WHERE timestamp_utc < ?1',
+      [cutoffUtc],
     );
 
     if (rows.isEmpty) {
@@ -484,9 +399,9 @@ LIMIT 1
   Future<List<_AvgRow>> readDailyAverages() async {
     return _timed('readDailyAverages()', () async {
       final db = await open();
-      final effectiveDays = await _computeEffectiveAveragingWindowDaysFromDb(db);
+      final range = await _computeEffectiveAveragingWindowRangeFromDb(db);
 
-      if (effectiveDays == 0) {
+      if (range.days == 0) {
         final rows = await db.rawQuery(
           '''
 SELECT id, display_string
@@ -500,38 +415,6 @@ ORDER BY CAST(display_order AS INTEGER), id
           return _AvgRow(row['display_string']?.toString() ?? '', 0.0);
         }).toList();
       }
-
-      final tzName = await _activeTzNameOrUtcFromDb(db);
-
-      tz.Location loc;
-      try {
-        loc = tz.getLocation(tzName);
-      } catch (_) {
-        loc = tz.getLocation('Etc/UTC');
-      }
-
-      final nowLocal = tz.TZDateTime.now(loc);
-      final todayLocalStart = tz.TZDateTime(
-        loc,
-        nowLocal.year,
-        nowLocal.month,
-        nowLocal.day,
-      );
-      final startLocal = todayLocalStart.subtract(Duration(days: effectiveDays));
-      final endLocal = todayLocalStart.add(const Duration(days: 1));
-
-      final startUtc = startLocal.toUtc();
-      final endUtc = endLocal.toUtc();
-
-      String two(int n) => n.toString().padLeft(2, '0');
-      String formatDbUtc(DateTime dt) {
-        final utc = dt.toUtc();
-        return '${utc.year.toString().padLeft(4, '0')}-${two(utc.month)}-${two(utc.day)} '
-            '${two(utc.hour)}:${two(utc.minute)}:${two(utc.second)}';
-      }
-
-      final startUtcText = formatDbUtc(startUtc);
-      final endUtcText = formatDbUtc(endUtc);
 
       final rows = await db.rawQuery(
         '''
@@ -549,7 +432,7 @@ WHERE COALESCE(p.show_item, 1) != 0
 GROUP BY p.id, p.display_string, display_order
 ORDER BY display_order, p.id
 ''',
-        [startUtcText, endUtcText, effectiveDays],
+        [range.startUtc, range.endUtc, range.days],
       );
 
       return rows.map((row) {
@@ -670,13 +553,7 @@ ORDER BY display_order, p.id
   Future<String> localToUtcDbTimestamp(String localTs) async {
     final db = await open();
     final tzName = await _activeTzNameOrUtcFromDb(db);
-
-    tz.Location loc;
-    try {
-      loc = tz.getLocation(tzName);
-    } catch (_) {
-      loc = tz.getLocation('Etc/UTC');
-    }
+    final loc = _AppDateLogic.locationOrUtc(tzName);
 
     final naive = _parseNaiveTimestamp(localTs);
     final local = tz.TZDateTime(
@@ -704,13 +581,7 @@ ORDER BY display_order, p.id
   Future<String> utcDbToLocalTimestamp(String utcTs) async {
     final db = await open();
     final tzName = await _activeTzNameOrUtcFromDb(db);
-
-    tz.Location loc;
-    try {
-      loc = tz.getLocation(tzName);
-    } catch (_) {
-      loc = tz.getLocation('Etc/UTC');
-    }
+    final loc = _AppDateLogic.locationOrUtc(tzName);
 
     final utc = parseDbUtc(utcTs);
     final local = tz.TZDateTime.from(utc, loc);
@@ -811,26 +682,27 @@ LIMIT 1
   Future<List<_TxRow>> queryTransactionsToday() async {
     final db = await open();
     final tzName = await _activeTzNameOrUtcFromDb(db);
+    final loc = _AppDateLogic.locationOrUtc(tzName);
+    final today = _AppDateLogic.todayDateOnly(tzName);
+    final tomorrow = today.add(const Duration(days: 1));
 
-    tz.Location loc;
-    try {
-      loc = tz.getLocation(tzName);
-    } catch (_) {
-      loc = tz.getLocation('Etc/UTC');
-    }
-
-    final nowLocal = tz.TZDateTime.now(loc);
-    final startLocal = '${nowLocal.year.toString().padLeft(4, '0')}-${_two(nowLocal.month)}-${_two(nowLocal.day)} 00:00:00';
-    final tomorrow = nowLocal.add(const Duration(days: 1));
-    final endLocal = '${tomorrow.year.toString().padLeft(4, '0')}-${_two(tomorrow.month)}-${_two(tomorrow.day)} 00:00:00';
-
-    final startUtc = await localToUtcDbTimestamp(startLocal);
-    final endUtc = await localToUtcDbTimestamp(endLocal);
+    final startLocal = tz.TZDateTime(
+      loc,
+      today.year,
+      today.month,
+      today.day,
+    );
+    final endLocal = tz.TZDateTime(
+      loc,
+      tomorrow.year,
+      tomorrow.month,
+      tomorrow.day,
+    );
 
     return _queryTransactionsUtcRangeDb(
       db,
-      startUtc: startUtc,
-      endUtc: endUtc,
+      startUtc: _formatDbTimestamp(startLocal.toUtc()),
+      endUtc: _formatDbTimestamp(endLocal.toUtc()),
     );
   }
 
@@ -838,24 +710,15 @@ LIMIT 1
     final db = await open();
     final safeDays = days <= 0 ? 1 : days;
     final tzName = await _activeTzNameOrUtcFromDb(db);
-
-    tz.Location loc;
-    try {
-      loc = tz.getLocation(tzName);
-    } catch (_) {
-      loc = tz.getLocation('Etc/UTC');
-    }
+    final loc = _AppDateLogic.locationOrUtc(tzName);
 
     final endLocal = tz.TZDateTime.now(loc);
     final startLocal = endLocal.subtract(Duration(days: safeDays));
 
-    final startUtc = await localToUtcDbTimestamp(_formatDbTimestamp(startLocal));
-    final endUtc = await localToUtcDbTimestamp(_formatDbTimestamp(endLocal));
-
     return _queryTransactionsUtcRangeDb(
       db,
-      startUtc: startUtc,
-      endUtc: endUtc,
+      startUtc: _formatDbTimestamp(startLocal.toUtc()),
+      endUtc: _formatDbTimestamp(endLocal.toUtc()),
     );
   }
 

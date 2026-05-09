@@ -303,8 +303,20 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
     );
   }
 
+  String _activeTzName() {
+    final main = _MainScreenState._lastMounted;
+    return main?._store.activeTz.tzName ?? 'Etc/UTC';
+  }
+
   DateTime _dateOnly(DateTime date) {
-    return DateTime(date.year, date.month, date.day);
+    return _AppDateLogic.dateOnly(date);
+  }
+
+  DateTime _startDateFromDaysAgo(int daysAgo) {
+    return _AppDateLogic.startDateFromDaysAgo(
+      daysAgo: daysAgo,
+      tzName: _activeTzName(),
+    );
   }
 
   bool _isOutsideAllowableDateRange(DateTime date) {
@@ -443,18 +455,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
   }
 
   DateTime _todayDateOnly() {
-    final main = _MainScreenState._lastMounted;
-    final tzName = main?._store.activeTz.tzName ?? 'Etc/UTC';
-
-    tz.Location loc;
-    try {
-      loc = tz.getLocation(tzName);
-    } catch (_) {
-      loc = tz.getLocation('Etc/UTC');
-    }
-
-    final now = tz.TZDateTime.now(loc);
-    return DateTime(now.year, now.month, now.day);
+    return _AppDateLogic.todayDateOnly(_activeTzName());
   }
 
   String? _errorTextForDateEntry({
@@ -833,9 +834,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
     if (picked == null) return;
 
     try {
-      String two(int n) => n.toString().padLeft(2, '0');
-      final localDate =
-          '${picked.year}-${two(picked.month)}-${two(picked.day)}';
+      final localDate = _AppDateLogic.formatDashDate(picked);
 
       final days =
       await _db.computeAveragingWindowDaysFromPickedLocalDate(localDate);
@@ -933,30 +932,11 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
   }
 
   String _formatDateForTextBox(DateTime date) {
-    String two(int n) => n.toString().padLeft(2, '0');
-    final year = date.year.toString().padLeft(4, '0');
-    return '${two(date.month)}/${two(date.day)}/$year';
+    return _AppDateLogic.formatSlashDate(date);
   }
 
   DateTime? _parseTextBoxDate(String raw) {
-    final parts = raw.trim().split('/');
-    if (parts.length != 3) {
-      return null;
-    }
-
-    final month = int.tryParse(parts[0]);
-    final day = int.tryParse(parts[1]);
-    final year = int.tryParse(parts[2]);
-    if (month == null || day == null || year == null) {
-      return null;
-    }
-
-    final parsedDate = DateTime(year, month, day);
-    if (parsedDate.year != year || parsedDate.month != month || parsedDate.day != day) {
-      return null;
-    }
-
-    return DateTime(parsedDate.year, parsedDate.month, parsedDate.day);
+    return _AppDateLogic.parseSlashDate(raw);
   }
 
   String _dateEntryTemplate() {
@@ -993,8 +973,10 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
       return null;
     }
 
-    final diff = _todayDateOnly().difference(parsedDate).inDays;
-    return diff < 0 ? 0 : diff;
+    return _AppDateLogic.daysAgoFromDate(
+      date: parsedDate,
+      tzName: _activeTzName(),
+    );
   }
 
   void _normalizePinnedStartDateForEditing() {
@@ -1101,9 +1083,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
 
     if (days != null) {
       final clampedDays = days > 99999 ? 99999 : days;
-      final startDate = _todayDateOnly().subtract(
-        Duration(days: clampedDays),
-      );
+      final startDate = _startDateFromDaysAgo(clampedDays);
       _summaryStatisticTextInputBox.text = _formatDateForTextBox(startDate);
       _showingDisplayString = false;
       return;
@@ -1134,9 +1114,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
         _summaryStatisticTextInputBox.text = settings.startDate;
         _showingDisplayString = false;
       } else {
-        final startDate = _todayDateOnly().subtract(
-          Duration(days: settings.numberOfDaysAgo),
-        );
+        final startDate = _startDateFromDaysAgo(settings.numberOfDaysAgo);
         _summaryStatisticTextInputBox.text = _formatDateForTextBox(startDate);
         _showingDisplayString = false;
       }
@@ -1220,8 +1198,10 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
       }
 
       if (startDate != null) {
-        final rawIntervalDays = endDate.difference(startDate).inDays;
-        displayedIntervalDays = rawIntervalDays <= 0 ? 1 : rawIntervalDays;
+        displayedIntervalDays = _AppDateLogic.positiveElapsedDays(
+          startDate: startDate,
+          endDate: endDate,
+        );
       }
     }
 
@@ -1553,9 +1533,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
                           }
                         }
                       } else if (_showingDisplayString && _currentAveragingWindowDays != null) {
-                        final startDate = _todayDateOnly().subtract(
-                          Duration(days: _currentAveragingWindowDays!),
-                        );
+                        final startDate = _startDateFromDaysAgo(_currentAveragingWindowDays!);
                         final startText = _formatDateForTextBox(startDate);
                         _summaryStatisticTextInputBox.text = startText;
                         _showingDisplayString = false;
@@ -1578,9 +1556,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
                             message = 'Start date pinned.';
                           } else {
                             final clampedDays = days > 99999 ? 99999 : days;
-                            final startDate = _todayDateOnly().subtract(
-                              Duration(days: clampedDays),
-                            );
+                            final startDate = _startDateFromDaysAgo(clampedDays);
                             final startText = _formatDateForTextBox(startDate);
                             _currentAveragingWindowDays = clampedDays;
                             _summaryStatisticTextInputBox.text = startText;

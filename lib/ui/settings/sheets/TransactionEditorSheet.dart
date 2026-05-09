@@ -13,13 +13,10 @@ Future<bool> openTransactionEditorSheet({
   // Convert original UTC timestamp to local so we can show/edit it
   final local = tz.TZDateTime.from(tx.utc, loc);
 
-  String two(int n) => n < 10 ? '0$n' : '$n';
-  String fmtDate(tz.TZDateTime d) =>
-      '${d.year}-${two(d.month)}-${two(d.day)}';
-  String fmtTime(tz.TZDateTime d) =>
-      '${two(d.hour)}:${two(d.minute)}:${two(d.second)}';
+  String fmtTime(DateTime d) =>
+      '${_AppDateLogic.twoDigits(d.hour)}:${_AppDateLogic.twoDigits(d.minute)}:${_AppDateLogic.twoDigits(d.second)}';
 
-  final dateCtrl = TextEditingController(text: fmtDate(local));
+  final dateCtrl = TextEditingController(text: _AppDateLogic.formatDashDate(local));
   final timeCtrl = TextEditingController(text: fmtTime(local));
   final qtyCtrl = TextEditingController(text: tx.qty.toString());
 
@@ -40,51 +37,16 @@ Future<bool> openTransactionEditorSheet({
   //   timeText: "HH:MM" or "HH:MM:SS"
   // Returns a normalized "YYYY-MM-DD HH:MM:SS" string, or null if invalid.
   String? normalizeLocalDateTime(String dateText, String timeText) {
-    final dateParts = dateText.split('-');
-    if (dateParts.length != 3) return null;
-
-    final year  = int.tryParse(dateParts[0]);
-    final month = int.tryParse(dateParts[1]);
-    final day   = int.tryParse(dateParts[2]);
-
-    if (year == null || month == null || day == null) {
+    final parsed = _AppDateLogic.parseDashTimestampSeconds('$dateText $timeText');
+    if (parsed == null) {
       return null;
     }
 
-    final timeParts = timeText.split(':');
-    if (timeParts.length < 2 || timeParts.length > 3) return null;
-
-    final hour   = int.tryParse(timeParts[0]);
-    final minute = int.tryParse(timeParts[1]);
-
-    if (hour == null || minute == null) {
-      return null;
-    }
-
-    int second = 0;
-    if (timeParts.length == 3) {
-      final s = int.tryParse(timeParts[2]);
-      if (s == null) return null;
-      second = s;
-    }
-
-    try {
-      final dt = DateTime(year, month, day, hour, minute, second);
-      String two(int n) => n.toString().padLeft(2, '0');
-      final y = dt.year.toString().padLeft(4, '0');
-      final m = two(dt.month);
-      final d = two(dt.day);
-      final h = two(dt.hour);
-      final min = two(dt.minute);
-      final sec = two(dt.second);
-      return '$y-$m-$d $h:$min:$sec';
-    } catch (_) {
-      return null;
-    }
+    return _AppDateLogic.formatDbTimestamp(parsed);
   }
 
   final result = await showModalBottomSheet<bool>(
-  context: context,
+    context: context,
     isScrollControlled: true,
     useSafeArea: true,
     shape: const RoundedRectangleBorder(
@@ -142,12 +104,7 @@ Future<bool> openTransactionEditorSheet({
                         helpText: 'Choose date',
                       );
                       if (picked != null) {
-                        dateCtrl.text = fmtDate(
-                          tz.TZDateTime.from(
-                            picked,
-                            loc,
-                          ),
-                        );
+                        dateCtrl.text = _AppDateLogic.formatDashDate(picked);
                       }
                     },
                     child: const Text('Choose date'),
@@ -186,8 +143,8 @@ Future<bool> openTransactionEditorSheet({
                         initialTime: initialTime,
                       );
                       if (picked != null) {
-                        final h = two(picked.hour);
-                        final m = two(picked.minute);
+                        final h = _AppDateLogic.twoDigits(picked.hour);
+                        final m = _AppDateLogic.twoDigits(picked.minute);
                         // Keep seconds at 00 when choosing a new time.
                         timeCtrl.text = '$h:$m:00';
                       }

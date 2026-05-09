@@ -35,12 +35,7 @@ class _LogItemsSheetState extends State<_LogItemsSheet> {
   late final TextEditingController _timestampCtrl;
 
   tz.Location _activeLocation() {
-    try {
-      return tz.getLocation(widget.activeTzName);
-    } catch (_) {
-      // Fallback if something is misconfigured
-      return tz.getLocation('Etc/UTC');
-    }
+    return _AppDateLogic.locationOrUtc(widget.activeTzName);
   }
 
   @override
@@ -57,40 +52,11 @@ class _LogItemsSheetState extends State<_LogItemsSheet> {
   }
 
   DateTime? _parseTimestamp(String text) {
-    if (text == 'Now') return null;
-
-    final parts = text.split(' ');
-    if (parts.length != 2) return null;
-
-    final dateParts = parts[0].split('-');
-    final timeParts = parts[1].split(':');
-    if (dateParts.length != 3 || timeParts.length != 2) return null;
-
-    final year = int.tryParse(dateParts[0]);
-    final month = int.tryParse(dateParts[1]);
-    final day = int.tryParse(dateParts[2]);
-    final hour = int.tryParse(timeParts[0]);
-    final minute = int.tryParse(timeParts[1]);
-
-    if (year == null ||
-        month == null ||
-        day == null ||
-        hour == null ||
-        minute == null) {
-      return null;
-    }
-
-    return DateTime(year, month, day, hour, minute);
+    return _AppDateLogic.parseDashTimestampMinutes(text);
   }
 
   String _formatTimestamp(DateTime dt) {
-    String two(int n) => n.toString().padLeft(2, '0');
-    final y = dt.year.toString().padLeft(4, '0');
-    final m = two(dt.month);
-    final d = two(dt.day);
-    final h = two(dt.hour);
-    final min = two(dt.minute);
-    return '$y-$m-$d $h:$min';
+    return _AppDateLogic.formatDashTimestampMinutes(dt);
   }
 
   Future<void> _pickDate() async {
@@ -236,14 +202,8 @@ class _LogItemsSheetState extends State<_LogItemsSheet> {
         );
         return;
       }
-      String two(int n) => n.toString().padLeft(2, '0');
-      final y = parsed.year.toString().padLeft(4, '0');
-      final m = two(parsed.month);
-      final d = two(parsed.day);
-      final h = two(parsed.hour);
-      final min = two(parsed.minute);
       // Backend expects "YYYY-MM-DD HH:MM:SS".
-      localOverride = '$y-$m-$d $h:$min:00';
+      localOverride = _AppDateLogic.formatDbTimestamp(parsed);
     }
 
     final summary = 'Added: ${parts.join(', ')}';

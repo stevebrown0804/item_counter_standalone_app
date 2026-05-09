@@ -6,8 +6,8 @@ Future<DateTime?> _pickLocalDateTime(
       DateTime? initialLocal,
     })
 async {
-  final nowL = tz.TZDateTime.now(loc);
-  final initial = initialLocal ?? nowL;
+  final nowLocal = tz.TZDateTime.now(loc);
+  final initial = initialLocal ?? nowLocal;
 
   final d = await showDatePicker(
     context: context,
@@ -37,12 +37,7 @@ Future<void> doTransactionViewerSheet({
 })
 async {
   final tzName = store.activeTz.tzName;
-  tz.Location loc;
-  try {
-    loc = tz.getLocation(tzName);
-  } catch (_) {
-    loc = tz.getLocation('Etc/UTC');  //this is in a catch?  ok, ~I~ didn't write that line, that's for sure.🤭
-  }
+  final loc = _AppDateLogic.locationOrUtc(tzName);
 
   _TxMode mode = _TxMode.today;
   final lastDaysCtrl = TextEditingController(text: '7');
@@ -61,9 +56,7 @@ async {
     });
 
     String formatLocal(DateTime dt) {
-      String two(int n) => n.toString().padLeft(2, '0');
-      return '${dt.year}-${two(dt.month)}-${two(dt.day)} '
-          '${two(dt.hour)}:${two(dt.minute)}:${two(dt.second)}';
+      return _AppDateLogic.formatDbTimestamp(dt);
     }
 
     try {
@@ -125,9 +118,7 @@ async {
 
           String fmtLocal(DateTime? d) {
             if (d == null) return '';
-            String two(int n) => n < 10 ? '0$n' : '$n';
-            return '${d.year}-${two(d.month)}-${two(d.day)} '
-                '${two(d.hour)}:${two(d.minute)}';
+            return _AppDateLogic.formatDashTimestampMinutes(d);
           }
 
           Widget radioRow(_TxMode m, Widget trailing) => Row(
@@ -410,10 +401,7 @@ async {
                               itemBuilder: (c, i) {
                                 final it = items[i];
                                 final local = tz.TZDateTime.from(it.utc, loc);
-                                String two(int n) => n < 10 ? '0$n' : '$n';
-                                final tsStr =
-                                    '${local.year}-${two(local.month)}-${two(local.day)} '
-                                    '${two(local.hour)}:${two(local.minute)}:${two(local.second)}';
+                                final tsStr = _AppDateLogic.formatDbTimestamp(local);
 
                                 final isSelected = selectedIndex == i;
                                 final highlightColor = Theme.of(ctx)

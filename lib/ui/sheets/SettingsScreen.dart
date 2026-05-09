@@ -654,15 +654,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final s = _MainScreenState._lastMounted;
       final active = s?._store.activeTz;
       final tzName = active?.tzName ?? 'Etc/UTC';
-      final alias = active?.alias ?? DateTime
-          .now()
-          .timeZoneName;
+      final alias = active?.alias ?? 'UTC';
 
       //Construct the timestamp to affix to the filename, padding timestamp pieces to 2 digits
-      final now = tz.TZDateTime.now(tz.getLocation(tzName));
-      String two(int n) => n.toString().padLeft(2, '0');
-      final ts = '${now.year}-${two(now.month)}-${two(now.day)}_'
-          '${two(now.hour)}-${two(now.minute)}-${two(now.second)}';
+      final now = tz.TZDateTime.now(_AppDateLogic.locationOrUtc(tzName));
+      final ts = _AppDateLogic.formatDbTimestamp(now).replaceAll(' ', '_').replaceAll(':', '-');
 
       //Build the DB export filename from the kDbFileName defined in main.dart
       final fileName = '${kDbFileName.replaceAll(

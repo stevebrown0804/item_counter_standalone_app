@@ -1,5 +1,3 @@
-// db.internals.dart
-
 part of 'main.dart';
 
 extension _DbInternals on _Db {
@@ -167,6 +165,85 @@ LIMIT 1
   }
 
   Future<int> _computeEffectiveAveragingWindowDaysFromDb(Database db) async {
+    final range = await _computeEffectiveAveragingWindowRangeFromDb(db);
+    return range.days;
+  }
+
+  Future<({int days, String startUtc, String endUtc})> _computeEffectiveAveragingWindowRangeFromDb(Database db) async {
+    final settings = await _readDailyAverageSettingsFromDb(db);
+    final tzName = await _activeTzNameOrUtcFromDb(db);
+    final loc = _AppDateLogic.locationOrUtc(tzName);
+    final today = _AppDateLogic.todayDateOnly(tzName);
+
+    DateTime startDate;
+    if (settings.pinStartDate) {
+      startDate = _AppDateLogic.parseSlashDate(settings.startDate) ??
+          _AppDateLogic.startDateFromDaysAgo(
+            daysAgo: settings.numberOfDaysAgo,
+            tzName: tzName,
+          );
+    } else {
+      startDate = _AppDateLogic.startDateFromDaysAgo(
+        daysAgo: settings.numberOfDaysAgo,
+        tzName: tzName,
+      );
+    }
+
+    DateTime endDate;
+    if (settings.pinEndDate) {
+      endDate = _AppDateLogic.parseSlashDate(settings.endDate) ?? today;
+    } else {
+      endDate = today;
+    }
+
+    if (endDate.isBefore(startDate)) {
+      endDate = startDate;
+    }
+
+    final days = _AppDateLogic.positiveElapsedDays(
+      startDate: startDate,
+      endDate: endDate,
+    );
+
+    debugPrint(
+      '[AVG-RANGE] tzName=$tzName, '
+          'today=${_AppDateLogic.formatSlashDate(today)}, '
+          'startDate=${_AppDateLogic.formatSlashDate(startDate)}, '
+          'endDate=${_AppDateLogic.formatSlashDate(endDate)}, '
+          'pinStartDate=${settings.pinStartDate}, '
+          'pinEndDate=${settings.pinEndDate}, '
+          'storedNumberOfDaysAgo=${settings.numberOfDaysAgo}, '
+          'computedDays=$days',
+    );
+
+    final startLocal = tz.TZDateTime(
+      loc,
+      startDate.year,
+      startDate.month,
+      startDate.day,
+    );
+
+    final endExclusiveDate = endDate.add(const Duration(days: 1));
+    final endLocalExclusive = tz.TZDateTime(
+      loc,
+      endExclusiveDate.year,
+      endExclusiveDate.month,
+      endExclusiveDate.day,
+    );
+
+    debugPrint(
+      '[AVG-RANGE] startUtc=${_formatDbTimestamp(startLocal.toUtc())}, '
+          'endUtc=${_formatDbTimestamp(endLocalExclusive.toUtc())}',
+    );
+
+    return (
+    days: days,
+    startUtc: _formatDbTimestamp(startLocal.toUtc()),
+    endUtc: _formatDbTimestamp(endLocalExclusive.toUtc()),
+    );
+  }
+
+  Future<_DailyAverageSettings> _readDailyAverageSettingsFromDb(Database db) async {
     final rows = await db.rawQuery(
       '''
 SELECT key, value
@@ -206,61 +283,19 @@ WHERE key IN (
       return trimmed == '1' || trimmed == 'true';
     }
 
-    DateTime? parseTextBoxDate(String raw) {
-      final parts = raw.trim().split('/');
-      if (parts.length != 3) {
-        return null;
-      }
-
-      final month = int.tryParse(parts[0]);
-      final day = int.tryParse(parts[1]);
-      final year = int.tryParse(parts[2]);
-      if (month == null || day == null || year == null) {
-        return null;
-      }
-
-      final parsedDate = DateTime(year, month, day);
-      if (parsedDate.year != year || parsedDate.month != month || parsedDate.day != day) {
-        return null;
-      }
-
-      return DateTime(parsedDate.year, parsedDate.month, parsedDate.day);
-    }
-
     final legacyDays = parsePositiveInt(values['avg_window_days'], 30);
     final configuredDays = parsePositiveInt(
       values['daily_average.number_of_days_ago'],
       legacyDays,
     );
 
-    final pinStartDate = parseStoredBool(values['daily_average.pin_start_date']);
-    final pinEndDate = parseStoredBool(values['daily_average.pin_end_date']);
-
-    if (!pinStartDate) {
-      return configuredDays;
-    }
-
-    final tzName = await _activeTzNameOrUtcFromDb(db);
-
-    tz.Location loc;
-    try {
-      loc = tz.getLocation(tzName);
-    } catch (_) {
-      loc = tz.getLocation('Etc/UTC');
-    }
-
-    final nowLocal = tz.TZDateTime.now(loc);
-    final today = DateTime(nowLocal.year, nowLocal.month, nowLocal.day);
-
-    final startDate = parseTextBoxDate(values['daily_average.start_date'] ?? '') ??
-        today.subtract(Duration(days: configuredDays));
-
-    final endDate = pinEndDate
-        ? parseTextBoxDate(values['daily_average.end_date'] ?? '') ?? today
-        : today;
-
-    final rawDays = endDate.difference(startDate).inDays;
-    return rawDays <= 0 ? 1 : rawDays;
+    return _DailyAverageSettings(
+      numberOfDaysAgo: configuredDays,
+      startDate: values['daily_average.start_date'] ?? '',
+      endDate: values['daily_average.end_date'] ?? '',
+      pinStartDate: parseStoredBool(values['daily_average.pin_start_date']),
+      pinEndDate: parseStoredBool(values['daily_average.pin_end_date']),
+    );
   }
 
   Future<void> _ensureSettingDefault(Database db, String key, String value) async {
@@ -279,39 +314,17 @@ WHERE key IN (
   }
 
   String _normalizeDbLikeTimestamp(String s) {
-    final trimmed = s.trim();
-    if (trimmed.endsWith('+00:00')) {
-      return trimmed.substring(0, trimmed.length - 6).trim();
-    }
-    if (trimmed.endsWith('Z')) {
-      return trimmed.substring(0, trimmed.length - 1).trim();
-    }
-    return trimmed;
+    return _AppDateLogic.normalizeDbLikeTimestamp(s);
   }
 
-  String _two(int n) => n.toString().padLeft(2, '0');
+  String _two(int n) => _AppDateLogic.twoDigits(n);
 
   String _formatDbTimestamp(DateTime dt) {
-    final y = dt.year.toString().padLeft(4, '0');
-    final m = _two(dt.month);
-    final d = _two(dt.day);
-    final h = _two(dt.hour);
-    final min = _two(dt.minute);
-    final s = _two(dt.second);
-    return '$y-$m-$d $h:$min:$s';
+    return _AppDateLogic.formatDbTimestamp(dt);
   }
 
   DateTime _parseNaiveTimestamp(String s) {
-    final norm = _normalizeDbLikeTimestamp(s);
-    final parsed = DateTime.parse(norm.replaceFirst(' ', 'T'));
-    return DateTime(
-      parsed.year,
-      parsed.month,
-      parsed.day,
-      parsed.hour,
-      parsed.minute,
-      parsed.second,
-    );
+    return _AppDateLogic.parseNaiveTimestamp(s);
   }
 
   Future<_Tz?> _readActiveTzFromDb(Database db) async {
