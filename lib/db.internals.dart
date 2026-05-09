@@ -227,11 +227,6 @@ WHERE key IN (
       return DateTime(parsedDate.year, parsedDate.month, parsedDate.day);
     }
 
-    DateTime todayDateOnly() {
-      final now = DateTime.now();
-      return DateTime(now.year, now.month, now.day);
-    }
-
     final legacyDays = parsePositiveInt(values['avg_window_days'], 30);
     final configuredDays = parsePositiveInt(
       values['daily_average.number_of_days_ago'],
@@ -245,7 +240,18 @@ WHERE key IN (
       return configuredDays;
     }
 
-    final today = todayDateOnly();
+    final tzName = await _activeTzNameOrUtcFromDb(db);
+
+    tz.Location loc;
+    try {
+      loc = tz.getLocation(tzName);
+    } catch (_) {
+      loc = tz.getLocation('Etc/UTC');
+    }
+
+    final nowLocal = tz.TZDateTime.now(loc);
+    final today = DateTime(nowLocal.year, nowLocal.month, nowLocal.day);
+
     final startDate = parseTextBoxDate(values['daily_average.start_date'] ?? '') ??
         today.subtract(Duration(days: configuredDays));
 

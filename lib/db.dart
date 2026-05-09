@@ -501,23 +501,55 @@ ORDER BY CAST(display_order AS INTEGER), id
         }).toList();
       }
 
+      final tzName = await _activeTzNameOrUtcFromDb(db);
+
+      tz.Location loc;
+      try {
+        loc = tz.getLocation(tzName);
+      } catch (_) {
+        loc = tz.getLocation('Etc/UTC');
+      }
+
+      final nowLocal = tz.TZDateTime.now(loc);
+      final todayLocalStart = tz.TZDateTime(
+        loc,
+        nowLocal.year,
+        nowLocal.month,
+        nowLocal.day,
+      );
+      final startLocal = todayLocalStart.subtract(Duration(days: effectiveDays));
+      final endLocal = todayLocalStart.add(const Duration(days: 1));
+
+      final startUtc = startLocal.toUtc();
+      final endUtc = endLocal.toUtc();
+
+      String two(int n) => n.toString().padLeft(2, '0');
+      String formatDbUtc(DateTime dt) {
+        final utc = dt.toUtc();
+        return '${utc.year.toString().padLeft(4, '0')}-${two(utc.month)}-${two(utc.day)} '
+            '${two(utc.hour)}:${two(utc.minute)}:${two(utc.second)}';
+      }
+
+      final startUtcText = formatDbUtc(startUtc);
+      final endUtcText = formatDbUtc(endUtc);
+
       final rows = await db.rawQuery(
         '''
 SELECT p.id,
        p.display_string AS item_name,
        CAST(p.display_order AS INTEGER) AS display_order,
        1.0 * COALESCE(SUM(CASE
-           WHEN t.timestamp_utc >= datetime('now', printf('-%d days', ?1))
-            AND t.timestamp_utc < datetime('now', '+1 day')
+           WHEN t.timestamp_utc >= ?1
+            AND t.timestamp_utc < ?2
            THEN t.quantity
-           ELSE 0 END), 0) / ?2 AS daily_avg
+           ELSE 0 END), 0) / ?3 AS daily_avg
 FROM items p
 LEFT JOIN item_transactions t ON t.item_id = p.id
 WHERE COALESCE(p.show_item, 1) != 0
 GROUP BY p.id, p.display_string, display_order
 ORDER BY display_order, p.id
 ''',
-        [effectiveDays, effectiveDays],
+        [startUtcText, endUtcText, effectiveDays],
       );
 
       return rows.map((row) {

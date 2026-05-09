@@ -443,7 +443,17 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
   }
 
   DateTime _todayDateOnly() {
-    final now = DateTime.now();
+    final main = _MainScreenState._lastMounted;
+    final tzName = main?._store.activeTz.tzName ?? 'Etc/UTC';
+
+    tz.Location loc;
+    try {
+      loc = tz.getLocation(tzName);
+    } catch (_) {
+      loc = tz.getLocation('Etc/UTC');
+    }
+
+    final now = tz.TZDateTime.now(loc);
     return DateTime(now.year, now.month, now.day);
   }
 
@@ -683,7 +693,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
       setState(() {
         if (_showingEndDateDisplayString) {
           if (_pinEndDate) {
-            final today = DateTime.now();
+            final today = _todayDateOnly();
             _endDateTextInputBox.text = _formatDateForTextBox(today);
             _showingEndDateDisplayString = false;
           } else {
@@ -1430,7 +1440,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
                                       : const <TextInputFormatter>[],
                                   onTap: () {
                                     if (_showingEndDateDisplayString) {
-                                      final today = DateTime.now();
+                                      final today = _todayDateOnly();
                                       setState(() {
                                         _pinEndDate = true;
                                         _forceStartDatePinnedFromCurrentDays();
@@ -1602,7 +1612,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
                         final raw = _endDateTextInputBox.text.trim();
                         final hasValidDate = _isValidDateInsideAllowableRange(raw);
                         if (_showingEndDateDisplayString) {
-                          final today = DateTime.now();
+                          final today = _todayDateOnly();
                           final todayText = _formatDateForTextBox(today);
                           _endDateTextInputBox.text = todayText;
                           _showingEndDateDisplayString = false;
