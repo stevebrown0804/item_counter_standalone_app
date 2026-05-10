@@ -784,7 +784,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
   Future<void> _pickDate() async {
     // Default range for the picker.  Seems "reasonable" <---sarcasm
     final latestAllowedStartDate = _startDateFromDaysAgo(1);
-    DateTime firstDate = DateTime(2000, 1, 1);
+    DateTime firstDate = latestAllowedStartDate;
     DateTime lastDate = latestAllowedStartDate;
     DateTime initialDate = latestAllowedStartDate;
 
@@ -793,13 +793,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
       final oldestLocal = await _db.readOldestTransactionLocalDate();
       debugPrint('readOldestTransactionLocalDate -> $oldestLocal');
 
-      if (oldestLocal == null) {
-        // No transactions exist -> shortest allowable range is yesterday to today.
-        firstDate = latestAllowedStartDate;
-        lastDate = latestAllowedStartDate;
-        initialDate = latestAllowedStartDate;
-        _earliestAllowedDate = latestAllowedStartDate;
-      } else {
+      if (oldestLocal != null) {
         // At least one transaction exists-> do "this"  <---those are air quotes, btw
         final oldestDate = DateTime(
           oldestLocal.year,
@@ -810,14 +804,26 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
         firstDate = oldestDate.isAfter(latestAllowedStartDate)
             ? latestAllowedStartDate
             : oldestDate;
-        lastDate = latestAllowedStartDate;
-        _earliestAllowedDate = firstDate;
+      }
 
-        if (initialDate.isBefore(firstDate)) {
-          initialDate = firstDate;
-        }
-        if (initialDate.isAfter(lastDate)) {
-          initialDate = lastDate;
+      lastDate = latestAllowedStartDate;
+      _earliestAllowedDate = firstDate;
+
+      if (_pinStartDate) {
+        final pinnedStartDate = _parseTextBoxDate(
+          _summaryStatisticTextInputBox.text.trim(),
+        );
+
+        if (pinnedStartDate != null) {
+          initialDate = pinnedStartDate;
+
+          if (initialDate.isBefore(firstDate)) {
+            initialDate = firstDate;
+          }
+
+          if (initialDate.isAfter(lastDate)) {
+            initialDate = lastDate;
+          }
         }
       }
     } catch (e, st) {
