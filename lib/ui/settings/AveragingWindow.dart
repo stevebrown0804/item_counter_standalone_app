@@ -783,32 +783,36 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
 
   Future<void> _pickDate() async {
     // Default range for the picker.  Seems "reasonable" <---sarcasm
+    final latestAllowedStartDate = _startDateFromDaysAgo(1);
     DateTime firstDate = DateTime(2000, 1, 1);
-    DateTime lastDate  = _todayDateOnly();
-    DateTime initialDate = _todayDateOnly();
+    DateTime lastDate = latestAllowedStartDate;
+    DateTime initialDate = latestAllowedStartDate;
 
     try {
       // Oldest transaction date in the currently-active time zone, truncated to Y-M-D.
       final oldestLocal = await _db.readOldestTransactionLocalDate();
       debugPrint('readOldestTransactionLocalDate -> $oldestLocal');
 
-      final today = _todayDateOnly();
-
       if (oldestLocal == null) {
-        // No transactions exist -> only allow selecting today
-        firstDate = today;
-        lastDate  = today;
-        initialDate = today;
-        _earliestAllowedDate = today;
+        // No transactions exist -> shortest allowable range is yesterday to today.
+        firstDate = latestAllowedStartDate;
+        lastDate = latestAllowedStartDate;
+        initialDate = latestAllowedStartDate;
+        _earliestAllowedDate = latestAllowedStartDate;
       } else {
         // At least one transaction exists-> do "this"  <---those are air quotes, btw
-        firstDate = DateTime(
+        final oldestDate = DateTime(
           oldestLocal.year,
           oldestLocal.month,
           oldestLocal.day,
         );
-        lastDate = today;
+
+        firstDate = oldestDate.isAfter(latestAllowedStartDate)
+            ? latestAllowedStartDate
+            : oldestDate;
+        lastDate = latestAllowedStartDate;
         _earliestAllowedDate = firstDate;
+
         if (initialDate.isBefore(firstDate)) {
           initialDate = firstDate;
         }
