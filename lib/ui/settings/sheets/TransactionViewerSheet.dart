@@ -5,17 +5,27 @@ part of '../../../main.dart';
 Future<DateTime?> _pickLocalDateTime(
     BuildContext context, {
       required tz.Location loc,
+      required DateTime firstDate,
+      required DateTime lastDate,
       DateTime? initialLocal,
     })
 async {
   final nowLocal = tz.TZDateTime.now(loc);
   final initial = initialLocal ?? nowLocal;
 
+  DateTime initialDate = DateTime(initial.year, initial.month, initial.day);
+  if (initialDate.isBefore(firstDate)) {
+    initialDate = firstDate;
+  }
+  if (initialDate.isAfter(lastDate)) {
+    initialDate = lastDate;
+  }
+
   final d = await showDatePicker(
     context: context,
-    initialDate: DateTime(initial.year, initial.month, initial.day),
-    firstDate: DateTime(2000),
-    lastDate: DateTime(2100),
+    initialDate: initialDate,
+    firstDate: firstDate,
+    lastDate: lastDate,
   );
   if (d == null) return null;
 
@@ -42,7 +52,7 @@ async {
   final loc = _AppDateLogic.locationOrUtc(tzName);
 
   _TxMode mode = _TxMode.today;
-  final lastDaysCtrl = TextEditingController(text: '7');
+  final lastDaysCtrl = TextEditingController();
   DateTime? startLocal;
   DateTime? endLocal;
 
@@ -51,6 +61,117 @@ async {
   bool filterNeedsApply = false;
   String? error;
   int? selectedIndex;
+
+  Future<DateTime?> readOldestTransactionDateOnly() async {
+    final oldestLocal = await db.readOldestTransactionLocalDate();
+    if (oldestLocal == null) {
+      return null;
+    }
+
+    return DateTime(
+      oldestLocal.year,
+      oldestLocal.month,
+      oldestLocal.day,
+    );
+  }
+
+  Future<int> readOldestTransactionDigitCountForLastDaysBox() async {
+    final oldestDate = await readOldestTransactionDateOnly();
+    if (oldestDate == null) {
+      return 1;
+    }
+
+    final daysAgo = _AppDateLogic.daysAgoFromDate(
+      date: oldestDate,
+      tzName: tzName,
+    );
+
+    final digitCount = daysAgo.toString().length;
+    return digitCount < 1 ? 1 : digitCount;
+  }
+
+  final oldestTransactionDateOnly = await readOldestTransactionDateOnly();
+  final todayDateOnly = _AppDateLogic.todayDateOnly(tzName);
+  final yesterdayDateOnly = _AppDateLogic.startDateFromDaysAgo(
+    daysAgo: 1,
+    tzName: tzName,
+  );
+
+  DateTime transactionViewerStartPickerFirstDate() {
+    final oldestDate = oldestTransactionDateOnly;
+    if (oldestDate == null) {
+      return yesterdayDateOnly;
+    }
+
+    if (oldestDate.isAfter(yesterdayDateOnly)) {
+      return yesterdayDateOnly;
+    }
+
+    return oldestDate;
+  }
+
+  DateTime transactionViewerStartPickerLastDate() {
+    return yesterdayDateOnly;
+  }
+
+  DateTime transactionViewerEndPickerFirstDate() {
+    final oldestDate = oldestTransactionDateOnly;
+    if (oldestDate == null) {
+      return todayDateOnly;
+    }
+
+    final oneDayAfterOldest = DateTime(
+      oldestDate.year,
+      oldestDate.month,
+      oldestDate.day + 1,
+    );
+
+    if (oneDayAfterOldest.isAfter(todayDateOnly)) {
+      return todayDateOnly;
+    }
+
+    return oneDayAfterOldest;
+  }
+
+  DateTime transactionViewerEndPickerLastDate() {
+    return todayDateOnly;
+  }
+
+  final lastDaysTextBoxDigitCount =
+  await readOldestTransactionDigitCountForLastDaysBox();
+
+  int? parseLastDaysInput() {
+    final raw = lastDaysCtrl.text.trim();
+    if (!RegExp(r'^[0-9]+$').hasMatch(raw)) {
+      return null;
+    }
+
+    return int.parse(raw);
+  }
+
+  Future<int?> oldestTransactionDaysAgo() async {
+    final oldestDate = await readOldestTransactionDateOnly();
+    if (oldestDate == null) {
+      return null;
+    }
+
+    return _AppDateLogic.daysAgoFromDate(
+      date: oldestDate,
+      tzName: tzName,
+    );
+  }
+
+  void setLastDaysText(int days) {
+    final text = days.toString();
+    lastDaysCtrl.value = TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: text.length),
+    );
+  }
+
+  bool lastDaysFilterIsValid() {
+    return parseLastDaysInput() != null;
+  }
 
   Future<void> runQuery() async {
     parentSetState(() {
@@ -69,8 +190,21 @@ async {
           break;
 
         case _TxMode.lastNDays:
-          final n = int.tryParse(lastDaysCtrl.text.trim());
-          final days = (n == null || n <= 0) ? 1 : n;
+          final requestedDays = parseLastDaysInput();
+          if (requestedDays == null) {
+            throw StateError('Enter a non-negative integer for Last # days.');
+          }
+
+          final effectiveRequestedDays = requestedDays == 0 ? 1 : requestedDays;
+          final oldestDays = await oldestTransactionDaysAgo();
+          final days = oldestDays == null || effectiveRequestedDays <= oldestDays
+              ? effectiveRequestedDays
+              : oldestDays;
+
+          if (days != requestedDays) {
+            setLastDaysText(days);
+          }
+
           items = await db.queryTransactionsLastNDays(days);
           break;
 
@@ -123,20 +257,67 @@ async {
 
           void markFilterNeedsApply() {
             ss(() {
-              filterNeedsApply = true;
+              filterNeedsApply = mode != _TxMode.lastNDays || lastDaysFilterIsValid();
             });
           }
 
           void setModeAndMarkFilterNeedsApply(_TxMode nextMode) {
             ss(() {
               mode = nextMode;
-              filterNeedsApply = true;
+              filterNeedsApply = mode != _TxMode.lastNDays || lastDaysFilterIsValid();
             });
           }
 
           String fmtLocal(DateTime? d) {
             if (d == null) return '';
             return _AppDateLogic.formatDashTimestampMinutes(d);
+          }
+
+          String endDateDisplayText() {
+            if (endLocal == null) {
+              return 'Today';
+            }
+
+            return fmtLocal(endLocal);
+          }
+
+          double measureTextWidth(String text, TextStyle? style) {
+            final painter = TextPainter(
+              text: TextSpan(
+                text: text,
+                style: style,
+              ),
+              textDirection: TextDirection.ltr,
+              textScaler: MediaQuery.textScalerOf(ctx),
+            )..layout();
+
+            return painter.width;
+          }
+
+          String widestDigit(TextStyle? style) {
+            var widest = '0';
+            var widestWidth = 0.0;
+
+            for (final digit in const <String>[
+              '0',
+              '1',
+              '2',
+              '3',
+              '4',
+              '5',
+              '6',
+              '7',
+              '8',
+              '9',
+            ]) {
+              final width = measureTextWidth(digit, style);
+              if (width > widestWidth) {
+                widestWidth = width;
+                widest = digit;
+              }
+            }
+
+            return widest;
           }
 
           Widget radioRow(_TxMode m, Widget trailing) => Row(
@@ -158,13 +339,47 @@ async {
             ],
           );
 
-          final applyFilterButton = filterNeedsApply
+          final inputStyle = Theme.of(ctx).textTheme.bodyMedium;
+          const horizontalContentPadding = 12.0;
+          const verticalContentPadding = 8.0;
+          const borderWidthPerSide = 1.0;
+          const extraInteriorSlack = 20.0;
+
+          final wd = widestDigit(inputStyle);
+          final widestLastDaysString = List<String>.filled(
+            lastDaysTextBoxDigitCount,
+            wd,
+          ).join();
+
+          final lastDaysTextWidth = measureTextWidth(
+            widestLastDaysString,
+            inputStyle,
+          );
+
+          final lastDaysTextBoxWidth =
+              lastDaysTextWidth +
+                  (horizontalContentPadding * 2) +
+                  (borderWidthPerSide * 2) +
+                  extraInteriorSlack;
+
+          final lastDaysInputDecoration = InputDecoration(
+            isDense: true,
+            border: const OutlineInputBorder(),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: horizontalContentPadding,
+              vertical: verticalContentPadding,
+            ),
+          );
+
+          final canApplyFilter = filterNeedsApply &&
+              !busy &&
+              (mode != _TxMode.lastNDays || lastDaysFilterIsValid());
+
+          final applyFilterButton = canApplyFilter
               ? FilledButton.icon(
             icon: const Icon(Icons.search),
             label: const Text('Apply filter'),
-            onPressed: busy
-                ? null
-                : () async {
+            onPressed: () async {
               FocusManager.instance.primaryFocus?.unfocus();
               await runQuery();
               ss(() {
@@ -230,13 +445,15 @@ async {
                           const Text('Last'),
                           const SizedBox(width: 8),
                           SizedBox(
-                            width: 56,
+                            width: lastDaysTextBoxWidth,
                             child: TextField(
                               controller: lastDaysCtrl,
                               keyboardType: TextInputType.number,
-                              decoration: const InputDecoration(
-                                  isDense: true,
-                                  border: OutlineInputBorder()),
+                              style: inputStyle,
+                              inputFormatters: <TextInputFormatter>[
+                                FilteringTextInputFormatter.digitsOnly,
+                              ],
+                              decoration: lastDaysInputDecoration,
                               onTap: () => setModeAndMarkFilterNeedsApply(
                                 _TxMode.lastNDays,
                               ),
@@ -289,6 +506,8 @@ async {
                                   await _pickLocalDateTime(
                                       context,
                                       loc: loc,
+                                      firstDate: transactionViewerStartPickerFirstDate(),
+                                      lastDate: transactionViewerStartPickerLastDate(),
                                       initialLocal:
                                       startLocal);
                                   if (picked == null) {
@@ -324,22 +543,17 @@ async {
                                           readOnly: true,
                                           controller:
                                           TextEditingController(
-                                              text: fmtLocal(
-                                                  endLocal)),
+                                              text: endDateDisplayText()),
+                                          style: endLocal == null
+                                              ? TextStyle(
+                                            color: Theme.of(ctx).hintColor,
+                                          )
+                                              : null,
                                           decoration:
-                                          InputDecoration(
+                                          const InputDecoration(
                                             isDense: true,
                                             border:
-                                            const OutlineInputBorder(),
-                                            hintText: fmtLocal(
-                                                startLocal)
-                                                .isEmpty
-                                                ? '— select date —'
-                                                : null,
-                                            hintStyle:
-                                            const TextStyle(
-                                                color: Colors
-                                                    .grey),
+                                            OutlineInputBorder(),
                                           ),
                                           onTap: () => setModeAndMarkFilterNeedsApply(
                                             _TxMode.range,
@@ -358,6 +572,8 @@ async {
                                       await _pickLocalDateTime(
                                           context,
                                           loc: loc,
+                                          firstDate: transactionViewerEndPickerFirstDate(),
+                                          lastDate: transactionViewerEndPickerLastDate(),
                                           initialLocal:
                                           endLocal);
                                       if (picked == null) {
