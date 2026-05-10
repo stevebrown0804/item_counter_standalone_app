@@ -1,21 +1,12 @@
 ---------------------------------------Public use--------------------------------------------------
 TODO (for 5/9/2026): Leave the start date pinned to 12/7/2026 (153 days ago)
-TODO (for 5/11/2026 or later): Watch the pinned start date; it was set to "12/7/2026" (and should stay there), and the duration-on-load (as the column header on the main screen) should read 155 days (or more, if we go a few days without working on the project).
+TODO (for 5/11/2026 or later): Watch the pinned start date; it was set to "12/7/2026" (and should stay there), and the duration-on-load (as the column header on the main screen) should read 155 days (assuming we resume on 5/11/2026; otherwise, adjust accordingly, please!).
 
 TODO (Waiting for keyboard input to reach the emulator again): Resume working on 'manually entered date string' stuff (if needed).
 
 TODO (When we're basically done with this pass): Ask ChatGPT to look over the current project files and identify remaining refactor candidates where logic is duplicated or should probably be centralized. Keep the answer short and prioritize only refactors likely to prevent bugs or reduce future code-edit friction.
+    REMINDER: If that TODO seems weirdly worded, keep in mind that ChatGPT wrote it.🤭
 
-
--------Transaction Viewer
-TODO: In the Transaction Viewer, let's either have the "Apply filter" button be lit up when any UI interaction takes place while would necessitate it being clicked before the new filter is changed, or just get rid of it.
-    Or both, and allow a setting to control which.  *shrug*
-
-TODO: In the Transaction Viewer, let's:
-    * Get rid of the '7' in the "last # days" box, either emptying that box or maybe replacing it with a (more useful imo) 2
-    * In the "to" box under the date range picker boxes, default to displaying a grayed-out "Today"
-
-TODO: The Transaction Viewer's state/end dates extend well beyond the range of existing transactions within the DB; let's trim down the allowable dates to ones that actually have transactions.
 
 
 -------DB importing
@@ -57,6 +48,47 @@ TODO (after adding a TZ alias-adding UI): "It's like a new-DB wizard, kinda"
     We'll also give the user a change to add some time zone aliases; specifics TBD.
 
 
+
+---------------------------------------
+Polishing
+
+*App-wide
+
+*Main screen
+
+*Settings sheet
+
+*Averaging Window area
+TODO: The mm and dd fields in the start date text box (and presumably the end date text box as well) have leading 0s again, which I don't really want.
+TODO: The "ENTER A VALID STRING😠" indicator while editing the pinned start date is awfully strict; let's relax it to not announce the result of the string's validity check until the user clicks save or the textbox otherwise loses focus.
+    *If the date string is invalid, Let's (1) announce it in a toast and (2) not save it yet.  (And keep the save button activated.)  Or maybe (1) auto-show a message over the textbox with a 'friendly-ish' message such as "12/0/2026" isn't a valid date", then (2) not save it yet.
+TODO: iirc the end date (eg. "Today") and a 'pinned end date' are stored separately; if they are, let's have toggling the "...and end date" switch alternative between Today and the previously-pinned end date.
+TODO: (Background) With the "Averaging window" textboxes, we're using TextPainter to determine the minimum interior width necessary to display things (assuming the longest possibly averaging window is 99999 days); thing is, it's producing widths wider than necessary.
+    (Actual TODO): Answer the question, "Is the font being used by TextPainter to make those measurements the same font that's actually used to render the elements and their contents?  "Not using the right font" seems like the kind of bonehead mistake ChatGPT might make."
+
+
+*Edit countable items sheet
+TODO: Intelligently collapse the display order values
+    For example, if we change a display order n to n+1 or higher, reduce the in-between row's display orders by one.  If we change a display order n to n-1 or lower, increase the in-between row's display orders by one.
+TODO: Add a confirmation to the delete button, eg. a dialog saying "This will delete # transactions, along with the item; proceed?" along with "Abort" and "Proceed" buttons.  If # is 0, we can probably skip this confirmation.
+    Also, add a checkbox to the settings sheet for "Skip confirmation when deleting items" or some-such.
+TODO: Make the rows & the "add row" button the scrollable region, so that the 'submit' button stays in place on-screen
+TODO: Make the textBox and the drop-down box the same vertical height
+TODO: Get rid of that light gray bar separating each row, or perhaps add some space between it and the controls it encloses, then add an exterior border so that we have a box around the scrollable region
+TODO: Answer the question, "Does closing the 'edit countable items' screen via the submit button look weird to you?  It looks slightly chaotic to me, which could probably be smoothed out -- unless it's being caused by something specific to the emulator or something."
+
+*code
+TODO: Try using TextPainter to get the maximum width of things like 2 (or possibly 3- or 4-) digit numbers and using that to determine the width of the input boxes.
+TODO: Man....there are a lot of hard-coded values in this code.  And every one of them makes me think, "How much will this suck for someone with an unusual desktop size/scaling factor/font/etc.?  c'mon now."
+    Anyhow, let's work on getting rid of hard-coded constants and replacing them with "formulas based on information from the OS."
+
+
+--"Do we still want to do this?" TODOs
+TODO (MAYBE): Make the Transaction Viewer sheet more compact
+    Maybe move the "last # days" radio onto the first row, compress the input boxes vertically, remove space between the "All" row and the "Apply filter" button, etc.
+
+
+
 ---------------------------------------
 Probably saving for the next pass
 
@@ -95,7 +127,7 @@ TODO: Add a "use timezones or do not....there is no try" (wording to be adjusted
     * On -- use the existing timezone functionality
     * Off -- hide the timezone-related stuff, I guess; just use UTC, but keep the specifics "as hidden as we can manage, without it becoming ridiculous"
 
-TODO (Lower priority): Item metadata
+TODO (Note: Still in the 'maybe' pile): Item metadata
     * Create a table to hold key/value pairs
     * Create a UI for defining those pairs
         * atm I'm thinking "one set of keys that applies to the entire item set" (...although that's making me think about ways to allow multiple item sets.🤔  we'll think about that later, though.)
@@ -121,49 +153,17 @@ TODO: UI minutiae
 
 
 ---------------------------------------
-Polishing
+Polishing (for the next pass)
 
 *App-wide
 TODO (Waiting for the UI minutiae interface to be started): Toast shape, duration and max. # of toasts displayed at once are configurable, so we should let the user configure them.
     * Those probably belong in the UI minutiae interface.
 
-*Main screen
-TODO: The home screen toasts are overlapping with the Add/Undo/Redo buttons; can we move them up a bit?
-
 *Settings sheet
-
-*Averaging Window area
-TODO: When a start date is currently pinned, can we change the active month of the date picker to show the current start date's month?  Seems like a nice thing to do.  And possibly some indication of that current state date being "current," like circling the date or something.
-TODO: The mm and dd fields in the start date text box (and presumably the end date text box as well) have leading 0s again, which I don't really want.
-TODO: The "ENTER A VALID STRING😠" indicator while editing the pinned start date is awfully strict; let's relax it to not announce the result of the string's validity check until the user clicks save or the textbox otherwise loses focus.
-    *If the date string is invalid, Let's (1) announce it in a toast and (2) not save it yet.  (And keep the save button activated.)  Or maybe (1) auto-show a message over the textbox with a 'friendly-ish' message such as "12/0/2026" isn't a valid date", then (2) not save it yet.
-TODO: iirc the end date (eg. "Today") and a 'pinned end date' are stored separately; if they are, let's have toggling the "...and end date" switch alternative between Today and the previously-pinned end date.
-TODO: (Background) With the "Averaging window" textboxes, we're using TextPainter to determine the minimum interior width necessary to display things (assuming the longest possibly averaging window is 99999 days); thing is, it's producing widths wider than necessary.
-    (Actual TODO): Answer the question, "Is the font being used by TextPainter to make those measurements the same font that's actually used to render the elements and their contents?  "Not using the right font" seems like the kind of bonehead mistake ChatGPT might make."
-TODO: The latest allowable date for start dates really ought to be "yesterday," rather than "today."  It's being compressed to a '1 day average' in the UI, but I dunno if it's actually doing that full day or what.  Either way, let's just make 'yesterday' the latest allowable date.
-
-*Edit countable items sheet
-TODO: Intelligently collapse the display order values
-    For example, if we change a display order n to n+1 or higher, reduce the in-between row's display orders by one.  If we change a display order n to n-1 or lower, increase the in-between row's display orders by one.
-TODO: Add a confirmation to the delete button, eg. a dialog saying "This will delete # transactions, along with the item; proceed?" along with "Abort" and "Proceed" buttons.  If # is 0, we can probably skip this confirmation.
-    Also, add a checkbox to the settings sheet for "Skip confirmation when deleting items" or some-such.
-TODO: Make the rows & the "add row" button the scrollable region, so that the 'submit' button stays in place on-screen
-TODO: Make the textBox and the drop-down box the same vertical height
-TODO: Get rid of that light gray bar separating each row, or perhaps add some space between it and the controls it encloses, then add an exterior border so that we have a box around the scrollable region
-TODO: Answer the question, "Does closing the 'edit countable items' screen via the submit button look weird to you?  It looks slightly chaotic to me, which could probably be smoothed out -- unless it's being caused by something specific to the emulator or something."
-
-*code
-TODO: Try using TextPainter to get the maximum width of things like 2 (or possibly 3- or 4-) digit numbers and using that to determine the width of the input boxes.
-TODO: Man....there are a lot of hard-coded values in this code.  And every one of them makes me think, "How much will this suck for someone with an unusual desktop size/scaling factor/font/etc.?  c'mon now."
-    Anyhow, let's work on getting rid of hard-coded constants and replacing them with "formulas based on information from the OS."
-
-
---Possibly out-of-date polishing TODOs
-TODO (MAYBE): Make the Transaction Viewer sheet more compact
-    Maybe move the "last # days" radio onto the first row, compress the input boxes vertically, remove space between the "All" row and the "Apply filter" button, etc.
-
 TODO (MAYBE): Let the user long-tap & drag them to rearrange the rows of the settings sheet
     *(5/5/2026): I still like the idea of UI customization, but I'm wondering if we should have a "UI editing mode" that shows controls on the sides of rows that can be long-tapped to do this kind of rearranging; they would then disappear when we end 'UI editing mode.'
+
+
 
 ---------------------------------------------------------------------------------------------------
 
