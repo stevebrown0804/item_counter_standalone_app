@@ -66,6 +66,7 @@ class _StackedToastController extends ChangeNotifier {
 class _StackedToastHost extends StatelessWidget {
   const _StackedToastHost({
     required this.controller,
+    this.lowerEdgeY,
   });
 
   static const double _outerPadding = 16.0;
@@ -76,57 +77,93 @@ class _StackedToastHost extends StatelessWidget {
   static const double _cornerRadius = 9999.0;
 
   final _StackedToastController controller;
+  final double? lowerEdgeY;
 
-  @override
-  Widget build(BuildContext context) {
-    return Positioned(
-      left: _outerPadding,
-      right: _outerPadding,
-      bottom: _outerPadding,
-      child: SafeArea(
-        top: false,
-        child: AnimatedBuilder(
-          animation: controller,
-          builder: (context, _) {
-            final entries = controller.entries;
+  double _bottomOffsetForConstraints(BoxConstraints constraints) {
+    final boundaryY = lowerEdgeY;
+    if (boundaryY == null) {
+      return _outerPadding;
+    }
 
-            if (entries.isEmpty) {
-              return const SizedBox.shrink();
-            }
+    final calculatedOffset = constraints.maxHeight - boundaryY;
+    if (calculatedOffset < 0) {
+      return 0;
+    }
 
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                for (final toast in entries)
-                  Padding(
-                    padding: const EdgeInsets.only(top: _gap),
-                    child: Align(
-                      alignment: Alignment.center,
-                      child: Material(
-                        elevation: _elevation,
-                        borderRadius: BorderRadius.circular(_cornerRadius),
-                        color: Theme.of(context).colorScheme.inverseSurface,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: _horizontalPadding,
-                            vertical: _verticalPadding,
-                          ),
-                          child: Text(
-                            toast.message,
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.onInverseSurface,
-                            ),
-                          ),
+    return calculatedOffset;
+  }
+
+  Widget _buildToastColumn(BuildContext context) {
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (context, _) {
+        final entries = controller.entries;
+
+        if (entries.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (final toast in entries)
+              Padding(
+                padding: const EdgeInsets.only(top: _gap),
+                child: Align(
+                  alignment: Alignment.center,
+                  child: Material(
+                    elevation: _elevation,
+                    borderRadius: BorderRadius.circular(_cornerRadius),
+                    color: Theme.of(context).colorScheme.inverseSurface,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: _horizontalPadding,
+                        vertical: _verticalPadding,
+                      ),
+                      child: Text(
+                        toast.message,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onInverseSurface,
                         ),
                       ),
                     ),
                   ),
-              ],
-            );
-          },
-        ),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned.fill(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final bottomOffset = _bottomOffsetForConstraints(constraints);
+
+          return IgnorePointer(
+            child: Padding(
+              padding: EdgeInsets.only(
+                left: _outerPadding,
+                right: _outerPadding,
+                bottom: bottomOffset,
+              ),
+              child: Align(
+                alignment: Alignment.bottomCenter,
+                child: lowerEdgeY == null
+                    ? SafeArea(
+                  top: false,
+                  child: _buildToastColumn(context),
+                )
+                    : _buildToastColumn(context),
+              ),
+            ),
+          );
+        },
       ),
     );
   }

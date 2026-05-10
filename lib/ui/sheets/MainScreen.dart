@@ -31,6 +31,9 @@ class _MainScreenState extends State<_MainScreen> with WidgetsBindingObserver {
   String? _rhsHeaderTemplate;
 
   final _homeToastController = _StackedToastController();
+  final GlobalKey _bodyStackKey = GlobalKey();
+  final GlobalKey _floatingButtonRegionKey = GlobalKey();
+  double? _homeToastLowerEdgeY;
 
   Future<void> _loadActiveTzDisplay() async {
     final s = await _db.readActiveTzAliasString();
@@ -88,6 +91,45 @@ class _MainScreenState extends State<_MainScreen> with WidgetsBindingObserver {
     } catch (e) {
       debugPrint('Failed to load last-added banner: $e');
     }
+  }
+
+  void _measureHomeToastLowerEdgeAfterLayout() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+
+      final bodyContext = _bodyStackKey.currentContext;
+      final buttonRegionContext = _floatingButtonRegionKey.currentContext;
+
+      if (bodyContext == null || buttonRegionContext == null) {
+        return;
+      }
+
+      final bodyRenderObject = bodyContext.findRenderObject();
+      final buttonRegionRenderObject = buttonRegionContext.findRenderObject();
+
+      if (bodyRenderObject is! RenderBox) {
+        throw StateError('Home body Stack render object was not a RenderBox.');
+      }
+
+      if (buttonRegionRenderObject is! RenderBox) {
+        throw StateError('Floating button region render object was not a RenderBox.');
+      }
+
+      final bodyTopGlobal = bodyRenderObject.localToGlobal(Offset.zero).dy;
+      final buttonRegionTopGlobal =
+          buttonRegionRenderObject.localToGlobal(Offset.zero).dy;
+      final measuredLowerEdgeY = buttonRegionTopGlobal - bodyTopGlobal;
+
+      if (_homeToastLowerEdgeY == measuredLowerEdgeY) {
+        return;
+      }
+
+      setState(() {
+        _homeToastLowerEdgeY = measuredLowerEdgeY;
+      });
+    });
   }
 
   void showHomeToast(String message) {
@@ -274,6 +316,8 @@ class _MainScreenState extends State<_MainScreen> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    _measureHomeToastLowerEdgeAfterLayout();
+
     final titleDays = _store.days;
     final averageWindowTooltip = _store.averageWindowTooltip;
     final rhsHeaderText = (_rhsHeaderTemplate ?? 'Avg. ({days} day(s))')
@@ -493,15 +537,20 @@ class _MainScreenState extends State<_MainScreen> with WidgetsBindingObserver {
         ],
       ),
       body: Stack(
+        key: _bodyStackKey,
         children: [
           Positioned.fill(
             child: mainBody,
           ),
-          _StackedToastHost(controller: _homeToastController),
+          _StackedToastHost(
+            controller: _homeToastController,
+            lowerEdgeY: _homeToastLowerEdgeY,
+          ),
         ],
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: Row(
+        key: _floatingButtonRegionKey,
         mainAxisSize: MainAxisSize.min,
         children: [
           AnimatedBuilder(
