@@ -46,6 +46,11 @@ TODO (POSSIBLY OUT-OF-DATE; NEEDS CLARIFICATION): Time-zone specifying
 TODO (after adding a TZ alias-adding UI): "It's like a new-DB wizard, kinda"
     When a DB's items table is empty, replace the 'add' button on the home screen with an 'add items' button, which brings up the 'edit countable items' sheet.
     We'll also give the user a change to add some time zone aliases; specifics TBD.
+    How about this:
+        Check to see if the TZ aliases table only contains the default ones.  If it does:
+            *Ask the user if they'd like to use time zones. If no, skip this.  If yes:
+                *Bring up the TZ alias editor window.
+        Once we're done (ie. the user clicks 'submit' in the TZ alias window or something), proceed to the usual home screen (with the add/undo/redo buttons in-place).
 
 
 
