@@ -1,3 +1,5 @@
+// /ui/settings/sheets/TransactionViewerSheet.dart
+
 part of '../../../main.dart';
 
 Future<DateTime?> _pickLocalDateTime(
@@ -46,6 +48,7 @@ async {
 
   List<_TxRow> items = [];
   bool busy = false;
+  bool filterNeedsApply = false;
   String? error;
   int? selectedIndex;
 
@@ -90,6 +93,8 @@ async {
           items = await db.queryTransactionsAll();
           break;
       }
+
+      filterNeedsApply = false;
     } catch (ex) {
       error = ex.toString();
     } finally {
@@ -116,6 +121,19 @@ async {
             if (parentMounted()) setSheetState(f);
           }
 
+          void markFilterNeedsApply() {
+            ss(() {
+              filterNeedsApply = true;
+            });
+          }
+
+          void setModeAndMarkFilterNeedsApply(_TxMode nextMode) {
+            ss(() {
+              mode = nextMode;
+              filterNeedsApply = true;
+            });
+          }
+
           String fmtLocal(DateTime? d) {
             if (d == null) return '';
             return _AppDateLogic.formatDashTimestampMinutes(d);
@@ -127,13 +145,38 @@ async {
               Radio<_TxMode>(
                 value: m,
                 groupValue: mode,
-                onChanged: (v) => ss(() {
-                  mode = v!;
-                }),
+                onChanged: (v) {
+                  if (v == null) {
+                    return;
+                  }
+
+                  setModeAndMarkFilterNeedsApply(v);
+                },
               ),
               const SizedBox(width: 4),
               Expanded(child: trailing),
             ],
+          );
+
+          final applyFilterButton = filterNeedsApply
+              ? FilledButton.icon(
+            icon: const Icon(Icons.search),
+            label: const Text('Apply filter'),
+            onPressed: busy
+                ? null
+                : () async {
+              FocusManager.instance.primaryFocus?.unfocus();
+              await runQuery();
+              ss(() {
+                // Clear any selected transaction after applying a new filter.
+                selectedIndex = null;
+              });
+            },
+          )
+              : ElevatedButton.icon(
+            icon: const Icon(Icons.search),
+            label: const Text('Apply filter'),
+            onPressed: null,
           );
 
           return SafeArea(
@@ -170,7 +213,9 @@ async {
                             ? null
                             : () async {
                           await runQuery();
-                          ss(() {});
+                          ss(() {
+                            selectedIndex = null;
+                          });
                         },
                       ),
                     ],
@@ -192,9 +237,10 @@ async {
                               decoration: const InputDecoration(
                                   isDense: true,
                                   border: OutlineInputBorder()),
-                              onTap: () => ss(() {
-                                mode = _TxMode.lastNDays;
-                              }),
+                              onTap: () => setModeAndMarkFilterNeedsApply(
+                                _TxMode.lastNDays,
+                              ),
+                              onChanged: (_) => markFilterNeedsApply(),
                             ),
                           ),
                           const SizedBox(width: 8),
@@ -228,25 +274,29 @@ async {
                                     hintStyle: const TextStyle(
                                         color: Colors.grey),
                                   ),
-                                  onTap: () => ss(() {
-                                    mode = _TxMode.range;
-                                  }),
+                                  onTap: () => setModeAndMarkFilterNeedsApply(
+                                    _TxMode.range,
+                                  ),
                                 ),
                               ),
                               const SizedBox(width: 8),
                               TextButton(
                                 onPressed: () async {
-                                  ss(() {
-                                    mode = _TxMode.range;
-                                  });
+                                  setModeAndMarkFilterNeedsApply(
+                                    _TxMode.range,
+                                  );
                                   final picked =
                                   await _pickLocalDateTime(
                                       context,
                                       loc: loc,
                                       initialLocal:
                                       startLocal);
+                                  if (picked == null) {
+                                    return;
+                                  }
                                   ss(() {
                                     startLocal = picked;
+                                    filterNeedsApply = true;
                                   });
                                 },
                                 child:
@@ -291,10 +341,9 @@ async {
                                                 color: Colors
                                                     .grey),
                                           ),
-                                          onTap: () => ss(() {
-                                            mode =
-                                                _TxMode.range;
-                                          }),
+                                          onTap: () => setModeAndMarkFilterNeedsApply(
+                                            _TxMode.range,
+                                          ),
                                         ),
                                       ],
                                     ),
@@ -302,17 +351,21 @@ async {
                                   const SizedBox(width: 4),
                                   TextButton(
                                     onPressed: () async {
-                                      ss(() {
-                                        mode = _TxMode.range;
-                                      });
+                                      setModeAndMarkFilterNeedsApply(
+                                        _TxMode.range,
+                                      );
                                       final picked =
                                       await _pickLocalDateTime(
                                           context,
                                           loc: loc,
                                           initialLocal:
                                           endLocal);
+                                      if (picked == null) {
+                                        return;
+                                      }
                                       ss(() {
                                         endLocal = picked;
+                                        filterNeedsApply = true;
                                       });
                                     },
                                     child:
@@ -329,20 +382,7 @@ async {
                   radioRow(_TxMode.all, const Text('All')),
                   Align(
                     alignment: Alignment.center,
-                    child: ElevatedButton.icon(
-                      icon: const Icon(Icons.search),
-                      label: const Text('Apply filter'),
-                      onPressed: busy
-                          ? null
-                          : () async {
-                        FocusManager.instance.primaryFocus?.unfocus();
-                        await runQuery();
-                        ss(() {
-                          // Clear any selected transaction after applying a new filter.
-                          selectedIndex = null;
-                        });
-                      },
-                    ),
+                    child: applyFilterButton,
                   ),
                   const SizedBox(height: 8),
                   const Divider(height: 1),
@@ -407,7 +447,7 @@ async {
                                 final highlightColor = Theme.of(ctx)
                                     .colorScheme
                                     .primary
-                                    .withOpacity(0.08);
+                                    .withValues(alpha: 0.08);
 
                                 return InkWell(
                                   onTap: () => ss(() {
