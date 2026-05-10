@@ -36,7 +36,14 @@ Phase 2, where I make the app more accessible to others
   * A duration (eg. 30 days)
   * A fixed start date, up until 'today' (so the duration grows each day), or
   * A fixed date window (eg. 12/7/2025 through 3/9/2026), if you're into that sort of thing.
+* 2025-05-09 Let's see, what did we do since the last bullet point...🤔 pretty sure we kept working on the "Averaging Window" area of the settings sheet, consolidated the date range computation logic, polished the Transaction Viewer sheet a bit....and possibly other stuff that's not coming to mind.
 
+Anyhow, I have four more categories of TODOs before I think I'll consider this a proper alpha release (and try out having github host an .apk file and all that):
+* Improve the 'database file import' process
+* Add a DB migration from the older DB format to the current one
+* Create a UI for defining/editing time zone aliases
+* Create a wizard for when the app is first started, to have the user add coutable items and (optionally) time zones.
+  
 ---
 
 ### FAQ!  
@@ -47,6 +54,9 @@ A) I was using a spreadsheet to take daily averages of the # of pills I took eac
 And here's that app!
 
 btw I use those daily averages to project when my current supply of pills will run out, to make sure I take enough pills with me when I travel, etc.
+
+Q) Who are you?  
+A) Just some hobbyist, by which I mean I've never programmed for a paycheck.  Lately AI has gotten pretty good at generating code, and I've found rekindled interest in making the most of that.
 
 Q) Do you accept tips?  
 A) Yep! https://ko-fi.com/stevebrown0804
