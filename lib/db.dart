@@ -47,7 +47,11 @@ class _Db {
           await _ensureSchema(db);
         },
       );
+
+      await _ensureSchema(opened);
+      await _migrateExistingDatabaseSchema(opened);
       await _ensurePostOpenDefaults(opened);
+
       _sharedDb = opened;
       return opened;
     });

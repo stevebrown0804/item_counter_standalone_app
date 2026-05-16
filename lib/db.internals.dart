@@ -164,6 +164,233 @@ LIMIT 1
     );
   }
 
+  //DB migration functions
+
+  Future<void> _migrateExistingDatabaseSchema(Database db) async {
+    final migrationNeeded = await _currentSchemaTextMigrationNeeded(db);
+    if (!migrationNeeded) {
+      return;
+    }
+
+    await _assertItemsDisplayOrderCanBecomeUnique(db);
+
+    await db.execute('PRAGMA foreign_keys = OFF');
+
+    try {
+      await db.transaction((txn) async {
+        await _dropLegacyDerivedViewsForSchemaMigration(txn);
+        await _dropSchemaMigrationBackupTables(txn);
+
+        await txn.execute('''
+CREATE TABLE items__schema_migration_backup AS
+SELECT id, display_string, display_order, show_item
+FROM items
+''');
+
+        await txn.execute('''
+CREATE TABLE item_transactions__schema_migration_backup AS
+SELECT id, item_id, quantity, timestamp_utc
+FROM item_transactions
+''');
+
+        await txn.execute('''
+CREATE TABLE time_zone_aliases__schema_migration_backup AS
+SELECT id, alias, iana_tz_name
+FROM time_zone_aliases
+''');
+
+        await txn.execute('''
+CREATE TABLE logical_batch_items__schema_migration_backup AS
+SELECT id, batch_id, transaction_id, item_id, quantity, timestamp_utc
+FROM logical_batch_items
+''');
+
+        await txn.execute('DROP TABLE logical_batch_items');
+        await txn.execute('DROP TABLE item_transactions');
+        await txn.execute('DROP TABLE time_zone_aliases');
+        await txn.execute('DROP TABLE items');
+
+        await txn.execute('''
+CREATE TABLE items (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    display_string  TEXT UNIQUE NOT NULL,
+    display_order   INTEGER UNIQUE,
+    show_item       INTEGER NOT NULL DEFAULT (1)
+)
+''');
+
+        await txn.execute('''
+CREATE TABLE item_transactions (
+    id            INTEGER  PRIMARY KEY,
+    item_id       INTEGER  NOT NULL,
+    quantity      INTEGER  NOT NULL CHECK (quantity > 0),
+    timestamp_utc DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (item_id) REFERENCES items (id)
+)
+''');
+
+        await txn.execute('''
+CREATE TABLE time_zone_aliases (
+    id           INTEGER PRIMARY KEY,
+    alias        TEXT NOT NULL UNIQUE,
+    iana_tz_name TEXT NOT NULL
+)
+''');
+
+        await txn.execute('''
+CREATE TABLE logical_batch_items (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    batch_id       INTEGER NOT NULL,
+    transaction_id INTEGER NOT NULL,
+    item_id        INTEGER NOT NULL,
+    quantity       INTEGER NOT NULL,
+    timestamp_utc  DATETIME NOT NULL,
+    FOREIGN KEY (batch_id) REFERENCES logical_batches(id)
+)
+''');
+
+        await txn.execute('''
+INSERT INTO items (id, display_string, display_order, show_item)
+SELECT id, display_string, display_order, show_item
+FROM items__schema_migration_backup
+ORDER BY id
+''');
+
+        await txn.execute('''
+INSERT INTO item_transactions (id, item_id, quantity, timestamp_utc)
+SELECT id, item_id, quantity, timestamp_utc
+FROM item_transactions__schema_migration_backup
+ORDER BY id
+''');
+
+        await txn.execute('''
+INSERT INTO time_zone_aliases (id, alias, iana_tz_name)
+SELECT id, alias, iana_tz_name
+FROM time_zone_aliases__schema_migration_backup
+ORDER BY id
+''');
+
+        await txn.execute('''
+INSERT INTO logical_batch_items (id, batch_id, transaction_id, item_id, quantity, timestamp_utc)
+SELECT id, batch_id, transaction_id, item_id, quantity, timestamp_utc
+FROM logical_batch_items__schema_migration_backup
+ORDER BY id
+''');
+
+        await _dropSchemaMigrationBackupTables(txn);
+      });
+    } finally {
+      await db.execute('PRAGMA foreign_keys = ON');
+    }
+
+    final foreignKeyProblems = await db.rawQuery('PRAGMA foreign_key_check');
+    if (foreignKeyProblems.isNotEmpty) {
+      throw StateError(
+        'Foreign key check failed after schema migration: $foreignKeyProblems',
+      );
+    }
+  }
+
+  Future<bool> _currentSchemaTextMigrationNeeded(Database db) async {
+    final expectedSqlByTableName = <String, String>{
+      'items': '''
+CREATE TABLE items (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    display_string  TEXT UNIQUE NOT NULL,
+    display_order   INTEGER UNIQUE,
+    show_item       INTEGER NOT NULL DEFAULT (1)
+)
+''',
+      'item_transactions': '''
+CREATE TABLE item_transactions (
+    id            INTEGER  PRIMARY KEY,
+    item_id       INTEGER  NOT NULL,
+    quantity      INTEGER  NOT NULL CHECK (quantity > 0),
+    timestamp_utc DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (item_id) REFERENCES items (id)
+)
+''',
+      'time_zone_aliases': '''
+CREATE TABLE time_zone_aliases (
+    id           INTEGER PRIMARY KEY,
+    alias        TEXT NOT NULL UNIQUE,
+    iana_tz_name TEXT NOT NULL
+)
+''',
+      'logical_batch_items': '''
+CREATE TABLE logical_batch_items (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    batch_id       INTEGER NOT NULL,
+    transaction_id INTEGER NOT NULL,
+    item_id        INTEGER NOT NULL,
+    quantity       INTEGER NOT NULL,
+    timestamp_utc  DATETIME NOT NULL,
+    FOREIGN KEY (batch_id) REFERENCES logical_batches(id)
+)
+''',
+    };
+
+    for (final entry in expectedSqlByTableName.entries) {
+      final rows = await db.rawQuery(
+        '''
+SELECT sql
+FROM sqlite_master
+WHERE type = 'table'
+  AND name = ?1
+LIMIT 1
+''',
+        [entry.key],
+      );
+
+      if (rows.isEmpty || rows.first['sql'] == null) {
+        throw StateError('Required table ${entry.key} is missing.');
+      }
+
+      final actualSql = rows.first['sql'].toString();
+      final expectedSql = entry.value;
+
+      if (_normalizeSchemaSql(actualSql) != _normalizeSchemaSql(expectedSql)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  Future<void> _assertItemsDisplayOrderCanBecomeUnique(Database db) async {
+    final duplicateRows = await db.rawQuery(
+      '''
+SELECT display_order, COUNT(*) AS duplicate_count
+FROM items
+WHERE display_order IS NOT NULL
+GROUP BY display_order
+HAVING COUNT(*) > 1
+LIMIT 1
+''',
+    );
+
+    if (duplicateRows.isNotEmpty) {
+      throw StateError(
+        'Cannot migrate items.display_order to UNIQUE because duplicate display_order values exist: $duplicateRows',
+      );
+    }
+  }
+
+  Future<void> _dropLegacyDerivedViewsForSchemaMigration(DatabaseExecutor db) async {
+    await db.execute('DROP VIEW IF EXISTS "Transactions_(Mtn Time)"');
+    await db.execute('DROP VIEW IF EXISTS daily_avg_by_pill_UTC');
+    await db.execute('DROP VIEW IF EXISTS logged_days');
+  }
+
+  Future<void> _dropSchemaMigrationBackupTables(DatabaseExecutor db) async {
+    await db.execute('DROP TABLE IF EXISTS logical_batch_items__schema_migration_backup');
+    await db.execute('DROP TABLE IF EXISTS time_zone_aliases__schema_migration_backup');
+    await db.execute('DROP TABLE IF EXISTS item_transactions__schema_migration_backup');
+    await db.execute('DROP TABLE IF EXISTS items__schema_migration_backup');
+  }
+
+  //end DB migration functions
+
   Future<int> _computeEffectiveAveragingWindowDaysFromDb(Database db) async {
     final range = await _computeEffectiveAveragingWindowRangeFromDb(db);
     return range.days;
