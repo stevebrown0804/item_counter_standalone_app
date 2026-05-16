@@ -1,7 +1,4 @@
 ---------------------------------------Public use--------------------------------------------------
-TODO (for 5/9/2026): Leave the start date pinned to 12/7/2026 (153 days ago)
-TODO (for 5/11/2026 or later): Watch the pinned start date; it was set to "12/7/2026" (and should stay there), and the duration-on-load (as the column header on the main screen) should read 155 days (assuming we resume on 5/11/2026; otherwise, adjust accordingly, please!).
-
 TODO (Waiting for keyboard input to reach the emulator again): Resume working on 'manually entered date string' stuff (if needed).
 
 TODO (When we're basically done with this pass): Ask ChatGPT to look over the current project files and identify remaining refactor candidates where logic is duplicated or should probably be centralized. Keep the answer short and prioritize only refactors likely to prevent bugs or reduce future code-edit friction.
@@ -16,15 +13,6 @@ TODO re: Database importing:
     * For the time being, the app's going to enforce "only import (item transactions / settings) if (items / time zones) (respectively) is imported;" we should communicate this somewhere, so as not to overly-aggravate those trying to import one table, then import the 2nd table in a later operation.
     * Whatever directory the "import DB" file picker starts in, we should also communicate that directory that is (to reduce guesswork about where best to place a DB file).
         *FOR THE TIME BEING: We could just communciate this via the readme or something.  That'll get the job done, I think.
-
-
--------Generating a migration
-TODO (Just before trying to install the dev. version onto our phone): Give ChatGPT a DB exported from the version running out our phone and a copy of the db.*.dart files, and tell it to generate a migration.
-    * Run the (debug version, on the emulator) app with that DB file in-place and see if it brings it up-to-date with the current schema.
-    * Assuming it does, then I ~think~ that means we can deploy versions-in-development to our phone, with confidence that the app will bring the DB up to speed.
-    FOLLOW-UP: I did a preliminary version of this where I just pasted in an existing DB file and the db.*.dart files and asked if there were differences, of which there were 2:
-        * some missing rows (date pinning-related) in the settings table
-        * a uniqueness contraints on the items.display_order field
 
 
 -------Time-zone alias UI
