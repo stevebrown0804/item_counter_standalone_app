@@ -5,6 +5,10 @@ TODO (When we're basically done with this pass): Ask ChatGPT to look over the cu
     REMINDER: If that TODO seems weirdly worded, keep in mind that ChatGPT wrote it.🤭
 
 
+-------Bugs
+TODO: I added some pills on my phone, but they didn't show up on the main screen until I'd refreshed it (by bringing up the settings sheet then closing that, iirc).  Sounds like we need to add an invalidation step to the lastest "add pills" button handler, or something along those lines.
+
+
 -------Time-zone alias UI
 TODO (POSSIBLY OUT-OF-DATE; NEEDS CLARIFICATION): Time-zone specifying
     * Add a "Specify time zone by alias" checkbox  <---4/21/26 Where, exactly?🤨 Settings sheet?
