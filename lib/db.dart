@@ -1057,6 +1057,9 @@ ORDER BY
           );
         }
       });
+
+      await _migrateExistingDatabaseSchema(liveDb);
+      await _ensurePostOpenDefaults(liveDb);
     } finally {
       if (candidateDb != null) {
         await candidateDb.close();
