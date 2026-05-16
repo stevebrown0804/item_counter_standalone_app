@@ -196,6 +196,14 @@ ORDER BY CAST(display_order AS INTEGER), id
     });
   }
 
+  Future<double> readAveragingWindowElapsedDays() async {
+    return _timed('readAveragingWindowElapsedDays()', () async {
+      final db = await open();
+      final range = await _computeEffectiveAveragingWindowRangeFromDb(db);
+      return range.averageDenominatorDays;
+    });
+  }
+
   Future<void> setAveragingWindowDays(int days) async {
     if (days <= 0) {
       throw ArgumentError('days must be > 0');
@@ -405,7 +413,7 @@ LIMIT 1
       final db = await open();
       final range = await _computeEffectiveAveragingWindowRangeFromDb(db);
 
-      if (range.days == 0) {
+      if (range.averageDenominatorDays <= 0) {
         final rows = await db.rawQuery(
           '''
 SELECT id, display_string
@@ -436,7 +444,7 @@ WHERE COALESCE(p.show_item, 1) != 0
 GROUP BY p.id, p.display_string, display_order
 ORDER BY display_order, p.id
 ''',
-        [range.startUtc, range.endUtc, range.days],
+        [range.startUtc, range.endUtc, range.averageDenominatorDays],
       );
 
       return rows.map((row) {

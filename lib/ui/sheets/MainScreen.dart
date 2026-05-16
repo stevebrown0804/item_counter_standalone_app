@@ -318,10 +318,8 @@ class _MainScreenState extends State<_MainScreen> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     _measureHomeToastLowerEdgeAfterLayout();
 
-    final titleDays = _store.days;
     final averageWindowTooltip = _store.averageWindowTooltip;
-    final rhsHeaderText = (_rhsHeaderTemplate ?? 'Avg. ({days} day(s))')
-        .replaceAll('{days}', titleDays.toString());
+    final rhsHeaderText = _store.averageWindowHeaderText;
 
     final mainBody = _loading
         ? const Center(child: CircularProgressIndicator())

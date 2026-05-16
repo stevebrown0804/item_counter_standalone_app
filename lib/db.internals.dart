@@ -396,11 +396,15 @@ LIMIT 1
     return range.days;
   }
 
-  Future<({int days, String startUtc, String endUtc})> _computeEffectiveAveragingWindowRangeFromDb(Database db) async {
+  Future<({int days, double averageDenominatorDays, String startUtc, String endUtc})> _computeEffectiveAveragingWindowRangeFromDb(Database db) async {
+    const secondsPerDay = Duration.secondsPerDay;
+    const minimumElapsedSeconds = 1;
+
     final settings = await _readDailyAverageSettingsFromDb(db);
     final tzName = await _activeTzNameOrUtcFromDb(db);
     final loc = _AppDateLogic.locationOrUtc(tzName);
     final today = _AppDateLogic.todayDateOnly(tzName);
+    final nowLocal = tz.TZDateTime.now(loc);
 
     DateTime startDate;
     if (settings.pinStartDate) {
@@ -432,6 +436,36 @@ LIMIT 1
       endDate: endDate,
     );
 
+    final startLocal = tz.TZDateTime(
+      loc,
+      startDate.year,
+      startDate.month,
+      startDate.day,
+    );
+
+    late final tz.TZDateTime rangeEndLocalExclusive;
+    late final tz.TZDateTime averageDenominatorEndLocal;
+
+    if (endDate.isBefore(today)) {
+      final endExclusiveDate = endDate.add(const Duration(days: 1));
+      rangeEndLocalExclusive = tz.TZDateTime(
+        loc,
+        endExclusiveDate.year,
+        endExclusiveDate.month,
+        endExclusiveDate.day,
+      );
+      averageDenominatorEndLocal = rangeEndLocalExclusive;
+    } else {
+      rangeEndLocalExclusive = nowLocal;
+      averageDenominatorEndLocal = nowLocal;
+    }
+
+    final elapsedSeconds =
+        averageDenominatorEndLocal.difference(startLocal).inSeconds;
+    final safeElapsedSeconds =
+    elapsedSeconds < minimumElapsedSeconds ? minimumElapsedSeconds : elapsedSeconds;
+    final averageDenominatorDays = safeElapsedSeconds / secondsPerDay;
+
     debugPrint(
       '[AVG-RANGE] tzName=$tzName, '
           'today=${_AppDateLogic.formatSlashDate(today)}, '
@@ -440,33 +474,20 @@ LIMIT 1
           'pinStartDate=${settings.pinStartDate}, '
           'pinEndDate=${settings.pinEndDate}, '
           'storedNumberOfDaysAgo=${settings.numberOfDaysAgo}, '
-          'computedDays=$days',
-    );
-
-    final startLocal = tz.TZDateTime(
-      loc,
-      startDate.year,
-      startDate.month,
-      startDate.day,
-    );
-
-    final endExclusiveDate = endDate.add(const Duration(days: 1));
-    final endLocalExclusive = tz.TZDateTime(
-      loc,
-      endExclusiveDate.year,
-      endExclusiveDate.month,
-      endExclusiveDate.day,
+          'displayDays=$days, '
+          'averageDenominatorDays=$averageDenominatorDays',
     );
 
     debugPrint(
       '[AVG-RANGE] startUtc=${_formatDbTimestamp(startLocal.toUtc())}, '
-          'endUtc=${_formatDbTimestamp(endLocalExclusive.toUtc())}',
+          'endUtc=${_formatDbTimestamp(rangeEndLocalExclusive.toUtc())}',
     );
 
     return (
     days: days,
+    averageDenominatorDays: averageDenominatorDays,
     startUtc: _formatDbTimestamp(startLocal.toUtc()),
-    endUtc: _formatDbTimestamp(endLocalExclusive.toUtc()),
+    endUtc: _formatDbTimestamp(rangeEndLocalExclusive.toUtc()),
     );
   }
 

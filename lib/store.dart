@@ -2,23 +2,57 @@ part of 'main.dart';
 
 class _Store extends ChangeNotifier {
   _Store(this._db);
+
+  static const double _singleDayDisplayThreshold = 1.0;
+  static const double _integerDayDisplayThreshold = 7.0;
+
   final _Db _db;
   final List<_AvgRow> _rows = [];
   UnmodifiableListView<_AvgRow> get rows => UnmodifiableListView(_rows);
+
   int _days = 0;
   int get days => _days;
+
+  double _averageWindowElapsedDays = 0.0;
+  double get averageWindowElapsedDays => _averageWindowElapsedDays;
+
   String? _averageWindowTooltip;
   String? get averageWindowTooltip => _averageWindowTooltip;
+
   List<_Item> _items = const [];
   UnmodifiableListView<_Item> get items => UnmodifiableListView(_items);
+
   _Tz? _activeTz;
   _Tz get activeTz => _activeTz ?? _Tz('UTC', 'UTC');   //UTC is the fallback
 
   // Undo/redo uses 'batch tokens,' which are provided by the Rust backend
   final List<String> _undoTokens = [];
   bool get canUndo => _undoTokens.isNotEmpty;
+
   final List<String> _redoTokens = [];
   bool get canRedo => _redoTokens.isNotEmpty;
+
+  String get averageWindowDisplayText {
+    final days = _averageWindowElapsedDays;
+
+    if (days < _singleDayDisplayThreshold) {
+      return '${days.toStringAsFixed(2)} days';
+    }
+
+    if (days <= _singleDayDisplayThreshold) {
+      return '${days.toStringAsFixed(1)} day';
+    }
+
+    if (days < _integerDayDisplayThreshold) {
+      return '${days.toStringAsFixed(1)} days';
+    }
+
+    return '${days.floor()} days';
+  }
+
+  String get averageWindowHeaderText {
+    return 'Avg. ($averageWindowDisplayText)';
+  }
 
   void clearUndoRedo() {
     _undoTokens.clear();
@@ -63,6 +97,7 @@ class _Store extends ChangeNotifier {
     _activeTz = await _db.readActiveTz() ?? _Tz('UTC', 'UTC');
     final averageSettings = await _db.readDailyAverageSettings();
     _days = await _db.readAveragingWindowDays();
+    _averageWindowElapsedDays = await _db.readAveragingWindowElapsedDays();
     _averageWindowTooltip = _AppDateLogic.buildAverageWindowTooltip(
       averageSettings,
       activeTz.tzName,
