@@ -38,6 +38,10 @@ TODO re: Database importing:
         *FOR THE TIME BEING: We could just communciate this via the readme or something.  That'll get the job done, I think.
 
 
+-------App signing
+TODO: Edit android/app/build.gradle.kts to give the app a signing key (other than just the debug key, which changed when we bought a new laptop a few months ago, forcing us to uninstall and re-install the app on our phone -- which is ok, since we can export the DB and re-import it in the newly-installed version -- but IMAGINE IF WE COULDN'T! =o )
+
+
 
 ---------------------------------------
 Polishing
@@ -45,14 +49,21 @@ Polishing
 *App-wide
 
 *Main screen
+TODO (MAYBE): That "last added" banner at the top of the screen holds a string of what was last added; we might change the pill names to placeholder populated by the current display string for that pill, as set by the 'edit countable items' interface.  That way, if the user renames the item, that banner would reflect it.
 
 *Settings sheet
+TODO: Add a slider for "interval length to start ignoring decimal part."  slider, maybe: 1 to 31, then [maximum length] (for any number beyond 31).
+    A though: This seems like a "UI minutiae" thing
+TODO: Use the indicator light for every control/setting on the settings sheet...or at least consider how we MIGHT use it.  eg. with transaction viewer, if someone just views transactions, it seems like the indicator would just stay gray; if they successfully edit a transaction, it might turn green.  If they start to edit one but, I dunno, leave it half done (if that's even a thing), it might turn red.  Not sure that 'leaving transaction edits half-done' is even an option, though.
 
-*Averaging Window area
+*Transaction viewer
+TODO: I was on my phone, using the transaction viewer to look up transactions and add the other pills (which I'd just added via the 'edit countable items' interface; I had to set up the transaction viewer (to a certain 2-day range) each time I bought it up, which was pretty darn inconvenient.  Let's give that sheet the capacity to restore the previous filter, and add a 'reset filters' button.  (And we'll decide later if we want to always have the filter be preserved or if we should make that a user option.)
+
+*Averaging Window area of settings sheet
 TODO: The mm and dd fields in the start date text box (and presumably the end date text box as well) have leading 0s again, which I don't really want.
 TODO: The "ENTER A VALID STRING😠" indicator while editing the pinned start date is awfully strict; let's relax it to not announce the result of the string's validity check until the user clicks save or the textbox otherwise loses focus.
     *If the date string is invalid, Let's (1) announce it in a toast and (2) not save it yet.  (And keep the save button activated.)  Or maybe (1) auto-show a message over the textbox with a 'friendly-ish' message such as "12/0/2026" isn't a valid date", then (2) not save it yet.
-TODO: iirc the end date (eg. "Today") and a 'pinned end date' are stored separately; if they are, let's have toggling the "...and end date" switch alternative between Today and the previously-pinned end date.
+TODO (MAYBE): iirc the end date (eg. "Today") and a 'pinned end date' are stored separately; if they are, let's have toggling the "...and end date" switch alternative between Today and the previously-pinned end date.
 TODO: (Background) With the "Averaging window" textboxes, we're using TextPainter to determine the minimum interior width necessary to display things (assuming the longest possibly averaging window is 99999 days); thing is, it's producing widths wider than necessary.
     (Actual TODO): Answer the question, "Is the font being used by TextPainter to make those measurements the same font that's actually used to render the elements and their contents?  "Not using the right font" seems like the kind of bonehead mistake ChatGPT might make."
 
@@ -87,6 +98,7 @@ TODO: Answer the question, "With the start date and end date, we're assuming mm/
 TODO: Add a drop-down or something in the settings sheet to select the summary statistic
     Possible default: With the 'monthly average' statistic selected and the drop-down disabled.
     A THOUGHT: This makes me think about "items sets" and having multiple counting UIs in the app; in THAT context, implementing "various" summary statistics seems more useful.  As it is, though, this kinda just feels like a placeholder for "when someone else wants to add a new summary statistic."
+    ANOTHER THOUGHT: It seems easy enough to adapt the current "daily average" to averages over other time interfaces; we might extend the current average to include those other intervals, or possibly just use the circuitry internally and present a handful of summary statistics in that drop-down: "daily average," "weekly...," "monthly...", "yearly...", "arbitrary..."
 
 TODO (After 'pinning dates' and 'summary statistic selection drop-down'):
     sub-TODO: Merge these two TODOS
