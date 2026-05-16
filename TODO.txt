@@ -5,16 +5,6 @@ TODO (When we're basically done with this pass): Ask ChatGPT to look over the cu
     REMINDER: If that TODO seems weirdly worded, keep in mind that ChatGPT wrote it.🤭
 
 
-
--------DB importing
-TODO: the DB import process might be saying that existing DB files are incompatible because they lack some rows from the settings table; let's try to add those rows before we have the app decide it the DB file is compatible or not.
-
-TODO re: Database importing:
-    * For the time being, the app's going to enforce "only import (item transactions / settings) if (items / time zones) (respectively) is imported;" we should communicate this somewhere, so as not to overly-aggravate those trying to import one table, then import the 2nd table in a later operation.
-    * Whatever directory the "import DB" file picker starts in, we should also communicate that directory that is (to reduce guesswork about where best to place a DB file).
-        *FOR THE TIME BEING: We could just communciate this via the readme or something.  That'll get the job done, I think.
-
-
 -------Time-zone alias UI
 TODO (POSSIBLY OUT-OF-DATE; NEEDS CLARIFICATION): Time-zone specifying
     * Add a "Specify time zone by alias" checkbox  <---4/21/26 Where, exactly?🤨 Settings sheet?
@@ -39,6 +29,13 @@ TODO (after adding a TZ alias-adding UI): "It's like a new-DB wizard, kinda"
             *Ask the user if they'd like to use time zones. If no, skip this.  If yes:
                 *Bring up the TZ alias editor window.
         Once we're done (ie. the user clicks 'submit' in the TZ alias window or something), proceed to the usual home screen (with the add/undo/redo buttons in-place).
+
+
+-------DB importing
+TODO re: Database importing:
+    * For the time being, the app's going to enforce "only import (item transactions / settings) if (items / time zones) (respectively) is imported;" we should communicate this somewhere, so as not to overly-aggravate those trying to import one table, then import the 2nd table in a later operation.
+    * Whatever directory the "import DB" file picker starts in, we should also communicate that directory that is (to reduce guesswork about where best to place a DB file).
+        *FOR THE TIME BEING: We could just communciate this via the readme or something.  That'll get the job done, I think.
 
 
 
