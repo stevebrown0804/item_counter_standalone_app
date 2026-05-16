@@ -37,10 +37,9 @@ Phase 2, where I make the app more accessible to others
   * A fixed start date, up until 'today' (so the duration grows each day), or
   * A fixed date window (eg. 12/7/2025 through 3/9/2026), if you're into that sort of thing.
 * 2025-05-09 Let's see, what did we do since the last bullet point...🤔 pretty sure we kept working on the "Averaging Window" area of the settings sheet, consolidated the date range computation logic, polished the Transaction Viewer sheet a bit....and possibly other stuff that's not coming to mind.
-
-Anyhow, I have four more categories of TODOs before I think I'll consider this a proper alpha release (and try out having github host an .apk file and all that):
-* Improve the 'database file import' process
-* Add a DB migration from the older DB format to the current one
+* 2025-05-15 Added a DB migration, which gets checked (to see if it needs too be done) on app-start and on DB import.
+  
+atm I have two more categories of TODOs before I think I'll consider this a proper alpha release (and try out having github host an .apk file and all that):
 * Create a UI for defining/editing time zone aliases
 * Create a wizard for when the app is first started, to have the user add coutable items and (optionally) time zones.
   
