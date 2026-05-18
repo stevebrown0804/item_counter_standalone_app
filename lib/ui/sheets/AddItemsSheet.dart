@@ -20,10 +20,12 @@ class _LogItemsSheet extends StatefulWidget {
   final List<dynamic> items;
   /// IANA time zone name for the active app TZ, e.g. "America/Denver".
   final String activeTzName;
+  final Future<void> Function(_LogItemsSheetResult result) onSubmit;
 
   const _LogItemsSheet({
     required this.items,
     required this.activeTzName,
+    required this.onSubmit,
   });
 
   @override
@@ -33,6 +35,7 @@ class _LogItemsSheet extends StatefulWidget {
 class _LogItemsSheetState extends State<_LogItemsSheet> {
   late final List<int> _qty;
   late final TextEditingController _timestampCtrl;
+  bool _submitting = false;
 
   tz.Location _activeLocation() {
     return _AppDateLogic.locationOrUtc(widget.activeTzName);
@@ -156,7 +159,11 @@ class _LogItemsSheetState extends State<_LogItemsSheet> {
     return false;
   }
 
-  void _onSubmit() {
+  Future<void> _onSubmit() async {
+    if (_submitting) {
+      return;
+    }
+
     if (!_hasAnyQuantity) {
       // This should not be reachable because the button is disabled in this state,
       // but we surface it loudly if it ever happens.
@@ -208,13 +215,39 @@ class _LogItemsSheetState extends State<_LogItemsSheet> {
 
     final summary = 'Added: ${parts.join(', ')}';
 
-    Navigator.of(context).pop(
-      _LogItemsSheetResult(
-        quantities: map,
-        summary: summary,
-        localTimestampOverride: localOverride,
-      ),
+    final result = _LogItemsSheetResult(
+      quantities: map,
+      summary: summary,
+      localTimestampOverride: localOverride,
     );
+
+    setState(() {
+      _submitting = true;
+    });
+
+    try {
+      await widget.onSubmit(result);
+
+      if (!mounted) {
+        return;
+      }
+
+      Navigator.of(context).pop();
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to add items: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _submitting = false;
+        });
+      }
+    }
   }
 
   @override
@@ -331,12 +364,12 @@ class _LogItemsSheetState extends State<_LogItemsSheet> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         TextButton(
-                          onPressed: _pickDate,
+                          onPressed: _submitting ? null : _pickDate,
                           child: const Text('Pick date'),
                         ),
                         const SizedBox(width: 12),
                         TextButton(
-                          onPressed: _pickTime,
+                          onPressed: _submitting ? null : _pickTime,
                           child: const Text('Pick time'),
                         ),
                       ],
@@ -355,7 +388,7 @@ class _LogItemsSheetState extends State<_LogItemsSheet> {
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                     textStyle: const TextStyle(fontSize: 16),
                   ),
-                  onPressed: () => Navigator.of(context).pop(),
+                  onPressed: _submitting ? null : () => Navigator.of(context).pop(),
                   child: const Text('Cancel'),
                 ),
                 ElevatedButton(
@@ -363,7 +396,9 @@ class _LogItemsSheetState extends State<_LogItemsSheet> {
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                     textStyle: const TextStyle(fontSize: 16),
                   ),
-                  onPressed: _hasAnyQuantity ? _onSubmit : null,
+                  onPressed: _hasAnyQuantity && !_submitting
+                      ? () async => await _onSubmit()
+                      : null,
                   child: const Text('Submit'),
                 ),
               ],

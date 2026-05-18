@@ -132,7 +132,9 @@ class _Store extends ChangeNotifier {
     final token = await _db.insertBatchWithUndoToken(entries, utcIso);
     _breakRedoChain();
     _undoTokens.add(token);
+    notifyListeners();
 
     await refreshFromDatabase();
+    notifyListeners();
   }
 }

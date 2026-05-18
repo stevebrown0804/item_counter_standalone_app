@@ -283,35 +283,38 @@ class _MainScreenState extends State<_MainScreen> with WidgetsBindingObserver {
     final items = _store.items.where((item) => item.showItem).toList();
     if (items.isEmpty) return;
 
-    final result = await showModalBottomSheet<_LogItemsSheetResult>(
+    await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       builder: (ctx) {
         return _LogItemsSheet(
           items: items,
           activeTzName: _store.activeTz.tzName,
+          onSubmit: (result) async {
+            await _store.addBatchAndTrackUndo(
+              result.quantities,
+              overrideLocalTimestamp: result.localTimestampOverride,
+            );
+
+            await _store.refreshFromDatabase();
+
+            if (!mounted) return;
+
+            final message = result.summary;
+
+            setState(() {
+              _pushBannerMessage(message);
+            });
+
+            await _persistBannerVisible(message);
+
+            if (!mounted) return;
+
+            setState(() {});
+          },
         );
       },
     );
-
-    if (result == null || result.quantities.isEmpty) {
-      return;
-    }
-
-    await _store.addBatchAndTrackUndo(
-      result.quantities,
-      overrideLocalTimestamp: result.localTimestampOverride,
-    );
-
-    if (!mounted) return;
-
-    final message = result.summary;
-
-    setState(() {
-      _pushBannerMessage(message);
-    });
-
-    await _persistBannerVisible(message);
   }
 
   @override

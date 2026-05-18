@@ -399,6 +399,7 @@ LIMIT 1
   Future<({int days, double averageDenominatorDays, String startUtc, String endUtc})> _computeEffectiveAveragingWindowRangeFromDb(Database db) async {
     const secondsPerDay = Duration.secondsPerDay;
     const minimumElapsedSeconds = 1;
+    const currentMomentInclusivePadding = Duration(seconds: 1);
 
     final settings = await _readDailyAverageSettingsFromDb(db);
     final tzName = await _activeTzNameOrUtcFromDb(db);
@@ -456,7 +457,7 @@ LIMIT 1
       );
       averageDenominatorEndLocal = rangeEndLocalExclusive;
     } else {
-      rangeEndLocalExclusive = nowLocal;
+      rangeEndLocalExclusive = nowLocal.add(currentMomentInclusivePadding);
       averageDenominatorEndLocal = nowLocal;
     }
 
