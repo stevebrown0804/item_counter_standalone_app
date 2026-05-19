@@ -614,59 +614,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  Future<void> _exportDatabase(BuildContext context) async {
-    try {
-      //Construct the TZ alias string to affix to the DB export filename
-      final s = _MainScreenState._lastMounted;
-      final active = s?._store.activeTz;
-      final tzName = active?.tzName ?? 'Etc/UTC';
-      final alias = active?.alias ?? 'UTC';
-
-      //Construct the timestamp to affix to the filename, padding timestamp pieces to 2 digits
-      final now = tz.TZDateTime.now(_AppDateLogic.locationOrUtc(tzName));
-      final ts = _AppDateLogic.formatDbTimestamp(now).replaceAll(' ', '_').replaceAll(':', '-');
-
-      //Build the DB export filename from the kDbFileName defined in main.dart
-      final fileName = '${kDbFileName.replaceAll(
-          RegExp(r'\.db$'), '')}-${ts}_($alias).db';
-
-      //Export and announce
-      final dbDir = await getDatabasesPath();
-      final liveDb = File(p.join(dbDir, kDbFileName));
-      if (!await liveDb.exists()) {
-        throw FileSystemException('Database not found', liveDb.path);
-      }
-
-      final tmpDir = p.normalize(p.join(dbDir, '..', 'files'));
-      await Directory(tmpDir).create(recursive: true);
-      final tmpPath = p.join(tmpDir, fileName);
-
-      final tmpFile = File(tmpPath);
-      if (await tmpFile.exists() && tmpFile.path != liveDb.path) {
-        await tmpFile.delete();
-      }
-      await liveDb.copy(tmpPath);
-
-      final mediaStore = MediaStore();
-      await mediaStore.saveFile(
-        tempFilePath: tmpFile.path,
-        dirType: DirType.download,
-        dirName: DirName.download,
-        relativePath: '',
-      );
-
-      if (context.mounted) {
-        await _completeSettingsInteraction('Database exported to: Downloads/$fileName');
-      }
-    } catch (e) {
-      if (context.mounted) {
-        debugPrint('Export failed: $e');
-
-        _showSettingsToast('Export failed: $e');
-      }
-    }
-  }
-
   Future<void> _showDeleteOldTxDialog(BuildContext context) async {
     FocusManager.instance.primaryFocus?.unfocus();
 
@@ -851,9 +798,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           _ExportDatabaseRow(
-                            onPressed: () async {
-                              await _exportDatabase(context);
-                            },
+                            onInteractionComplete: _completeSettingsInteraction,
+                            onToast: _showSettingsToast,
                           ),
                           const SizedBox(width: 12),
                           _ImportDatabaseRow(
