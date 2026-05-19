@@ -289,150 +289,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return avgState.resolvePendingChangesBeforeDeletingTransactions();
   }
 
-  Future<void> _beginDeleteOldTxProcess(BuildContext context) async {
-    final resolved = await _resolveAveragingWindowBeforeDeletingTransactions();
-    if (!resolved) {
-      return;
-    }
-
-    if (!context.mounted) {
-      return;
-    }
-
-    await _showDeleteOldTxDialog(context);
-  }
-
-  Future<void> _showDeleteOldTxDialog(BuildContext context) async {
-    FocusManager.instance.primaryFocus?.unfocus();
-
-    final db = _Db();
-
-    final days = await db.readAveragingWindowDays();
-    final count = await db.countTransactionsOlderThanDays(days);
-
-    if (!context.mounted) return;
-    await showDialog<void>(
-      context: context,
-      builder: (ctx) =>
-          AlertDialog(
-            title: const Text('Delete older transactions?'),
-            content: Text(
-              'This will permanently delete $count transactions older than $days days. '
-                  'This cannot be undone.',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(),
-                child: const Text('Cancel'),
-              ),
-              FilledButton(
-                style: FilledButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  foregroundColor: Colors.white,
-                ),
-                onPressed: () async {
-                  FocusManager.instance.primaryFocus?.unfocus();
-                  Navigator.of(ctx).pop();
-                  await _handleDeleteOldTx(context, days);
-                },
-                child: const Text('Proceed'),
-              ),
-            ],
-          ),
-    );
-  }
-
-  Future<void> _handleDeleteOldTx(BuildContext context, int days) async {
-    FocusManager.instance.primaryFocus?.unfocus();
-
-    final db = _Db();
-    final skip = await db.readSkipDeleteSecondConfirm();
-
-    if (skip) {
-      final deleted = await db.deleteOldTransactionsWithPolicy(days);
-      if (!context.mounted) return;
-      await _completeSettingsInteraction('Deleted $deleted transactions older than $days days.');
-      return;
-    }
-
-    bool skipNext = false;
-
-    if (!context.mounted) return;
-    await showDialog<void>(
-      context: context,
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (ctx, setState) =>
-              AlertDialog(
-                backgroundColor: Colors.red,
-                title: const Text(
-                  'Really delete transactions?',
-                  style: TextStyle(color: Colors.white),
-                ),
-                content: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            style: OutlinedButton.styleFrom(
-                              side: const BorderSide(color: Colors.white),
-                              foregroundColor: Colors.white,
-                            ),
-                            onPressed: () => Navigator.of(ctx).pop(),
-                            child: const Text('Abort!'),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: OutlinedButton(
-                            style: OutlinedButton.styleFrom(
-                              side: const BorderSide(color: Colors.white),
-                              foregroundColor: Colors.white,
-                              backgroundColor: Colors.transparent,
-                            ),
-                            onPressed: () async {
-                              FocusManager.instance.primaryFocus?.unfocus();
-
-                              if (skipNext) {
-                                await db.setSkipDeleteSecondConfirm(true);
-                                _skipKey.currentState?.applySavedValueFromExternalWrite(true);
-                                _markSettingsSaved();
-                              }
-
-                              final deleted =
-                              await db.deleteOldTransactionsWithPolicy(days);
-                              if (!context.mounted) return;
-                              Navigator.of(ctx).pop();
-                              await _completeSettingsInteraction('Deleted $deleted transactions older than $days days.');
-                            },
-                            child: const Text('Proceed'),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    CheckboxListTile(
-                      value: skipNext,
-                      onChanged: (v) => setState(() => skipNext = v ?? false),
-                      controlAffinity: ListTileControlAffinity.leading,
-                      activeColor: Colors.white,
-                      checkColor: Colors.red,
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text(
-                        'Skip this step next time.\n(This can be undone in Settings.)',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-        );
-      },
-    );
-  }
-
   //NOTE: If you want to shuffle around the rows of the settings sheet, here's the place to do that
   @override
   Widget build(BuildContext context) {
@@ -534,7 +390,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                       ),
                       _DeleteOutdatedTransactions(
-                        onPressed: () => unawaited(_beginDeleteOldTxProcess(context)),
+                        onResolvePendingAveragingWindow: _resolveAveragingWindowBeforeDeletingTransactions,
+                        onSkipSecondConfirmationSaved: () {
+                          _skipKey.currentState?.applySavedValueFromExternalWrite(true);
+                          _markSettingsSaved();
+                        },
+                        onInteractionComplete: _completeSettingsInteraction,
                       ),
                       const SizedBox(height: 8),
                       const Divider(),
