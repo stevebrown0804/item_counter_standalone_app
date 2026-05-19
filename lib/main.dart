@@ -30,7 +30,6 @@ part 'ui/settings/sheets/TransactionEditorSheet.dart';
 part 'ui/settings/sheets/EditCountableItems.dart';
 part 'ui/settings/ExportDatabase.dart';
 part 'ui/settings/ImportDatabase.dart';
-part 'ui/settings/DangerZoneHeader.dart';
 part 'ui/settings/DeleteOutdatedTransactions.dart';
 part 'ui/sheets/AddItemsSheet.dart';
 part 'ui/widgets/StackedToastHost.dart';

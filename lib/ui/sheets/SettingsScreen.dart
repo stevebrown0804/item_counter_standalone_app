@@ -518,7 +518,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                       const Spacer(),
                       const Divider(),
-                      const _DangerZoneHeader(),
+                      const SizedBox(
+                        width: double.infinity,
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
+                          child: Text(
+                            'Danger Zone',
+                            textAlign: TextAlign.left,
+                            style: TextStyle(
+                              color: Colors.red,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
                       _DeleteOutdatedTransactions(
                         onPressed: () => unawaited(_beginDeleteOldTxProcess(context)),
                       ),
