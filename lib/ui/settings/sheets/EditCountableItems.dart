@@ -572,10 +572,17 @@ class _EditCountableItemsSheetState extends State<_EditCountableItemsSheet> {
 
 class _EditCountableItemsRow extends StatelessWidget {
   const _EditCountableItemsRow({
-    required this.onPressed,
+    required this.onInteractionComplete,
   });
 
-  final VoidCallback onPressed;
+  final Future<void> Function(String) onInteractionComplete;
+
+  Future<void> _openEditCountableItemsSheet(BuildContext context) async {
+    await doEditCountableItemsSheet(
+      context: context,
+      onInteractionComplete: onInteractionComplete,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -583,7 +590,7 @@ class _EditCountableItemsRow extends StatelessWidget {
       child: Align(
         alignment: Alignment.center,
         child: OutlinedButton(
-          onPressed: onPressed,
+          onPressed: () async => await _openEditCountableItemsSheet(context),
           child: const Text('Edit countable items'),
         ),
       ),

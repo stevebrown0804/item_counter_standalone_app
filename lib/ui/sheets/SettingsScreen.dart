@@ -844,12 +844,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                       const Divider(),
                       _EditCountableItemsRow(
-                        onPressed: () {
-                          doEditCountableItemsSheet(
-                            context: context,
-                            onInteractionComplete: _completeSettingsInteraction,
-                          );
-                        },
+                        onInteractionComplete: _completeSettingsInteraction,
                       ),
                       const Divider(),
                       Row(
