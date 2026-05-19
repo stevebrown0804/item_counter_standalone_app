@@ -7,28 +7,32 @@ TODO (When we're basically done with this pass): Ask ChatGPT to look over the cu
 
 
 ------Bug and/or code problems, but not hugely pressing ones
-TODO: The 'android 'bottom' bar will apparently fade,eventually -- I've seen it happen while using other apps.  It's not happening (I don't think) during this app, though -- and that's leading to 'bottom of the screen' controls being largely occluded by that bar.  Let's fix that....one way or another.
+TODO: The 'android 'bottom' bar will apparently fade, eventually -- I've seen it happen while using other apps.  It's not happening (I don't think) during this app, though -- the result of which is 'bottom of the screen' controls being largely occluded by that bar.  Let's fix that....one way or another.
 
 TODO: It's come to my attention that ChatGPT has been using strings as return values.  Let's replace those with enums or something.
 
 
 -------Time-zone alias UI
-TODO (POSSIBLY OUT-OF-DATE; NEEDS CLARIFICATION): Time-zone specifying
-    * Add a "Specify time zone by alias" checkbox  <---4/21/26 Where, exactly?🤨 Settings sheet?
-        * If it's checked, present a button labeled "Specify a time zone alias"  <---4/21/26 Again...where?🤨 In a modal dialog?
-            * Pressing that button brings up a sheet of time zone aliases and an initially-empty column (except for UTC, I suppose) of tz aliases.  Let the user either tap an alias and pressed a button labeled "Enter alias" to bring up a window with an input box in which they can enter an alias (and tap an "OK" button or a "Cancel" button), or long-tap the alias field beside an alias and edit the alias in-place.
-            * When the user taps in the "Time Zone" input box, it brings up a list of aliases in the DB.  (That is, it does the current behavior for selecting an alias.)
-        * If the box is unchecked:
-            * When the user taps into the "Time Zone" input box, it presents a complete list of tz names
-            * As the user enters characters, it refines that list to names matching the substring that the user as entered.  It continues like this until the user either taps "Submit" or taps the name (which then populates the input box), then taps "Submit."
-    *Add a setting with key derived from "Specify time zone by alias"; default value is false (ie. unchecked)
-
-        sub-TODO: Answer the question, "Seeing as how the previous TODO doesn't really make a lot of sense, should we edit it until it makes sense or just scrap it and start over with an "Add a TZ alias-adding UI" TODO, which sounds much more straightforward?"
-            RESPONSE: Yes, at this point I absolutely think we SHOULD! ...because heck if I can make sense of that TODO.😂
+TODO: Time-zone adding/editing UI
+    * Add a button (eg. "Add/edit time zones") on the settings sheet to bring up a new sheet
+    * On that sheet, let's have:
+        * A table (of some sort) with columns:
+            * "Time zone"
+            * "Alias"
+                * We ~could~ make this column optional.  Presenting the full TZ strings in the TZ-selector drop-down seems acceptable to me, atm.  We'll ask ChatGPT what it thinks.
+            * Note that this table should probably show the starting time zones (the UTC-related 3 aliases) but NOT have them be editable.  (Or we could make them editable and have them override the 'default settings' in the DB or something.  we'll see.)
+        * "Add", "Edit" and "Delete" buttons
+            * Edit and Delete are activated with a row in the table has been selected
+            * Add spawns a dialog with a (text box? drop-down? TBD) UI element for entering/choosing a time zone, and a text field for entering an alias for that time zone; it then has "submit" and "cancel" buttons
+            * Edit spawns a UI similar to the add dialogue but with the two fields pre-populated
+            * Delete spawns an "Are you quite sure you wish to delete this? I mean...good heavens, sir...such a thing!" (<---shorten; edit) dialog box with "Yes, dammit" and "What? I...no, I don't want to. Sorry." buttons.
+            * Per ChatGPT: "...the [latest_all.dart, which apparently lists IANA time zones] list may include deprecated or historical zones. That is probably fine for now, because validation against tz.getLocation(name) will still work. Later, you could filter out names that look less user-facing, such as Etc/GMT+7, if the list feels cluttered."
+        * MAYBE: Add an indicator light, next to the back button; gray when nothing's been changed, red if something's been changed that needs to be saved, green once everything's that's changed has been saved.
+            * A THOUGHT: We might also add these indicator lights to every other sheet spawnable by the setting screen.🤔 TBD.
 
 
 -------New DB wizard
-TODO (after adding a TZ alias-adding UI): "It's like a new-DB wizard, kinda"
+TODO (after adding a TZ alias-adding UI): "It's like a new-DB wizard, I guess"
     When a DB's items table is empty, replace the 'add' button on the home screen with an 'add items' button, which brings up the 'edit countable items' sheet.
     We'll also give the user a change to add some time zone aliases; specifics TBD.
     How about this:
