@@ -33,69 +33,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void initState() {
     super.initState();
-    unawaited(_loadReturnHomeAfterSettingsInteraction());
   }
 
   @override
   void dispose() {
     _settingsToastController.dispose();
     super.dispose();
-  }
-
-  Future<void> _loadReturnHomeAfterSettingsInteraction() async {
-    try {
-      final db = _Db();
-      final value = await db.readReturnHomeAfterSettingsInteraction();
-
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _returnHomeAfterSettingsInteraction = value;
-      });
-    } catch (e) {
-      if (!mounted) {
-        return;
-      }
-
-      _showSettingsToast('Failed to load return-home setting: $e');
-    }
-  }
-
-  Future<void> _setReturnHomeAfterSettingsInteraction(bool value) async {
-    final previousValue = _returnHomeAfterSettingsInteraction;
-
-    setState(() {
-      _returnHomeAfterSettingsInteraction = value;
-      _settingsHaveBeenSavedSinceOpening = true;
-    });
-
-    try {
-      final db = _Db();
-      await db.setReturnHomeAfterSettingsInteraction(value);
-
-      if (!mounted) {
-        return;
-      }
-
-      _showSettingsToast(
-        value
-            ? 'Settings interactions will return to the home screen.'
-            : 'Settings interactions will remain on the Settings screen.',
-      );
-    } catch (e) {
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _returnHomeAfterSettingsInteraction = previousValue;
-        _settingsHaveBeenSavedSinceOpening = false;
-      });
-
-      _showSettingsToast('Failed to save return-home setting: $e');
-    }
   }
 
   void _measureSettingsBackArrowIconAfterLayout() {
@@ -561,15 +504,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   hasScrollBody: false,
                   child: Column(
                     children: [
-                      SwitchListTile(
-                        title: Text(
-                          'Settings sheet interactions immediately return you to the home screen',
-                          style: Theme.of(context).textTheme.bodyMedium,
-                        ),
-                        value: _returnHomeAfterSettingsInteraction,
+                      _ReturnHomeAfterSettingsInteractionRow(
                         onChanged: (value) {
-                          unawaited(_setReturnHomeAfterSettingsInteraction(value));
+                          if (_returnHomeAfterSettingsInteraction == value) {
+                            return;
+                          }
+                          setState(() {
+                            _returnHomeAfterSettingsInteraction = value;
+                          });
                         },
+                        onSaved: _markSettingsSaved,
+                        onToast: _showSettingsToast,
                       ),
                       const Spacer(),
                       const Divider(),

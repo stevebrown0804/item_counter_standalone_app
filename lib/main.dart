@@ -22,6 +22,7 @@ part 'ui/sheets/MainScreen.dart';
 part 'ui/sheets/SettingsScreen.dart';
 part 'ui/settings/TimeZoneSetting.dart';
 part 'ui/settings/AveragingWindow.dart';
+part 'ui/settings/ReturnHomeAfterSettingsInteraction.dart';
 part 'ui/settings/SkipSecondConfirmation.dart';
 part 'ui/settings/ViewTransactionsButton.dart';
 part 'ui/settings/sheets/TransactionViewerSheet.dart';
@@ -33,6 +34,7 @@ part 'ui/settings/DangerZoneHeader.dart';
 part 'ui/settings/DeleteOutdatedTransactions.dart';
 part 'ui/sheets/AddItemsSheet.dart';
 part 'ui/widgets/StackedToastHost.dart';
+
 
 /// The DB's filename
 const String kDbFileName = 'daily-pill-tracking.db';
