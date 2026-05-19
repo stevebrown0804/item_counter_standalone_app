@@ -338,46 +338,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
       return true;
     }
 
-    final action = await showDialog<String>(
-      context: context,
-      builder: (ctx) =>
-          AlertDialog(
-            title: const Text('Unsaved averaging window changes'),
-            content: const Text(
-              'There are unsaved changes with the Averaging Window settings.',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop('abandon'),
-                child: const Text('Abandon changes'),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.of(ctx).pop('save'),
-                child: const Text('Save changes'),
-              ),
-            ],
-          ),
-    );
-
-    if (action == null) {
-      return false;
+    final avgState = _avgKey.currentState;
+    if (avgState == null) {
+      throw StateError('Averaging window state is unavailable while resolving pending changes.');
     }
 
-    if (action == 'save') {
-      final saved = await (_avgKey.currentState?._submit() ?? Future<bool>.value(true));
-      if (saved) {
-        _avgKey.currentState?.unfocusDateTextBoxes();
-      }
-      return saved;
-    }
-
-    if (action == 'abandon') {
-      _avgKey.currentState?.discardChanges();
-      _avgKey.currentState?.unfocusDateTextBoxes();
-      return true;
-    }
-
-    throw StateError('Unexpected averaging window delete-precheck action: $action');
+    return avgState.resolvePendingChangesBeforeDeletingTransactions();
   }
 
   Future<void> _beginDeleteOldTxProcess(BuildContext context) async {

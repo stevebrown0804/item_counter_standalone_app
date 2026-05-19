@@ -759,6 +759,49 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
     FocusManager.instance.primaryFocus?.unfocus();
   }
 
+  Future<bool> resolvePendingChangesBeforeDeletingTransactions() async {
+    final action = await showDialog<String>(
+      context: context,
+      builder: (ctx) =>
+          AlertDialog(
+            title: const Text('Unsaved averaging window changes'),
+            content: const Text(
+              'There are unsaved changes with the Averaging Window settings.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop('abandon'),
+                child: const Text('Abandon changes'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(ctx).pop('save'),
+                child: const Text('Save changes'),
+              ),
+            ],
+          ),
+    );
+
+    if (action == null) {
+      return false;
+    }
+
+    if (action == 'save') {
+      final saved = await _submit();
+      if (saved) {
+        unfocusDateTextBoxes();
+      }
+      return saved;
+    }
+
+    if (action == 'abandon') {
+      discardChanges();
+      unfocusDateTextBoxes();
+      return true;
+    }
+
+    throw StateError('Unexpected averaging window delete-precheck action: $action');
+  }
+
   @override
   void initState() {
     super.initState();
