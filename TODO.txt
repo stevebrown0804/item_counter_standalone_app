@@ -6,6 +6,12 @@ TODO (When we're basically done with this pass): Ask ChatGPT to look over the cu
 
 
 
+------Bug and/or code problems, but not hugely pressing ones
+TODO: The 'android 'bottom' bar will apparently fade,eventually -- I've seen it happen while using other apps.  It's not happening (I don't think) during this app, though -- and that's leading to 'bottom of the screen' controls being largely occluded by that bar.  Let's fix that....one way or another.
+
+TODO: It's come to my attention that ChatGPT has been using strings as return values.  Let's replace those with enums or something.
+
+
 -------Time-zone alias UI
 TODO (POSSIBLY OUT-OF-DATE; NEEDS CLARIFICATION): Time-zone specifying
     * Add a "Specify time zone by alias" checkbox  <---4/21/26 Where, exactly?🤨 Settings sheet?
