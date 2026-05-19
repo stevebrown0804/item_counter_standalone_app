@@ -858,19 +858,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     children: [
                       const Divider(),
                       _ViewTransactionsRow(
-                        onPressed: () {
-                          final s = _MainScreenState._lastMounted;
-                          if (s != null) {
-                            doTransactionViewerSheet(
-                              context: context,
-                              db: s._db,
-                              store: s._store,
-                              parentSetState: s.setState,
-                              parentMounted: () => s.mounted,
-                              onBackPressed: _returnHomeAfterNestedSettingsSheetClosed,
-                            );
-                          }
-                        },
+                        onBackPressed: _returnHomeAfterNestedSettingsSheetClosed,
                       ),
                       const Divider(),
                       _SummaryStatisticRow(

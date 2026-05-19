@@ -4,10 +4,26 @@ part of '../../main.dart';
 
 class _ViewTransactionsRow extends StatelessWidget {
   const _ViewTransactionsRow({
-    required this.onPressed,
+    required this.onBackPressed,
   });
 
-  final VoidCallback onPressed;
+  final Future<void> Function() onBackPressed;
+
+  Future<void> _openTransactionViewer(BuildContext context) async {
+    final main = _MainScreenState._lastMounted;
+    if (main == null) {
+      return;
+    }
+
+    await doTransactionViewerSheet(
+      context: context,
+      db: main._db,
+      store: main._store,
+      parentSetState: main.setState,
+      parentMounted: () => main.mounted,
+      onBackPressed: onBackPressed,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -17,7 +33,7 @@ class _ViewTransactionsRow extends StatelessWidget {
         child: OutlinedButton.icon(
           icon: const Icon(Icons.list_alt),
           label: const Text('View transactions'),
-          onPressed: onPressed,
+          onPressed: () async => await _openTransactionViewer(context),
         ),
       ),
     );
