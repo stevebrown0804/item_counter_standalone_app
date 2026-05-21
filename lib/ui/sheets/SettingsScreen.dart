@@ -294,6 +294,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     _measureSettingsBackArrowIconAfterLayout();
 
+    final bottomSystemPadding = MediaQuery.viewPaddingOf(context).bottom;
+
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) async {
@@ -358,55 +360,58 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 SliverFillRemaining(
                   hasScrollBody: false,
-                  child: Column(
-                    children: [
-                      _ReturnHomeAfterSettingsInteractionRow(
-                        onChanged: (value) {
-                          if (_returnHomeAfterSettingsInteraction == value) {
-                            return;
-                          }
-                          setState(() {
-                            _returnHomeAfterSettingsInteraction = value;
-                          });
-                        },
-                        onSaved: _markSettingsSaved,
-                        onToast: _showSettingsToast,
-                      ),
-                      const Spacer(),
-                      const Divider(),
-                      const SizedBox(
-                        width: double.infinity,
-                        child: Padding(
-                          padding: EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
-                          child: Text(
-                            'Danger Zone',
-                            textAlign: TextAlign.left,
-                            style: TextStyle(
-                              color: Colors.red,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
+                  child: Padding(
+                    padding: EdgeInsets.only(bottom: bottomSystemPadding),
+                    child: Column(
+                      children: [
+                        _ReturnHomeAfterSettingsInteractionRow(
+                          onChanged: (value) {
+                            if (_returnHomeAfterSettingsInteraction == value) {
+                              return;
+                            }
+                            setState(() {
+                              _returnHomeAfterSettingsInteraction = value;
+                            });
+                          },
+                          onSaved: _markSettingsSaved,
+                          onToast: _showSettingsToast,
+                        ),
+                        const Spacer(),
+                        const Divider(),
+                        const SizedBox(
+                          width: double.infinity,
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
+                            child: Text(
+                              'Danger Zone',
+                              textAlign: TextAlign.left,
+                              style: TextStyle(
+                                color: Colors.red,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                      _DeleteOutdatedTransactions(
-                        onResolvePendingAveragingWindow: _resolveAveragingWindowBeforeDeletingTransactions,
-                        onSkipSecondConfirmationSaved: () {
-                          _skipKey.currentState?.applySavedValueFromExternalWrite(true);
-                          _markSettingsSaved();
-                        },
-                        onInteractionComplete: _completeSettingsInteraction,
-                      ),
-                      const SizedBox(height: 8),
-                      const Divider(),
-                      _SkipSecondConfirmationSetting(
-                        key: _skipKey,
-                        onDirtyChanged: (v) => _setDirty('skip_second_confirm', v),
-                        onSaved: _markSettingsSaved,
-                        onInteractionComplete: _completeSettingsInteraction,
-                      ),
-                      const Divider(),
-                    ],
+                        _DeleteOutdatedTransactions(
+                          onResolvePendingAveragingWindow: _resolveAveragingWindowBeforeDeletingTransactions,
+                          onSkipSecondConfirmationSaved: () {
+                            _skipKey.currentState?.applySavedValueFromExternalWrite(true);
+                            _markSettingsSaved();
+                          },
+                          onInteractionComplete: _completeSettingsInteraction,
+                        ),
+                        const SizedBox(height: 8),
+                        const Divider(),
+                        _SkipSecondConfirmationSetting(
+                          key: _skipKey,
+                          onDirtyChanged: (v) => _setDirty('skip_second_confirm', v),
+                          onSaved: _markSettingsSaved,
+                          onInteractionComplete: _completeSettingsInteraction,
+                        ),
+                        const Divider(),
+                      ],
+                    ),
                   ),
                 ),
               ],
