@@ -38,6 +38,18 @@ part 'ui/widgets/StackedToastHost.dart';
 /// The DB's filename
 const String kDbFileName = 'daily-pill-tracking.db';
 
+const double _standardBottomSheetBottomPadding = 12.0;
+const double _roomierBottomSheetBottomPadding = 16.0;
+
+double _bottomSheetBottomPadding(BuildContext context, double normalBottomPadding) {
+  final bottomSystemPadding = MediaQuery.viewPaddingOf(context).bottom;
+  final keyboardPadding = MediaQuery.viewInsetsOf(context).bottom;
+  final bottomObstructionPadding =
+  keyboardPadding > 0 ? keyboardPadding : bottomSystemPadding;
+
+  return normalBottomPadding + bottomObstructionPadding;
+}
+
 enum _TxMode { today, lastNDays, range, all }
 // </editor-fold>
 

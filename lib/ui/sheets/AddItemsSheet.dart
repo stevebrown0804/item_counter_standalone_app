@@ -260,7 +260,7 @@ class _LogItemsSheetState extends State<_LogItemsSheet> {
           left: 12,
           right: 12,
           top: 12,
-          bottom: MediaQuery.of(context).viewInsets.bottom + 12,
+          bottom: _bottomSheetBottomPadding(context, _standardBottomSheetBottomPadding),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,

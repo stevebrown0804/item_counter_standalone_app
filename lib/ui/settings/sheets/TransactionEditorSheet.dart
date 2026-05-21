@@ -58,7 +58,7 @@ Future<bool> openTransactionEditorSheet({
           left: 16,
           right: 16,
           top: 12,
-          bottom: MediaQuery.of(editCtx).viewInsets.bottom + 16,
+          bottom: _bottomSheetBottomPadding(editCtx, _roomierBottomSheetBottomPadding),
         ),
         child: SingleChildScrollView(
           child: Column(

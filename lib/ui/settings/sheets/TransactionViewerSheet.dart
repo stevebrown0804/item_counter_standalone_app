@@ -400,7 +400,7 @@ async {
                 left: 12,
                 right: 12,
                 top: 8,
-                bottom: MediaQuery.of(ctx).viewInsets.bottom + 12,
+                bottom: _bottomSheetBottomPadding(ctx, _standardBottomSheetBottomPadding),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
