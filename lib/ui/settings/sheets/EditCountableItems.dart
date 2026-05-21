@@ -389,6 +389,10 @@ class _EditCountableItemsSheetState extends State<_EditCountableItemsSheet> {
     }
 
     final displayOrderOptions = _displayOrderOptions;
+    final bottomSystemPadding = MediaQuery.viewPaddingOf(context).bottom;
+    final keyboardPadding = MediaQuery.viewInsetsOf(context).bottom;
+    final bottomObstructionPadding =
+    keyboardPadding > 0 ? keyboardPadding : bottomSystemPadding;
 
     return Scaffold(
       appBar: AppBar(
@@ -399,7 +403,12 @@ class _EditCountableItemsSheetState extends State<_EditCountableItemsSheet> {
         ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(12.0),
+        padding: EdgeInsets.only(
+          left: 12.0,
+          right: 12.0,
+          top: 12.0,
+          bottom: 12.0 + bottomObstructionPadding,
+        ),
         child: Column(
           children: [
             SingleChildScrollView(
