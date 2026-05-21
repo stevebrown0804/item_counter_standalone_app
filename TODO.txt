@@ -59,14 +59,16 @@ Polishing
 
 *Main screen
 TODO (MAYBE): That "last added" banner at the top of the screen holds a string of what was last added; we might change the pill names to placeholder populated by the current display string for that pill, as set by the 'edit countable items' interface.  That way, if the user renames the item, that banner would reflect it.
+TODO: Let's change the RHS column header's default point at which it stops showing a decimal place to 30 days.
 
 *Settings sheet
-TODO: Add a slider for "interval length to start ignoring decimal part."  slider, maybe: 1 to 31, then [maximum length] (for any number beyond 31).
-    A though: This seems like a "UI minutiae" thing
+TODO: Add a slider for "interval length to start ignoring decimal part."  slider, maybe: 1 to 60, then [maximum length] (for any number beyond 60).
+    A thought: This seems like a "UI minutiae" thing
 TODO: Use the indicator light for every control/setting on the settings sheet...or at least consider how we MIGHT use it.  eg. with transaction viewer, if someone just views transactions, it seems like the indicator would just stay gray; if they successfully edit a transaction, it might turn green.  If they start to edit one but, I dunno, leave it half done (if that's even a thing), it might turn red.  Not sure that 'leaving transaction edits half-done' is even an option, though.
 
 *Transaction viewer
 TODO: I was on my phone, using the transaction viewer to look up transactions and add the other pills (which I'd just added via the 'edit countable items' interface; I had to set up the transaction viewer (to a certain 2-day range) each time I bought it up, which was pretty darn inconvenient.  Let's give that sheet the capacity to restore the previous filter, and add a 'reset filters' button.  (And we'll decide later if we want to always have the filter be preserved or if we should make that a user option.)
+    *We might also add a UI minutiae setting such as "Preserve transaction viewer's filter between sheet activations" (or probably something less wordy, or at least less programmer'y)
 
 *Averaging Window area of settings sheet
 TODO: The mm and dd fields in the start date text box (and presumably the end date text box as well) have leading 0s again, which I don't really want.
