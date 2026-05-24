@@ -9,11 +9,13 @@ TODO (When we're basically done with this pass): Ask ChatGPT to look over the cu
 ------Bug and/or code problems, but not hugely pressing ones
 TODO: It's come to my attention that ChatGPT has been using strings as return values.  Let's replace those with enums or something.
 
+TODO: I'm pretty sure the add items sheet is properly fitting itself onto the screen; let's make sure all the sheets/screens are doing the same.
+
+
 
 -------Time-zone alias UI
 TODO: Time-zone adding/editing UI
-    * Add a button (eg. "Add/edit time zones") on the settings sheet to bring up a new sheet
-    * On that sheet, let's have:
+    * On this new 'time zone' sheet, let's have:
         * A table (of some sort) with columns:
             * "Time zone"
             * "Alias"
@@ -26,7 +28,7 @@ TODO: Time-zone adding/editing UI
             * Delete spawns an "Are you quite sure you wish to delete this? I mean...good heavens, sir...such a thing!" (<---shorten; edit) dialog box with "Yes, dammit" and "What? I...no, I don't want to. Sorry." buttons.
             * Per ChatGPT: "...the [latest_all.dart, which apparently lists IANA time zones] list may include deprecated or historical zones. That is probably fine for now, because validation against tz.getLocation(name) will still work. Later, you could filter out names that look less user-facing, such as Etc/GMT+7, if the list feels cluttered."
         * MAYBE: Add an indicator light, next to the back button; gray when nothing's been changed, red if something's been changed that needs to be saved, green once everything's that's changed has been saved.
-            * A THOUGHT: We might also add these indicator lights to every other sheet spawnable by the setting screen.🤔 TBD.
+            * A THOUGHT: We might also add these indicator lights to every other sheet spawnable by the setting screen.🤔 Or at least the ones where an indicator light would be helpful, like the 'edit countable items' sheet. TBD.
 
 
 -------New DB wizard
@@ -95,7 +97,7 @@ TODO: Man....there are a lot of hard-coded values in this code.  And every one o
     Anyhow, let's work on getting rid of hard-coded constants and replacing them with "formulas based on information from the OS."
 
 
---"Do we still want to do this?" TODOs
+--"Do we still want to do this? TBD" TODOs
 TODO (MAYBE): Make the Transaction Viewer sheet more compact
     Maybe move the "last # days" radio onto the first row, compress the input boxes vertically, remove space between the "All" row and the "Apply filter" button, etc.
 
@@ -136,7 +138,7 @@ TODO: Answer the question, "Do we want a 'Use default path' switch beneath the E
 TODO: Answer the question, "When it comes to the end date, do we want to allow (and parse) arithmetic formulas involving the word 'today,' such as "today - 1" (for 'yesterday')?  It seems "possibly" useful to someone...maybe.
     * A THOUGHT: Maybe this is the sort of thing we should let someone who WANTS that feature, to implement it.
 
-TODO: Add a "use timezones or do not....there is no try" (wording to be adjusted later) switch to the Settings sheet; default value: On
+TODO: Add a "use timezones" switch to the Settings sheet; default value: On
     * On -- use the existing timezone functionality
     * Off -- hide the timezone-related stuff, I guess; just use UTC, but keep the specifics "as hidden as we can manage, without it becoming ridiculous"
 
