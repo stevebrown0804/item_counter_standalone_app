@@ -42,7 +42,7 @@ Phase 2, where I make the app more accessible to others
 
 
 atm I have one more 'big' TODO left (and some smaller TODOs, plus polishing) before I think I'll consider this a proper alpha release (and try out having github host an .apk file and all that):
-* Create a wizard for when the app is first started, to have the user add coutable items and (optionally) time zones.
+* Create a wizard for when the app is first started, to have the user add countable items and (optionally) time zones.
   
 ---
 
