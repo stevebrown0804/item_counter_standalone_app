@@ -37,7 +37,7 @@ Phase 2, where I make the app more accessible to others
   * A fixed start date, up until 'today' (so the duration grows each day), or
   * A fixed date window (eg. 12/7/2025 through 3/9/2026), if you're into that sort of thing.
 * 2025-05-09 Let's see, what did we do since the last bullet point...🤔 pretty sure we kept working on the "Averaging Window" area of the settings sheet, consolidated the date range computation logic, polished the Transaction Viewer sheet a bit....and possibly other stuff that's not coming to mind.
-* 2025-05-15 Added a DB migration, which gets checked (to see if it needs too be done) on app-start and on DB import.
+* 2025-05-15 Added a DB migration, which gets checked (to see if it needs to be done) on app-start and on DB import.
   
 atm I have two more categories of TODOs before I think I'll consider this a proper alpha release (and try out having github host an .apk file and all that):
 * Create a UI for defining/editing time zone aliases
@@ -57,7 +57,7 @@ btw I use those daily averages to project when my current supply of pills will r
 Q) Who are you?  
 A) Just some hobbyist, by which I mean I've never programmed for a paycheck.
 
-Q) What do you do for a living, then?
+Q) What do you do for a living, then?  
 A) Lately? I work on open-source software with my trusty tip cup by my side.
 
 Q) So you accept tips, I take it.  
