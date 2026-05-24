@@ -13,24 +13,6 @@ TODO: I'm pretty sure the add items sheet is properly fitting itself onto the sc
 
 
 
--------Time-zone alias UI
-TODO: Time-zone adding/editing UI
-    * On this new 'time zone' sheet, let's have:
-        * A table (of some sort) with columns:
-            * "Time zone"
-            * "Alias"
-                * We ~could~ make this column optional.  Presenting the full TZ strings in the TZ-selector drop-down seems acceptable to me, atm.  We'll ask ChatGPT what it thinks.
-            * Note that this table should probably show the starting time zones (the UTC-related 3 aliases) but NOT have them be editable.  (Or we could make them editable and have them override the 'default settings' in the DB or something.  we'll see.)
-        * "Add", "Edit" and "Delete" buttons
-            * Edit and Delete are activated with a row in the table has been selected
-            * Add spawns a dialog with a (text box? drop-down? TBD) UI element for entering/choosing a time zone, and a text field for entering an alias for that time zone; it then has "submit" and "cancel" buttons
-            * Edit spawns a UI similar to the add dialogue but with the two fields pre-populated
-            * Delete spawns an "Are you quite sure you wish to delete this? I mean...good heavens, sir...such a thing!" (<---shorten; edit) dialog box with "Yes, dammit" and "What? I...no, I don't want to. Sorry." buttons.
-            * Per ChatGPT: "...the [latest_all.dart, which apparently lists IANA time zones] list may include deprecated or historical zones. That is probably fine for now, because validation against tz.getLocation(name) will still work. Later, you could filter out names that look less user-facing, such as Etc/GMT+7, if the list feels cluttered."
-        * MAYBE: Add an indicator light, next to the back button; gray when nothing's been changed, red if something's been changed that needs to be saved, green once everything's that's changed has been saved.
-            * A THOUGHT: We might also add these indicator lights to every other sheet spawnable by the setting screen.🤔 Or at least the ones where an indicator light would be helpful, like the 'edit countable items' sheet. TBD.
-
-
 -------New DB wizard
 TODO (after adding a TZ alias-adding UI): "It's like a new-DB wizard, I guess"
     When a DB's items table is empty, replace the 'add' button on the home screen with an 'add items' button, which brings up the 'edit countable items' sheet.
@@ -90,6 +72,10 @@ TODO: Make the rows & the "add row" button the scrollable region, so that the 's
 TODO: Make the textBox and the drop-down box the same vertical height
 TODO: Get rid of that light gray bar separating each row, or perhaps add some space between it and the controls it encloses, then add an exterior border so that we have a box around the scrollable region
 TODO: Answer the question, "Does closing the 'edit countable items' screen via the submit button look weird to you?  It looks slightly chaotic to me, which could probably be smoothed out -- unless it's being caused by something specific to the emulator or something."
+
+*Time-zone editor sheet
+TODO (MAYBE): Add an indicator light to the "Edit TZ" sheet, next to the back button; gray when nothing's been changed, red if something's been changed that needs to be saved, green once everything's that's changed has been saved.
+    * A THOUGHT: We might also add these indicator lights to every other sheet spawnable by the setting screen.🤔 Or at least the ones where an indicator light would be helpful, like the 'edit countable items' sheet. TBD.
 
 *code
 TODO: Try using TextPainter to get the maximum width of things like 2 (or possibly 3- or 4-) digit numbers and using that to determine the width of the input boxes.
