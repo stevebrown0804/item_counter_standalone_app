@@ -308,64 +308,64 @@ class _SettingsScreenState extends State<SettingsScreen> {
           leadingWidth: _settingsLeadingWidth(),
           leading: _buildSettingsLeading(context),
         ),
-        body: Stack(
-          children: [
-            CustomScrollView(
-              slivers: [
-                SliverToBoxAdapter(
-                  child: Column(
-                    children: [
-                      const Divider(),
-                      _ViewTransactionsRow(
-                        onBackPressed: _returnHomeAfterNestedSettingsSheetClosed,
-                      ),
-                      const Divider(),
-                      _SummaryStatisticRow(
-                        key: _avgKey,
-                        onDirtyChanged: (v) => _setDirty('avg_window', v),
-                        onBlockedChanged: (v) => _setBlocked('avg_window', v),
-                        onSaved: _markSettingsSaved,
-                        onToast: _showSettingsToast,
-                        onInteractionComplete: _completeSettingsInteraction,
-                      ),
-                      const Divider(),
-                      _TzRow(
-                        key: _tzKey,
-                        onDirtyChanged: (v) => _setDirty('tz', v),
-                        onSaved: _markSettingsSaved,
-                        onInteractionComplete: _completeSettingsInteraction,
-                      ),
-                      const Divider(),
-                      _EditCountableItemsRow(
-                        onInteractionComplete: _completeSettingsInteraction,
-                      ),
-                      const SizedBox(height: 8),
-                      _EditTimeZonesRow(
-                        onInteractionComplete: _completeSettingsInteraction,
-                      ),
-                      const Divider(),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          _ExportDatabaseRow(
-                            onInteractionComplete: _completeSettingsInteraction,
-                            onToast: _showSettingsToast,
-                          ),
-                          const SizedBox(width: 12),
-                          _ImportDatabaseRow(
-                            onInteractionComplete: _completeSettingsInteraction,
-                            onToast: _showSettingsToast,
-                          ),
-                        ],
-                      ),
-                      const Divider(),
-                    ],
+        body: Padding(
+          padding: EdgeInsets.only(bottom: bottomSystemPadding),
+          child: Stack(
+            children: [
+              CustomScrollView(
+                slivers: [
+                  SliverToBoxAdapter(
+                    child: Column(
+                      children: [
+                        const Divider(),
+                        _ViewTransactionsRow(
+                          onBackPressed: _returnHomeAfterNestedSettingsSheetClosed,
+                        ),
+                        const Divider(),
+                        _SummaryStatisticRow(
+                          key: _avgKey,
+                          onDirtyChanged: (v) => _setDirty('avg_window', v),
+                          onBlockedChanged: (v) => _setBlocked('avg_window', v),
+                          onSaved: _markSettingsSaved,
+                          onToast: _showSettingsToast,
+                          onInteractionComplete: _completeSettingsInteraction,
+                        ),
+                        const Divider(),
+                        _TzRow(
+                          key: _tzKey,
+                          onDirtyChanged: (v) => _setDirty('tz', v),
+                          onSaved: _markSettingsSaved,
+                          onInteractionComplete: _completeSettingsInteraction,
+                        ),
+                        const Divider(),
+                        _EditCountableItemsRow(
+                          onInteractionComplete: _completeSettingsInteraction,
+                        ),
+                        const SizedBox(height: 8),
+                        _EditTimeZonesRow(
+                          onInteractionComplete: _completeSettingsInteraction,
+                        ),
+                        const Divider(),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            _ExportDatabaseRow(
+                              onInteractionComplete: _completeSettingsInteraction,
+                              onToast: _showSettingsToast,
+                            ),
+                            const SizedBox(width: 12),
+                            _ImportDatabaseRow(
+                              onInteractionComplete: _completeSettingsInteraction,
+                              onToast: _showSettingsToast,
+                            ),
+                          ],
+                        ),
+                        const Divider(),
+                      ],
+                    ),
                   ),
-                ),
-                SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: Padding(
-                    padding: EdgeInsets.only(bottom: bottomSystemPadding),
+                  SliverFillRemaining(
+                    hasScrollBody: false,
                     child: Column(
                       children: [
                         _ReturnHomeAfterSettingsInteractionRow(
@@ -417,11 +417,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ],
                     ),
                   ),
-                ),
-              ],
-            ),
-            _StackedToastHost(controller: _settingsToastController),
-          ],
+                ],
+              ),
+              _StackedToastHost(controller: _settingsToastController),
+            ],
+          ),
         ),
       ),
     );
