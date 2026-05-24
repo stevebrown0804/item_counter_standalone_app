@@ -11,6 +11,7 @@ TODO: It's come to my attention that ChatGPT has been using strings as return va
 
 TODO: I'm pretty sure the add items sheet is properly fitting itself onto the screen; let's make sure all the sheets/screens are doing the same.
 
+TODO: The drop-down in the edit TZ UI is being mostly hidden by the on-screen keyboard (on my phone); let's adjust it...somehow.
 
 
 -------New DB wizard
