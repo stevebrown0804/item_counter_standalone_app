@@ -346,6 +346,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             ),
                             const SizedBox(width: 12),
                             _EditTimeZonesRow(
+                              onTimeZonesChanged: () async {
+                                await _tzKey.currentState?._loadOptions();
+                              },
                               onInteractionComplete: _completeSettingsInteraction,
                             ),
                           ],
