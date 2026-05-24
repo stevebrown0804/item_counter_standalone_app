@@ -36,11 +36,12 @@ Phase 2, where I make the app more accessible to others
   * A duration (eg. 30 days)
   * A fixed start date, up until 'today' (so the duration grows each day), or
   * A fixed date window (eg. 12/7/2025 through 3/9/2026), if you're into that sort of thing.
-* 2025-05-09 Let's see, what did we do since the last bullet point...🤔 pretty sure we kept working on the "Averaging Window" area of the settings sheet, consolidated the date range computation logic, polished the Transaction Viewer sheet a bit....and possibly other stuff that's not coming to mind.
-* 2025-05-15 Added a DB migration, which gets checked (to see if it needs to be done) on app-start and on DB import.
-  
-atm I have two more categories of TODOs before I think I'll consider this a proper alpha release (and try out having github host an .apk file and all that):
-* Create a UI for defining/editing time zone aliases
+* 2026-05-09 Let's see, what did we do since the last bullet point...🤔 pretty sure we kept working on the "Averaging Window" area of the settings sheet, consolidated the date range computation logic, polished the Transaction Viewer sheet a bit....and possibly other stuff that's not coming to mind.
+* 2026-05-15 Added a DB migration, which gets checked (to see if it needs to be done) on app-start and on DB import.
+* 2026-05-23 Added a Time Zone editor UI; this app's nearly ready for normal (non-DB'y) people to use! fun.
+
+
+atm I have one more 'big' TODO left (and some smaller TODOs, plus polishing) before I think I'll consider this a proper alpha release (and try out having github host an .apk file and all that):
 * Create a wizard for when the app is first started, to have the user add coutable items and (optionally) time zones.
   
 ---
@@ -58,7 +59,4 @@ Q) Who are you?
 A) Just some hobbyist, by which I mean I've never programmed for a paycheck.
 
 Q) What do you do for a living, then?  
-A) Lately? I work on open-source software with my trusty tip cup by my side.
-
-Q) So you accept tips, I take it.  
-A) Yep! https://ko-fi.com/stevebrown0804
+A) Lately? I work on open-source software with my trusty tip cup by my side.  https://ko-fi.com/stevebrown0804
