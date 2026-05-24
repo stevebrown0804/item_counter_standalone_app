@@ -338,12 +338,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           onInteractionComplete: _completeSettingsInteraction,
                         ),
                         const Divider(),
-                        _EditCountableItemsRow(
-                          onInteractionComplete: _completeSettingsInteraction,
-                        ),
-                        const SizedBox(height: 8),
-                        _EditTimeZonesRow(
-                          onInteractionComplete: _completeSettingsInteraction,
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            _EditCountableItemsRow(
+                              onInteractionComplete: _completeSettingsInteraction,
+                            ),
+                            const SizedBox(width: 12),
+                            _EditTimeZonesRow(
+                              onInteractionComplete: _completeSettingsInteraction,
+                            ),
+                          ],
                         ),
                         const Divider(),
                         Row(
