@@ -279,13 +279,14 @@ class _MainScreenState extends State<_MainScreen> with WidgetsBindingObserver {
     }
   }
 
-  Future<void> _openAddSheet() async {
+  Future<void> _openAddItemsSheet() async {
     final items = _store.items.where((item) => item.showItem).toList();
     if (items.isEmpty) return;
 
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       builder: (ctx) {
         return _LogItemsSheet(
           items: items,
@@ -580,7 +581,7 @@ class _MainScreenState extends State<_MainScreen> with WidgetsBindingObserver {
           ),
           FloatingActionButton.extended(
             heroTag: 'add_fab',
-            onPressed: _openAddSheet,
+            onPressed: _openAddItemsSheet,
             icon: const Icon(Icons.add),
             label: const Text('Add'),
           ),
