@@ -59,7 +59,4 @@ Q) Who are you?
 A) Just some hobbyist, by which I mean I've never programmed for a paycheck.
 
 Q) What do you do for a living, then?  
-A) Lately? I work on open-source software with my trusty tip cup by my side.
-
-Q) So you accept tips, I take it.  
-A) Yep! https://ko-fi.com/stevebrown0804
+A) Lately? I work on open-source software with my trusty tip cup by my side.  https://ko-fi.com/stevebrown0804
