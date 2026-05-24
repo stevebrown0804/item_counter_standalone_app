@@ -55,7 +55,10 @@ And here's that app!
 btw I use those daily averages to project when my current supply of pills will run out, to make sure I take enough pills with me when I travel, etc.
 
 Q) Who are you?  
-A) Just some hobbyist, by which I mean I've never programmed for a paycheck.  But lately AI has gotten pretty good at generating code, and I've found rekindled interest in making the most of that.
+A) Just some hobbyist, by which I mean I've never programmed for a paycheck.
 
-Q) Do you accept tips?  
+Q) What do you do for a living, then?
+A) Lately? I work on open-source software with my trusty tip cup by my side.
+
+Q) So you accept tips, I take it.  
 A) Yep! https://ko-fi.com/stevebrown0804
