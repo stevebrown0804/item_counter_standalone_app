@@ -809,7 +809,7 @@ LIMIT 1
         const SizedBox(width: _buttonGap),
         FilledButton(
           onPressed: _hasSelectedEditableRow ? _beginEditingSelectedRow : null,
-          child: const Text('Edit'),
+          child: const Text('Edit alias'),
         ),
         const SizedBox(width: _buttonGap),
         FilledButton(
