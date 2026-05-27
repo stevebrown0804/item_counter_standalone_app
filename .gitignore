@@ -1,5 +1,7 @@
 # Project-specific
 /android/app/src/main/jniLibs
+android/key.properties
+android/app/*.jks
 
 # Miscellaneous
 *.class
