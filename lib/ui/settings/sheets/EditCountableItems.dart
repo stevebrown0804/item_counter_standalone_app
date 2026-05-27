@@ -452,7 +452,7 @@ class _EditCountableItemsSheetState extends State<_EditCountableItemsSheet> {
                   final isDuplicate = row.displayOrder != null &&
                       duplicateDisplayOrders.contains(row.displayOrder);
 
-                  final rowKey = ValueKey<int?>(row.id);
+                  final rowKey = ValueKey('countable_item_row_${row.id ?? 'new'}_${identityHashCode(row)}');
 
                   return DataRow(
                     key: rowKey,

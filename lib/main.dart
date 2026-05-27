@@ -32,6 +32,7 @@ part 'ui/settings/sheets/TransactionViewerSheet.dart';
 part 'ui/settings/sheets/TransactionEditorSheet.dart';
 part 'ui/sheets/AddItemsSheet.dart';
 part 'ui/sheets/MainScreen.dart';
+part 'ui/sheets/NewDbWizardScreen.dart';
 part 'ui/sheets/SettingsScreen.dart';
 part 'ui/widgets/StackedToastHost.dart';
 

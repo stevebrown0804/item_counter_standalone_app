@@ -318,12 +318,34 @@ class _MainScreenState extends State<_MainScreen> with WidgetsBindingObserver {
     );
   }
 
+  Future<void> _openNewDbWizardScreen() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const _NewDbWizardScreen(),
+      ),
+    );
+
+    if (!mounted) {
+      return;
+    }
+
+    await _store.refreshFromDatabase();
+    await _loadActiveTzDisplay();
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
     _measureHomeToastLowerEdgeAfterLayout();
 
     final averageWindowTooltip = _store.averageWindowTooltip;
     final rhsHeaderText = _store.averageWindowHeaderText;
+    final hasVisibleItems = _store.items.any((item) => item.showItem);
 
     final mainBody = _loading
         ? const Center(child: CircularProgressIndicator())
@@ -501,57 +523,11 @@ class _MainScreenState extends State<_MainScreen> with WidgetsBindingObserver {
       },
     );
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              _appBarTitle ?? 'Item Counter',
-            ),
-            const SizedBox(height: 3),
-            if (_tzDisplay != null)
-              Text(
-                'Time zone: $_tzDisplay',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-          ],
-        ),
-        actions: [
-          IconButton(
-            tooltip: 'Settings',
-            icon: const Icon(Icons.settings),
-            onPressed: () async {
-              await Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const SettingsScreen(),
-                ),
-              );
-              if (!mounted) return;
-              await _store.refreshFromDatabase();
-              await _loadActiveTzDisplay();
-              if (!mounted) return;
-              setState(() {});
-            },
-          ),
-        ],
-      ),
-      body: Stack(
-        key: _bodyStackKey,
-        children: [
-          Positioned.fill(
-            child: mainBody,
-          ),
-          _StackedToastHost(
-            controller: _homeToastController,
-            lowerEdgeY: _homeToastLowerEdgeY,
-          ),
-        ],
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      floatingActionButton: Row(
+    final Widget? floatingButtons;
+    if (_loading) {
+      floatingButtons = null;
+    } else if (hasVisibleItems) {
+      floatingButtons = Row(
         key: _floatingButtonRegionKey,
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -610,7 +586,68 @@ class _MainScreenState extends State<_MainScreen> with WidgetsBindingObserver {
             },
           ),
         ],
+      );
+    } else {
+      floatingButtons = FloatingActionButton.extended(
+        key: _floatingButtonRegionKey,
+        heroTag: 'new_db_wizard_fab',
+        onPressed: _openNewDbWizardScreen,
+        icon: const Icon(Icons.add),
+        label: const Text('Add items to count'),
+      );
+    }
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              _appBarTitle ?? 'Item Counter',
+            ),
+            const SizedBox(height: 3),
+            if (_tzDisplay != null)
+              Text(
+                'Time zone: $_tzDisplay',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+          ],
+        ),
+        actions: [
+          IconButton(
+            tooltip: 'Settings',
+            icon: const Icon(Icons.settings),
+            onPressed: () async {
+              await Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const SettingsScreen(),
+                ),
+              );
+              if (!mounted) return;
+              await _store.refreshFromDatabase();
+              await _loadActiveTzDisplay();
+              if (!mounted) return;
+              setState(() {});
+            },
+          ),
+        ],
       ),
+      body: Stack(
+        key: _bodyStackKey,
+        children: [
+          Positioned.fill(
+            child: mainBody,
+          ),
+          _StackedToastHost(
+            controller: _homeToastController,
+            lowerEdgeY: _homeToastLowerEdgeY,
+          ),
+        ],
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      floatingActionButton: floatingButtons,
     );
   }
 }

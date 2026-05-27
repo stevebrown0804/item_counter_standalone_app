@@ -45,9 +45,13 @@ class _EditTimeZonesRow extends StatelessWidget {
 class _EditTimeZonesSheet extends StatefulWidget {
   const _EditTimeZonesSheet({
     required this.onTimeZonesChanged,
+    this.showBackButton = true,
+    this.showBottomCloseButtons = false,
   });
 
   final Future<void> Function() onTimeZonesChanged;
+  final bool showBackButton;
+  final bool showBottomCloseButtons;
 
   @override
   State<_EditTimeZonesSheet> createState() => _EditTimeZonesSheetState();
@@ -822,6 +826,58 @@ LIMIT 1
     );
   }
 
+  Widget _buildBottomCloseButtons() {
+    if (!widget.showBottomCloseButtons) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      children: [
+        const SizedBox(height: _buttonGap),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            TextButton(
+              onPressed: _isEditing ? null : () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            const SizedBox(width: _buttonGap),
+            FilledButton(
+              onPressed: _isEditing ? null : () => Navigator.of(context).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHeader() {
+    return Row(
+      children: [
+        if (widget.showBackButton)
+          IconButton(
+            tooltip: 'Back',
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => Navigator.of(context).pop(),
+          )
+        else
+          const SizedBox(width: kMinInteractiveDimension),
+        const Expanded(
+          child: Text(
+            'Edit time zones',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        const SizedBox(width: kMinInteractiveDimension),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(
@@ -839,26 +895,7 @@ LIMIT 1
           ),
           child: Column(
             children: [
-              Row(
-                children: [
-                  IconButton(
-                    tooltip: 'Back',
-                    icon: const Icon(Icons.arrow_back),
-                    onPressed: () => Navigator.of(context).pop(),
-                  ),
-                  const Expanded(
-                    child: Text(
-                      'Edit time zones',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: kMinInteractiveDimension),
-                ],
-              ),
+              _buildHeader(),
               const SizedBox(height: _titleToTableGap),
               Flexible(
                 fit: FlexFit.loose,
@@ -866,6 +903,7 @@ LIMIT 1
               ),
               const SizedBox(height: _tableToButtonGap),
               _buildActionButtons(),
+              _buildBottomCloseButtons(),
             ],
           ),
         ),
