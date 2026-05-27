@@ -67,6 +67,185 @@ class _TimeZoneEditorRow {
   final bool editable;
 }
 
+class _AddTimeZoneDialogResult {
+  const _AddTimeZoneDialogResult({
+    required this.timeZone,
+    required this.alias,
+  });
+
+  final String timeZone;
+  final String alias;
+}
+
+class _AddTimeZoneDialog extends StatefulWidget {
+  const _AddTimeZoneDialog({
+    required this.ianaTimeZoneNames,
+  });
+
+  final List<String> ianaTimeZoneNames;
+
+  @override
+  State<_AddTimeZoneDialog> createState() => _AddTimeZoneDialogState();
+}
+
+class _AddTimeZoneDialogState extends State<_AddTimeZoneDialog> {
+  static const double _dialogWidthFraction = 0.85;
+  static const double _filteredListHeightFraction = 0.30;
+  static const double _fieldGap = 16.0;
+
+  final TextEditingController _timeZoneController = TextEditingController();
+  final TextEditingController _aliasController = TextEditingController();
+  final FocusNode _timeZoneFocusNode = FocusNode();
+  final FocusNode _aliasFocusNode = FocusNode();
+
+  String? _selectedTimeZone;
+
+  List<String> get _filteredTimeZones {
+    final typed = _timeZoneController.text.trim();
+    if (typed.isEmpty) {
+      return widget.ianaTimeZoneNames;
+    }
+
+    final upperTyped = typed.toUpperCase();
+    return widget.ianaTimeZoneNames
+        .where((name) => name.toUpperCase().contains(upperTyped))
+        .toList();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+
+      _timeZoneFocusNode.requestFocus();
+    });
+  }
+
+  @override
+  void dispose() {
+    _timeZoneFocusNode.dispose();
+    _aliasFocusNode.dispose();
+    _timeZoneController.dispose();
+    _aliasController.dispose();
+    super.dispose();
+  }
+
+  void _handleTimeZoneTextChanged(String value) {
+    final trimmed = value.trim();
+    final matchingTimeZone = widget.ianaTimeZoneNames.contains(trimmed)
+        ? trimmed
+        : null;
+
+    setState(() {
+      _selectedTimeZone = matchingTimeZone;
+    });
+  }
+
+  void _selectTimeZone(String timeZoneName) {
+    setState(() {
+      _selectedTimeZone = timeZoneName;
+      _timeZoneController.text = timeZoneName;
+      _timeZoneController.selection = TextSelection.collapsed(
+        offset: _timeZoneController.text.length,
+      );
+    });
+
+    _aliasFocusNode.requestFocus();
+  }
+
+  void _save() {
+    final selectedTimeZone = _selectedTimeZone;
+    if (selectedTimeZone == null) {
+      throw StateError('Save was requested without a valid selected time zone.');
+    }
+
+    final aliasText = _aliasController.text.trim();
+
+    Navigator.of(context).pop(
+      _AddTimeZoneDialogResult(
+        timeZone: selectedTimeZone,
+        alias: aliasText.isEmpty ? selectedTimeZone : aliasText,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final mediaQuery = MediaQuery.of(context);
+    final dialogWidth = mediaQuery.size.width * _dialogWidthFraction;
+    final availableHeight = mediaQuery.size.height - mediaQuery.viewInsets.bottom;
+    final filteredListMaxHeight = availableHeight * _filteredListHeightFraction;
+    final filteredTimeZones = _filteredTimeZones;
+
+    return AlertDialog(
+      title: const Text('Add time zone'),
+      content: SingleChildScrollView(
+        child: SizedBox(
+          width: dialogWidth,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: _timeZoneController,
+                focusNode: _timeZoneFocusNode,
+                decoration: const InputDecoration(
+                  labelText: 'Time zone',
+                  border: OutlineInputBorder(),
+                ),
+                onChanged: _handleTimeZoneTextChanged,
+              ),
+              const SizedBox(height: _fieldGap),
+              ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: filteredListMaxHeight,
+                ),
+                child: Material(
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: filteredTimeZones.length,
+                    itemBuilder: (context, index) {
+                      final timeZoneName = filteredTimeZones[index];
+
+                      return ListTile(
+                        dense: true,
+                        title: Text(timeZoneName),
+                        onTap: () => _selectTimeZone(timeZoneName),
+                      );
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(height: _fieldGap),
+              TextField(
+                controller: _aliasController,
+                focusNode: _aliasFocusNode,
+                decoration: const InputDecoration(
+                  labelText: 'Alias (optional)',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: _selectedTimeZone == null ? null : _save,
+          child: const Text('Save'),
+        ),
+      ],
+    );
+  }
+}
+
 class _EditTimeZonesSheetState extends State<_EditTimeZonesSheet> {
   static const double _tableBorderWidth = 1.0;
   static const double _horizontalSheetPadding = 16.0;
@@ -74,39 +253,20 @@ class _EditTimeZonesSheetState extends State<_EditTimeZonesSheet> {
   static const double _titleToTableGap = 16.0;
   static const double _tableToButtonGap = 12.0;
   static const double _buttonGap = 12.0;
-  static const double _timeZoneAutocompleteMaxHeightFraction = 0.35;
 
   final _db = _Db();
-  final TextEditingController _timeZoneAddController = TextEditingController();
   final TextEditingController _aliasEditController = TextEditingController();
-  final FocusNode _timeZoneAddFocusNode = FocusNode();
   final FocusNode _aliasEditFocusNode = FocusNode();
-  final MenuController _timeZoneAddMenuController = MenuController();
 
   bool _loading = true;
   bool _savingEdit = false;
-  bool _addingRow = false;
   Object? _loadError;
   List<String> _ianaTimeZoneNames = const [];
   List<_TimeZoneEditorRow> _rows = const [];
   int? _selectedRowIndex;
   int? _editingRowId;
-  String? _selectedAddTimeZone;
 
   bool get _isEditing => _editingRowId != null;
-  bool get _isAddingOrEditing => _addingRow || _isEditing;
-
-  List<String> get _filteredIanaTimeZoneNames {
-    final typed = _timeZoneAddController.text.trim();
-    if (typed.isEmpty) {
-      return _ianaTimeZoneNames;
-    }
-
-    final upperTyped = typed.toUpperCase();
-    return _ianaTimeZoneNames
-        .where((name) => name.toUpperCase().contains(upperTyped))
-        .toList();
-  }
 
   bool get _hasSelectedEditableRow {
     final selectedRowIndex = _selectedRowIndex;
@@ -133,9 +293,7 @@ class _EditTimeZonesSheetState extends State<_EditTimeZonesSheet> {
 
   @override
   void dispose() {
-    _timeZoneAddFocusNode.dispose();
     _aliasEditFocusNode.dispose();
-    _timeZoneAddController.dispose();
     _aliasEditController.dispose();
     super.dispose();
   }
@@ -196,9 +354,6 @@ ORDER BY iana_tz_name, alias, id
         _rows = loadedRows;
         _selectedRowIndex = null;
         _editingRowId = null;
-        _addingRow = false;
-        _selectedAddTimeZone = null;
-        _timeZoneAddController.clear();
         _aliasEditController.clear();
         _loading = false;
         _loadError = null;
@@ -212,9 +367,6 @@ ORDER BY iana_tz_name, alias, id
         _rows = const [];
         _selectedRowIndex = null;
         _editingRowId = null;
-        _addingRow = false;
-        _selectedAddTimeZone = null;
-        _timeZoneAddController.clear();
         _aliasEditController.clear();
         _loading = false;
         _loadError = e;
@@ -257,91 +409,6 @@ ORDER BY iana_tz_name, alias, id
     );
   }
 
-  DataCell _timeZoneAddCell(BuildContext context) {
-    final menuHeight =
-        MediaQuery.sizeOf(context).height * _timeZoneAutocompleteMaxHeightFraction;
-
-    return DataCell(
-      MenuAnchor(
-        controller: _timeZoneAddMenuController,
-        menuChildren: [
-          ConstrainedBox(
-            constraints: BoxConstraints(
-              maxHeight: menuHeight,
-            ),
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: _filteredIanaTimeZoneNames.map((timeZoneName) {
-                  return MenuItemButton(
-                    onPressed: () {
-                      setState(() {
-                        _selectedAddTimeZone = timeZoneName;
-                        _timeZoneAddController.text = timeZoneName;
-                        _timeZoneAddController.selection = TextSelection.collapsed(
-                          offset: _timeZoneAddController.text.length,
-                        );
-                      });
-                      _timeZoneAddMenuController.close();
-                      _aliasEditFocusNode.requestFocus();
-                    },
-                    child: Text(timeZoneName),
-                  );
-                }).toList(),
-              ),
-            ),
-          ),
-        ],
-        child: TextField(
-          controller: _timeZoneAddController,
-          focusNode: _timeZoneAddFocusNode,
-          enabled: !_savingEdit,
-          decoration: InputDecoration(
-            isDense: true,
-            border: const OutlineInputBorder(),
-            hintText: 'Select time zone',
-            suffixIcon: IconButton(
-              icon: const Icon(Icons.arrow_drop_down),
-              onPressed: _savingEdit
-                  ? null
-                  : () {
-                _timeZoneAddFocusNode.requestFocus();
-                if (_timeZoneAddMenuController.isOpen) {
-                  _timeZoneAddMenuController.close();
-                } else {
-                  _timeZoneAddMenuController.open();
-                }
-              },
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 8,
-              vertical: 6,
-            ),
-          ),
-          onTap: () {
-            if (!_timeZoneAddMenuController.isOpen) {
-              _timeZoneAddMenuController.open();
-            }
-          },
-          onChanged: (value) {
-            final trimmed = value.trim();
-            final matchingTimeZone = _ianaTimeZoneNames.contains(trimmed)
-                ? trimmed
-                : null;
-
-            setState(() {
-              _selectedAddTimeZone = matchingTimeZone;
-            });
-
-            if (!_timeZoneAddMenuController.isOpen) {
-              _timeZoneAddMenuController.open();
-            }
-          },
-        ),
-      ),
-    );
-  }
-
   Widget _buildTable(BuildContext context) {
     final tableBorderColor = Theme.of(context).dividerColor;
     final disabledTextStyle = TextStyle(
@@ -379,7 +446,7 @@ ORDER BY iana_tz_name, alias, id
 
         return DataRow(
           selected: _selectedRowIndex == index,
-          onSelectChanged: row.editable && !_isAddingOrEditing
+          onSelectChanged: row.editable && !_isEditing
               ? (selected) {
             setState(() {
               _selectedRowIndex = selected == true ? index : null;
@@ -395,17 +462,6 @@ ORDER BY iana_tz_name, alias, id
         );
       },
     );
-
-    if (_addingRow) {
-      tableRows.add(
-        DataRow(
-          cells: <DataCell>[
-            _timeZoneAddCell(context),
-            _aliasEditCell(),
-          ],
-        ),
-      );
-    }
 
     return SizedBox(
       width: double.infinity,
@@ -475,24 +531,42 @@ ORDER BY iana_tz_name, alias, id
     );
   }
 
-  void _beginAddingRow() {
-    setState(() {
-      _addingRow = true;
-      _selectedRowIndex = null;
-      _editingRowId = null;
-      _selectedAddTimeZone = null;
-      _timeZoneAddController.clear();
-      _aliasEditController.clear();
-    });
+  Future<void> _openAddTimeZoneDialog() async {
+    final result = await showDialog<_AddTimeZoneDialogResult>(
+      context: context,
+      builder: (context) {
+        return _AddTimeZoneDialog(
+          ianaTimeZoneNames: _ianaTimeZoneNames,
+        );
+      },
+    );
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    if (result == null) {
+      return;
+    }
+
+    try {
+      final db = await _db.open();
+
+      await db.insert(
+        'time_zone_aliases',
+        {
+          'iana_tz_name': result.timeZone,
+          'alias': result.alias,
+        },
+      );
+
+      await _loadRows();
+      await widget.onTimeZonesChanged();
+    } catch (e) {
       if (!mounted) {
         return;
       }
 
-      _timeZoneAddFocusNode.requestFocus();
-      _timeZoneAddMenuController.open();
-    });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to add time-zone alias: $e')),
+      );
+    }
   }
 
   void _beginEditingSelectedRow() {
@@ -528,62 +602,11 @@ ORDER BY iana_tz_name, alias, id
     });
   }
 
-  void _cancelAddingOrEditing() {
+  void _cancelEditing() {
     setState(() {
-      _addingRow = false;
       _editingRowId = null;
-      _selectedAddTimeZone = null;
-      _timeZoneAddController.clear();
       _aliasEditController.clear();
     });
-  }
-
-  Future<void> _saveNewRow() async {
-    final selectedTimeZone = _selectedAddTimeZone;
-    if (selectedTimeZone == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Select a valid time zone.')),
-      );
-      return;
-    }
-
-    final editedAlias = _aliasEditController.text.trim();
-    final aliasToSave = editedAlias.isEmpty ? selectedTimeZone : editedAlias;
-
-    setState(() {
-      _savingEdit = true;
-    });
-
-    try {
-      final db = await _db.open();
-
-      await db.insert(
-        'time_zone_aliases',
-        {
-          'iana_tz_name': selectedTimeZone,
-          'alias': aliasToSave,
-        },
-      );
-
-      await _loadRows();
-      await widget.onTimeZonesChanged();
-    } catch (e) {
-      if (!mounted) {
-        return;
-      }
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to add time-zone alias: $e')),
-      );
-    } finally {
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _savingEdit = false;
-      });
-    }
   }
 
   Future<void> _saveEditedAlias() async {
@@ -644,15 +667,6 @@ ORDER BY iana_tz_name, alias, id
         _savingEdit = false;
       });
     }
-  }
-
-  Future<void> _saveAddingOrEditing() async {
-    if (_addingRow) {
-      await _saveNewRow();
-      return;
-    }
-
-    await _saveEditedAlias();
   }
 
   Future<void> _deleteSelectedRow() async {
@@ -768,17 +782,17 @@ LIMIT 1
   }
 
   Widget _buildActionButtons() {
-    if (_isAddingOrEditing) {
+    if (_isEditing) {
       return Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           FilledButton(
-            onPressed: _savingEdit ? null : () async => await _saveAddingOrEditing(),
+            onPressed: _savingEdit ? null : () async => await _saveEditedAlias(),
             child: const Text('Save'),
           ),
           const SizedBox(width: _buttonGap),
           FilledButton(
-            onPressed: _savingEdit ? null : _cancelAddingOrEditing,
+            onPressed: _savingEdit ? null : _cancelEditing,
             child: const Text('Cancel'),
           ),
         ],
@@ -789,7 +803,7 @@ LIMIT 1
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         FilledButton(
-          onPressed: _beginAddingRow,
+          onPressed: () async => await _openAddTimeZoneDialog(),
           child: const Text('Add'),
         ),
         const SizedBox(width: _buttonGap),
