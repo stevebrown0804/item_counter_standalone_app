@@ -6,23 +6,14 @@ TODO (When we're basically done with this pass): Ask ChatGPT to look over the cu
 
 
 
-------Bug and/or code problems, but not hugely pressing ones
+------Bugs and/or code problems, but not hugely pressing ones
 TODO: It's come to my attention that ChatGPT has been using strings as return values.  Let's replace those with enums or something.
 
 TODO: I'm pretty sure the add items sheet is properly fitting itself onto the screen; let's make sure all the sheets/screens are doing the same.
 
-TODO: The drop-down in the edit TZ UI is being mostly hidden by the on-screen keyboard (on my phone); let's adjust it...somehow.
+TODO: When someone starts a new DB, the averaging interval is 30 days, despite there not being any transactions 30 days old, at that point.  Let's have the default duration (and the earliest pickable date) be the earlier date of any existing transactions, or 'today' if there aren't any transactions yet.
 
-
--------New DB wizard
-TODO (after adding a TZ alias-adding UI): "It's like a new-DB wizard, I guess"
-    When a DB's items table is empty, replace the 'add' button on the home screen with an 'add items' button, which brings up the 'edit countable items' sheet.
-    We'll also give the user a change to add some time zone aliases; specifics TBD.
-    How about this:
-        Check to see if the TZ aliases table only contains the default ones.  If it does:
-            *Ask the user if they'd like to use time zones. If no, skip this.  If yes:
-                *Bring up the TZ alias editor window.
-        Once we're done (ie. the user clicks 'submit' in the TZ alias window or something), proceed to the usual home screen (with the add/undo/redo buttons in-place).
+TODO: On the 'new database setup' screen, if the user adds a time zone, let's have that one be selected in the 'choose  time zone' drop-down;  if they've entered multiple, let's have the 'most recent one they've entered' be the chosen one
 
 
 -------DB importing
@@ -30,11 +21,6 @@ TODO re: Database importing:
     * For the time being, the app's going to enforce "only import (item transactions / settings) if (items / time zones) (respectively) is imported;" we should communicate this somewhere, so as not to overly-aggravate those trying to import one table, then import the 2nd table in a later operation.
     * Whatever directory the "import DB" file picker starts in, we should also communicate that directory that is (to reduce guesswork about where best to place a DB file).
         *FOR THE TIME BEING: We could just communciate this via the readme or something.  That'll get the job done, I think.
-
-
--------App signing
-TODO: Edit android/app/build.gradle.kts to give the app a signing key (other than just the debug key, which changed when we bought a new laptop a few months ago, forcing us to uninstall and re-install the app on our phone -- which is ok, since we can export the DB and re-import it in the newly-installed version -- but IMAGINE IF WE COULDN'T! =o )
-
 
 
 ---------------------------------------
@@ -90,8 +76,10 @@ TODO (MAYBE): Make the Transaction Viewer sheet more compact
 
 
 
----------------------------------------
-Probably saving for the next pass
+---------------------------------------------
+Stuff we're probably saving for the next pass
+
+TODO: The 'add a new time zone' sheet presents the IANA time zones...which might not be all that intuitive of a list. (eg. it doesn't list anything in the pacific time zone in the US, if you enter 'pacific.'  Let's do "something" about that.
 
 TODO: Answer the question, "With the start date and end date, we're assuming mm/dd/yyyy, as far as I can tell.  Does Android change that, in other regions (where yyyy/mm/dd, etc. are common)?  Do we need to adapt (ie. by adding some i18n to the project)? TBD"
 
@@ -169,7 +157,7 @@ TODO (MAYBE): Let the user long-tap & drag them to rearrange the rows of the set
 
 ---------------------------------------------------------------------------------------------------
 
-[REMINDER: From here down we have TODOs written during the first pass at app development; they may or may not still apply.  We'll get around to evaluating them 'eventually.']
+[REMINDER: From here down we have (any remaining) TODOs written during the first pass at app development; they may or may not still apply.  We'll get around to evaluating them all, eventually.]
 
 ---Minor initiatives---
 
