@@ -1,3 +1,5 @@
+// ui/settings/sheets/TransactionEditorSheet.dart
+
 part of '../../../main.dart';
 
 /// Opens the "Edit transaction" bottom sheet for a single transaction.
@@ -72,7 +74,6 @@ Future<bool> openTransactionEditorSheet({
                 ),
               ),
               const SizedBox(height: 12),
-
               // Row 1: Date
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
@@ -94,8 +95,7 @@ Future<bool> openTransactionEditorSheet({
                   const SizedBox(width: 8),
                   TextButton(
                     onPressed: () async {
-                      final initial =
-                      DateTime(local.year, local.month, local.day);
+                      final initial = DateTime(local.year, local.month, local.day);
                       final picked = await showDatePicker(
                         context: editCtx,
                         initialDate: initial,
@@ -112,7 +112,6 @@ Future<bool> openTransactionEditorSheet({
                 ],
               ),
               const SizedBox(height: 8),
-
               // Row 2: Time
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
@@ -154,7 +153,6 @@ Future<bool> openTransactionEditorSheet({
                 ],
               ),
               const SizedBox(height: 8),
-
               // Row 3: Item
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
@@ -183,7 +181,6 @@ Future<bool> openTransactionEditorSheet({
                 ],
               ),
               const SizedBox(height: 8),
-
               // Row 4: Quantity
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
@@ -206,7 +203,6 @@ Future<bool> openTransactionEditorSheet({
                 ],
               ),
               const SizedBox(height: 16),
-
               // Buttons
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
@@ -267,8 +263,7 @@ Future<bool> openTransactionEditorSheet({
 
                       String utcTs;
                       try {
-                        utcTs =
-                        await db.localToUtcDbTimestamp(normalizedLocalTs);
+                        utcTs = await db.localToUtcDbTimestamp(normalizedLocalTs);
                       } catch (e) {
                         ScaffoldMessenger.of(editCtx).showSnackBar(
                           SnackBar(
@@ -282,8 +277,8 @@ Future<bool> openTransactionEditorSheet({
 
                       try {
                         // Insert replacement transaction at chosen time
-                        await db.insertManyAtUtcReturningIds(
-                          [ _Entry(item.id, qty) ],
+                        await db.insertOneAtUtcReturningId(
+                          _Entry(item.id, qty),
                           utcTs,
                         );
 

@@ -565,43 +565,21 @@ ORDER BY display_order, p.id
     return _formatDbTimestamp(local);
   }
 
-  Future<List<int>> insertManyAtUtcReturningIds(
-      List<_Entry> entries, String? utcIso) async {
-    if (entries.isEmpty) {
-      return const [];
+  Future<int> insertOneAtUtcReturningId(_Entry entry, String utcIso) async {
+    if (entry.qty <= 0) {
+      throw ArgumentError('quantity must be > 0');
     }
 
-    for (final entry in entries) {
-      if (entry.qty <= 0) {
-        throw ArgumentError('quantity must be > 0');
-      }
+    if (utcIso.trim().isEmpty) {
+      throw ArgumentError('utcIso must not be empty');
     }
 
     final db = await open();
 
-    return db.transaction((txn) async {
-      final ids = <int>[];
-
-      if (utcIso != null) {
-        for (final entry in entries) {
-          final id = await txn.rawInsert(
-            'INSERT INTO item_transactions (item_id, quantity, timestamp_utc) VALUES (?, ?, ?)',
-            [entry.itemId, entry.qty, utcIso],
-          );
-          ids.add(id);
-        }
-      } else {
-        for (final entry in entries) {
-          final id = await txn.rawInsert(
-            'INSERT INTO item_transactions (item_id, quantity, timestamp_utc) VALUES (?, ?, CURRENT_TIMESTAMP)',
-            [entry.itemId, entry.qty],
-          );
-          ids.add(id);
-        }
-      }
-
-      return ids;
-    });
+    return db.rawInsert(
+      'INSERT INTO item_transactions (item_id, quantity, timestamp_utc) VALUES (?, ?, ?)',
+      [entry.itemId, entry.qty, utcIso],
+    );
   }
 
   Future<_TxnSnapshot?> readTransactionById(int id) async {
