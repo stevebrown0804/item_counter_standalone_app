@@ -162,12 +162,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     await main._store.refreshFromDatabase();
     await main._loadActiveTzDisplay();
-
-    if (!main.mounted) {
-      return;
-    }
-
-    main.setState(() {});
   }
 
   Future<void> _completeSettingsInteraction(String message) async {

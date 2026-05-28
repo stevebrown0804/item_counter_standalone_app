@@ -79,29 +79,29 @@ class _TzRowState extends State<_TzRow> {
       if (main != null && main.mounted) {
         await main._store.refreshFromDatabase();
         await main._loadActiveTzDisplay();
-        if (main.mounted) {
-          main.setState(() {});
-        }
       }
 
-      if (!mounted) return;
-      setState(() {
-        _currentDisplayString = savedDisplayString;
-      });
-      widget.onDirtyChanged(false);
-      widget.onSaved();
+      if (mounted) {
+        setState(() {
+          _currentDisplayString = savedDisplayString;
+        });
+        widget.onDirtyChanged(false);
+        widget.onSaved();
 
-      await widget.onInteractionComplete('Time zone selected: $savedDisplayString');
+        await widget.onInteractionComplete('Time zone selected: $savedDisplayString');
+      }
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to save time zone: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to save time zone: $e')),
+        );
+      }
     } finally {
-      if (!mounted) return;
-      setState(() {
-        _saving = false;
-      });
+      if (mounted) {
+        setState(() {
+          _saving = false;
+        });
+      }
     }
   }
 
