@@ -194,29 +194,6 @@ class _ImportDatabaseRow extends StatelessWidget {
     );
   }
 
-  Future<void> _showImportInProgressDialog(BuildContext context) async {
-    await showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => const AlertDialog(
-        title: Text('Importing database'),
-        content: Row(
-          children: [
-            SizedBox(
-              width: 24,
-              height: 24,
-              child: CircularProgressIndicator(),
-            ),
-            SizedBox(width: 16),
-            Expanded(
-              child: Text('Import in progress...'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Future<void> _pickImportDatabaseFile(BuildContext context) async {
     BuildContext? progressDialogContext;
 
@@ -291,7 +268,6 @@ class _ImportDatabaseRow extends StatelessWidget {
         if (main != null && main.mounted) {
           main._store.clearUndoRedo();
           await main._store.refreshFromDatabase();
-          main.setState(() {});
         }
 
         if (!context.mounted) return;

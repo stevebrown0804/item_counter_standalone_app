@@ -889,6 +889,8 @@ ORDER BY
         singleInstance: false,
       );
 
+      final openedCandidateDb = candidateDb;
+
       await liveDb.transaction((txn) async {
         if (importItemTransactions) {
           try {
@@ -933,7 +935,7 @@ ORDER BY
         if (importItems) {
           await _insertRowsFromCandidateTable(
             txn,
-            candidateDb!,
+            openedCandidateDb,
             actualTableName: 'items',
             friendlyTableName: 'items',
             orderBy: 'id',
@@ -943,7 +945,7 @@ ORDER BY
         if (importItemTransactions) {
           await _insertRowsFromCandidateTable(
             txn,
-            candidateDb!,
+            openedCandidateDb,
             actualTableName: 'item_transactions',
             friendlyTableName: 'item transactions',
             orderBy: 'id',
@@ -953,7 +955,7 @@ ORDER BY
         if (importTimeZones) {
           await _insertRowsFromCandidateTable(
             txn,
-            candidateDb!,
+            openedCandidateDb,
             actualTableName: 'time_zone_aliases',
             friendlyTableName: 'time zones',
             orderBy: 'id',
@@ -963,7 +965,7 @@ ORDER BY
         if (importSettings) {
           await _insertRowsFromCandidateTable(
             txn,
-            candidateDb!,
+            openedCandidateDb,
             actualTableName: 'settings',
             friendlyTableName: 'settings',
             orderBy: 'key',

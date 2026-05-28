@@ -89,7 +89,9 @@ class _MainScreenState extends State<_MainScreen> with WidgetsBindingObserver {
         _bannerIndex = 0;
       });
     } catch (e) {
-      debugPrint('Failed to load last-added banner: $e');
+      if (!mounted) return;
+      _error ??= 'Failed to load last-added banner: $e';
+      setState(() {});
     }
   }
 
