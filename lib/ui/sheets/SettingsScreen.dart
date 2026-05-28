@@ -7,6 +7,12 @@ enum _SettingsLeaveAction {
   abandon,
 }
 
+enum _SettingsRowId {
+  averagingWindow,
+  timeZone,
+  skipSecondConfirmation,
+}
+
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
 
@@ -21,8 +27,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final GlobalKey<_SkipSecondConfirmationSettingState> _skipKey =
   GlobalKey<_SkipSecondConfirmationSettingState>();
 
-  final Map<String, bool> _dirty = <String, bool>{};
-  final Map<String, bool> _blocked = <String, bool>{};
+  final Map<_SettingsRowId, bool> _dirty = <_SettingsRowId, bool>{};
+  final Map<_SettingsRowId, bool> _blocked = <_SettingsRowId, bool>{};
   final GlobalKey _settingsBackArrowIconKey = GlobalKey();
   static const double _settingsIndicatorLightDiameterScale = 1.0 / 3.0;
   Size? _settingsBackArrowIconSize;
@@ -33,7 +39,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool get _hasUnsavedChanges => _dirty.values.any((v) => v);
   bool get _hasBlockedChanges => _blocked.values.any((v) => v);
   bool get _averagingWindowHasPendingChanges =>
-      (_dirty['avg_window'] ?? false) || (_blocked['avg_window'] ?? false);
+      (_dirty[_SettingsRowId.averagingWindow] ?? false) ||
+          (_blocked[_SettingsRowId.averagingWindow] ?? false);
 
   @override
   void initState() {
@@ -196,14 +203,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  void _setDirty(String key, bool isDirty) {
-    final prev = _dirty[key];
+  void _setDirty(_SettingsRowId rowId, bool isDirty) {
+    final prev = _dirty[rowId];
     if (prev == isDirty) return;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       setState(() {
-        _dirty[key] = isDirty;
+        _dirty[rowId] = isDirty;
         if (isDirty) {
           _settingsHaveBeenSavedSinceOpening = false;
         }
@@ -211,14 +218,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
     });
   }
 
-  void _setBlocked(String key, bool isBlocked) {
-    final prev = _blocked[key];
+  void _setBlocked(_SettingsRowId rowId, bool isBlocked) {
+    final prev = _blocked[rowId];
     if (prev == isBlocked) return;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       setState(() {
-        _blocked[key] = isBlocked;
+        _blocked[rowId] = isBlocked;
         if (isBlocked) {
           _settingsHaveBeenSavedSinceOpening = false;
         }
@@ -336,8 +343,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         const Divider(),
                         _SummaryStatisticRow(
                           key: _avgKey,
-                          onDirtyChanged: (v) => _setDirty('avg_window', v),
-                          onBlockedChanged: (v) => _setBlocked('avg_window', v),
+                          onDirtyChanged: (v) => _setDirty(
+                            _SettingsRowId.averagingWindow,
+                            v,
+                          ),
+                          onBlockedChanged: (v) => _setBlocked(
+                            _SettingsRowId.averagingWindow,
+                            v,
+                          ),
                           onSaved: _markSettingsSaved,
                           onToast: _showSettingsToast,
                           onInteractionComplete: _completeSettingsInteraction,
@@ -345,7 +358,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         const Divider(),
                         _TzRow(
                           key: _tzKey,
-                          onDirtyChanged: (v) => _setDirty('tz', v),
+                          onDirtyChanged: (v) => _setDirty(
+                            _SettingsRowId.timeZone,
+                            v,
+                          ),
                           onSaved: _markSettingsSaved,
                           onInteractionComplete: _completeSettingsInteraction,
                         ),
@@ -429,7 +445,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         const Divider(),
                         _SkipSecondConfirmationSetting(
                           key: _skipKey,
-                          onDirtyChanged: (v) => _setDirty('skip_second_confirm', v),
+                          onDirtyChanged: (v) => _setDirty(
+                            _SettingsRowId.skipSecondConfirmation,
+                            v,
+                          ),
                           onSaved: _markSettingsSaved,
                           onInteractionComplete: _completeSettingsInteraction,
                         ),
@@ -446,5 +465,4 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
     );
   }
-
 }
