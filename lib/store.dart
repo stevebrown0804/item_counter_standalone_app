@@ -25,7 +25,7 @@ class _Store extends ChangeNotifier {
   UnmodifiableListView<_Item> get items => UnmodifiableListView(_items);
 
   _Tz? _activeTz;
-  _Tz get activeTz => _activeTz ?? _Tz('UTC', 'UTC');   //UTC is the fallback
+  _Tz get activeTz => _activeTz ?? _Tz('UTC', 'Etc/UTC');   //UTC is the fallback
 
   // Undo/redo uses 'batch tokens,' which are provided by the Rust backend
   final List<String> _undoTokens = [];
@@ -94,7 +94,7 @@ class _Store extends ChangeNotifier {
 
   Future<void> refreshFromDatabase() async {
     //Refresh the values held by Store, from the DB
-    _activeTz = await _db.readActiveTz() ?? _Tz('UTC', 'UTC');
+    _activeTz = await _db.readActiveTz() ?? _Tz('UTC', 'Etc/UTC');
     final averageSettings = await _db.readDailyAverageSettings();
     _days = await _db.readAveragingWindowDays();
     _averageWindowElapsedDays = await _db.readAveragingWindowElapsedDays();
