@@ -232,6 +232,18 @@ class _MainScreenState extends State<_MainScreen> with WidgetsBindingObserver {
     await _db.upsertSettingString('last_added_banner_dismissed', '1');
   }
 
+  Future<void> dismissLastAddedBanner() async {
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _lastAdded = null;
+    });
+
+    await _persistBannerHidden();
+  }
+
   void _applyBannerIndex() {
     if (_bannerIndex < 0 || _bannerIndex >= _bannerStack.length) {
       _bannerIndex = -1;

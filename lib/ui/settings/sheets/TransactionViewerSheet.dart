@@ -47,8 +47,6 @@ Future<void> doTransactionViewerSheet({
   required BuildContext context,
   required _Db db,
   required _Store store,
-  required void Function(VoidCallback) parentSetState,
-  required bool Function() parentMounted,
   required Future<void> Function() onBackPressed,
 })
 async {
@@ -178,10 +176,8 @@ async {
   }
 
   Future<void> runQuery() async {
-    parentSetState(() {
-      busy = true;
-      error = null;
-    });
+    busy = true;
+    error = null;
 
     String formatLocal(DateTime dt) {
       return _AppDateLogic.formatDbTimestamp(dt);
@@ -236,14 +232,12 @@ async {
     } catch (ex) {
       error = ex.toString();
     } finally {
-      parentSetState(() {
-        busy = false;
-      });
+      busy = false;
     }
   }
 
   await runQuery();
-  if (!parentMounted()) return;
+  if (!context.mounted) return;
 
   showModalBottomSheet(
     context: context,
@@ -256,7 +250,7 @@ async {
       return StatefulBuilder(
         builder: (ctx, setSheetState) {
           void ss(VoidCallback f) {
-            if (parentMounted()) setSheetState(f);
+            if (context.mounted) setSheetState(f);
           }
 
           void markFilterNeedsApply() {
@@ -809,7 +803,7 @@ async {
                             final tx = items[idx];
 
                             final updated =
-                            await openTransactionEditorSheet(
+                            await _openTransactionEditorSheet(
                               context: ctx,
                               db: db,
                               store: store,

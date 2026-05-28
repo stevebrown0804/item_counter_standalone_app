@@ -19,8 +19,6 @@ class _ViewTransactionsRow extends StatelessWidget {
       context: context,
       db: main._db,
       store: main._store,
-      parentSetState: main.setState,
-      parentMounted: () => main.mounted,
       onBackPressed: onBackPressed,
     );
   }

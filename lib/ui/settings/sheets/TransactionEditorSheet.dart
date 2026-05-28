@@ -9,7 +9,7 @@ enum _TransactionEditorResult {
 /// Opens the "Edit transaction" bottom sheet for a single transaction.
 ///
 /// Returns a typed result if the transaction was successfully updated, or null otherwise.
-Future<_TransactionEditorResult?> openTransactionEditorSheet({
+Future<_TransactionEditorResult?> _openTransactionEditorSheet({
   required BuildContext context,
   required _Db db,
   required _Store store,
@@ -296,13 +296,7 @@ Future<_TransactionEditorResult?> openTransactionEditorSheet({
                         // Hide the "Added:" banner and mark dismissed
                         final main = _MainScreenState._lastMounted;
                         if (main != null && main.mounted) {
-                          main.setState(() {
-                            main._lastAdded = null;
-                          });
-                          await main._db.upsertSettingString(
-                            'last_added_banner_dismissed',
-                            '1',
-                          );
+                          await main.dismissLastAddedBanner();
                         }
 
                         Navigator.of(editCtx).pop(_TransactionEditorResult.updated);
