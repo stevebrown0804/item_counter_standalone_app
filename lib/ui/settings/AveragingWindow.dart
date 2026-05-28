@@ -269,6 +269,11 @@ class _SummaryStatisticRow extends StatefulWidget {
   State<_SummaryStatisticRow> createState() => _SummaryStatisticRowState();
 }
 
+enum _AveragingWindowPendingChangeAction {
+  save,
+  abandon,
+}
+
 class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
   final _db = _Db();
   final TextEditingController _summaryStatisticTextInputBox = TextEditingController();
@@ -760,7 +765,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
   }
 
   Future<bool> resolvePendingChangesBeforeDeletingTransactions() async {
-    final action = await showDialog<String>(
+    final action = await showDialog<_AveragingWindowPendingChangeAction>(
       context: context,
       builder: (ctx) =>
           AlertDialog(
@@ -770,11 +775,15 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
             ),
             actions: [
               TextButton(
-                onPressed: () => Navigator.of(ctx).pop('abandon'),
+                onPressed: () => Navigator.of(ctx).pop(
+                  _AveragingWindowPendingChangeAction.abandon,
+                ),
                 child: const Text('Abandon changes'),
               ),
               FilledButton(
-                onPressed: () => Navigator.of(ctx).pop('save'),
+                onPressed: () => Navigator.of(ctx).pop(
+                  _AveragingWindowPendingChangeAction.save,
+                ),
                 child: const Text('Save changes'),
               ),
             ],
@@ -785,7 +794,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
       return false;
     }
 
-    if (action == 'save') {
+    if (action == _AveragingWindowPendingChangeAction.save) {
       final saved = await _submit();
       if (saved) {
         unfocusDateTextBoxes();
@@ -793,7 +802,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
       return saved;
     }
 
-    if (action == 'abandon') {
+    if (action == _AveragingWindowPendingChangeAction.abandon) {
       discardChanges();
       unfocusDateTextBoxes();
       return true;

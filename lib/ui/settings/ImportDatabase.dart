@@ -2,6 +2,20 @@
 
 part of '../../main.dart';
 
+class _ImportTableSelection {
+  const _ImportTableSelection({
+    required this.importItemTransactions,
+    required this.importItems,
+    required this.importSettings,
+    required this.importTimeZones,
+  });
+
+  final bool importItemTransactions;
+  final bool importItems;
+  final bool importSettings;
+  final bool importTimeZones;
+}
+
 class _ImportDatabaseRow extends StatelessWidget {
   const _ImportDatabaseRow({
     required this.onInteractionComplete,
@@ -11,13 +25,13 @@ class _ImportDatabaseRow extends StatelessWidget {
   final Future<void> Function(String) onInteractionComplete;
   final void Function(String) onToast;
 
-  Future<Map<String, bool>?> _showImportTableDialog(BuildContext context) async {
+  Future<_ImportTableSelection?> _showImportTableDialog(BuildContext context) async {
     bool itemsChecked = true;
     bool itemTransactionsChecked = true;
     bool timeZonesChecked = true;
     bool settingsChecked = true;
 
-    return showDialog<Map<String, bool>>(
+    return showDialog<_ImportTableSelection>(
       context: context,
       builder: (ctx) {
         return StatefulBuilder(
@@ -146,12 +160,14 @@ class _ImportDatabaseRow extends StatelessWidget {
                   child: const Text('Cancel'),
                 ),
                 FilledButton(
-                  onPressed: () => Navigator.of(ctx).pop({
-                    'itemTransactions': itemTransactionsChecked,
-                    'items': itemsChecked,
-                    'settings': settingsChecked,
-                    'timeZones': timeZonesChecked,
-                  }),
+                  onPressed: () => Navigator.of(ctx).pop(
+                    _ImportTableSelection(
+                      importItemTransactions: itemTransactionsChecked,
+                      importItems: itemsChecked,
+                      importSettings: settingsChecked,
+                      importTimeZones: timeZonesChecked,
+                    ),
+                  ),
                   child: const Text('Import'),
                 ),
               ],
@@ -260,10 +276,10 @@ class _ImportDatabaseRow extends StatelessWidget {
       try {
         await db.importSelectedTablesFromDatabase(
           path,
-          importItemTransactions: selectedTables['itemTransactions'] ?? false,
-          importItems: selectedTables['items'] ?? false,
-          importSettings: selectedTables['settings'] ?? false,
-          importTimeZones: selectedTables['timeZones'] ?? false,
+          importItemTransactions: selectedTables.importItemTransactions,
+          importItems: selectedTables.importItems,
+          importSettings: selectedTables.importSettings,
+          importTimeZones: selectedTables.importTimeZones,
         );
 
         final dialogContext = progressDialogContext;

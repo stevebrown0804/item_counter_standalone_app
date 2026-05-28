@@ -2,6 +2,11 @@
 
 part of '../../main.dart';
 
+enum _SettingsLeaveAction {
+  save,
+  abandon,
+}
+
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
 
@@ -234,7 +239,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       return;
     }
 
-    final action = await showDialog<String>(
+    final action = await showDialog<_SettingsLeaveAction>(
       context: context,
       builder: (ctx) =>
           AlertDialog(
@@ -244,13 +249,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             actions: [
               TextButton(
-                onPressed: () => Navigator.of(ctx).pop('abandon'),
+                onPressed: () => Navigator.of(ctx).pop(
+                  _SettingsLeaveAction.abandon,
+                ),
                 child: const Text('Abandon changes'),
               ),
               FilledButton(
                 onPressed: _hasBlockedChanges
                     ? null
-                    : () => Navigator.of(ctx).pop('save'),
+                    : () => Navigator.of(ctx).pop(
+                  _SettingsLeaveAction.save,
+                ),
                 child: const Text('Save changes'),
               ),
             ],
@@ -259,7 +268,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     if (action == null) return;
 
-    if (action == 'save') {
+    if (action == _SettingsLeaveAction.save) {
       final saved = await (_avgKey.currentState?._submit() ?? Future<bool>.value(true));
       if (!saved) return;
 
@@ -267,13 +276,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
       return;
     }
 
-    if (action == 'abandon') {
+    if (action == _SettingsLeaveAction.abandon) {
       _avgKey.currentState?.discardChanges();
       _tzKey.currentState?.discardChanges();
       _skipKey.currentState?.discardChanges();
 
       if (mounted) Navigator.of(context).pop();
+      return;
     }
+
+    throw StateError('Unexpected settings leave action: $action');
   }
 
   Future<bool> _resolveAveragingWindowBeforeDeletingTransactions() async {
