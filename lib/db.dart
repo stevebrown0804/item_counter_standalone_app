@@ -582,44 +582,17 @@ ORDER BY display_order, p.id
     );
   }
 
-  Future<_TxnSnapshot?> readTransactionById(int id) async {
-    final db = await open();
-    final rows = await db.rawQuery(
-      '''
-SELECT item_id, quantity, timestamp_utc
-FROM item_transactions
-WHERE id = ?1
-LIMIT 1
-''',
-      [id],
-    );
-    if (rows.isEmpty) {
-      return null;
-    }
-
-    final row = rows.first;
-    final itemIdRaw = row['item_id'];
-    final qtyRaw = row['quantity'];
-    final tsRaw = row['timestamp_utc'];
-
-    if (itemIdRaw == null || qtyRaw == null || tsRaw == null) {
-      return null;
-    }
-
-    final itemId = (itemIdRaw is num) ? itemIdRaw.toInt() : int.parse(itemIdRaw.toString());
-    final qty = (qtyRaw is num) ? qtyRaw.toInt() : int.parse(qtyRaw.toString());
-    final ts = tsRaw.toString();
-
-    return _TxnSnapshot(itemId, qty, ts);
-  }
-
   Future<void> deleteTransactionById(int id) async {
     final db = await open();
-    await db.delete(
+    final deleted = await db.delete(
       'item_transactions',
       where: 'id = ?',
       whereArgs: [id],
     );
+
+    if (deleted != 1) {
+      throw StateError('Expected to delete exactly one transaction row for id $id, but deleted $deleted.');
+    }
   }
 
   Future<List<_TxRow>> queryTransactionsUtcRange({

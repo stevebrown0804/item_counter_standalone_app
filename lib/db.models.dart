@@ -298,14 +298,6 @@ class _TxRow {
   const _TxRow(this.id, this.utc, this.item, this.qty);
 }
 
-class _TxnSnapshot {
-  final int itemId;
-  final int qty;
-  final String utcIso;
-
-  _TxnSnapshot(this.itemId, this.qty, this.utcIso);
-}
-
 class _SchemaObject {
   final String type;
   final String name;
