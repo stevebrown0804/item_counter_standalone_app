@@ -164,9 +164,6 @@ FROM time_zone_aliases
     if (main != null && main.mounted) {
       await main._store.refreshFromDatabase();
       await main._loadActiveTzDisplay();
-      if (main.mounted) {
-        main.setState(() {});
-      }
     }
   }
 
@@ -227,9 +224,6 @@ FROM time_zone_aliases
       if (main != null && main.mounted) {
         await main._store.refreshFromDatabase();
         await main._loadActiveTzDisplay();
-        if (main.mounted) {
-          main.setState(() {});
-        }
       }
 
       if (!mounted) {
@@ -249,13 +243,11 @@ FROM time_zone_aliases
         SnackBar(content: Text('Failed to save time zone: $e')),
       );
     } finally {
-      if (!mounted) {
-        return;
+      if (mounted) {
+        setState(() {
+          _savingTimeZone = false;
+        });
       }
-
-      setState(() {
-        _savingTimeZone = false;
-      });
     }
   }
 

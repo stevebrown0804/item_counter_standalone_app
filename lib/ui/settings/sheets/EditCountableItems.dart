@@ -326,9 +326,6 @@ class _EditCountableItemsSheetState extends State<_EditCountableItemsSheet> {
       if (main != null && main.mounted) {
         await main._store.refreshFromDatabase();
         await main._loadActiveTzDisplay();
-        if (main.mounted) {
-          main.setState(() {});
-        }
       }
 
       if (!mounted) return;
