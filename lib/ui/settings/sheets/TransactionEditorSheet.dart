@@ -2,10 +2,14 @@
 
 part of '../../../main.dart';
 
+enum _TransactionEditorResult {
+  updated,
+}
+
 /// Opens the "Edit transaction" bottom sheet for a single transaction.
 ///
-/// Returns `true` if the transaction was successfully updated, `false` otherwise.
-Future<bool> openTransactionEditorSheet({
+/// Returns a typed result if the transaction was successfully updated, or null otherwise.
+Future<_TransactionEditorResult?> openTransactionEditorSheet({
   required BuildContext context,
   required _Db db,
   required _Store store,
@@ -47,7 +51,7 @@ Future<bool> openTransactionEditorSheet({
     return _AppDateLogic.formatDbTimestamp(parsed);
   }
 
-  final result = await showModalBottomSheet<bool>(
+  return showModalBottomSheet<_TransactionEditorResult>(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
@@ -209,7 +213,7 @@ Future<bool> openTransactionEditorSheet({
                 children: [
                   TextButton(
                     onPressed: () {
-                      Navigator.of(editCtx).pop(false);
+                      Navigator.of(editCtx).pop();
                     },
                     child: const Text('Cancel'),
                   ),
@@ -301,7 +305,7 @@ Future<bool> openTransactionEditorSheet({
                           );
                         }
 
-                        Navigator.of(editCtx).pop(true);
+                        Navigator.of(editCtx).pop(_TransactionEditorResult.updated);
                       } catch (e) {
                         ScaffoldMessenger.of(editCtx).showSnackBar(
                           SnackBar(
@@ -322,6 +326,4 @@ Future<bool> openTransactionEditorSheet({
       );
     },
   );
-
-  return result == true;
 }

@@ -208,24 +208,6 @@ ORDER BY CAST(display_order AS INTEGER), id
     });
   }
 
-  Future<void> setAveragingWindowDays(int days) async {
-    if (days <= 0) {
-      throw ArgumentError('days must be > 0');
-    }
-
-    final db = await open();
-    final updated = await db.update(
-      'settings',
-      {'value': days.toString()},
-      where: 'key = ?',
-      whereArgs: ['avg_window_days'],
-    );
-
-    if (updated == 0) {
-      throw StateError('settings.avg_window_days not found');
-    }
-  }
-
   Future<int> computeAveragingWindowDaysFromPickedLocalDate(String localDateYmd) async {
     final db = await open();
     final tzName = await _activeTzNameOrUtcFromDb(db);

@@ -690,10 +690,23 @@ ORDER BY t.timestamp_utc DESC
       final itemRaw = row['item_name'];
       final qtyRaw = row['quantity'];
 
+      if (idRaw == null) {
+        throw StateError('Transaction query row is missing id: $row');
+      }
+      if (tsRaw == null) {
+        throw StateError('Transaction query row is missing timestamp_utc: $row');
+      }
+      if (itemRaw == null) {
+        throw StateError('Transaction query row is missing item_name: $row');
+      }
+      if (qtyRaw == null) {
+        throw StateError('Transaction query row is missing quantity: $row');
+      }
+
       final id = (idRaw is num) ? idRaw.toInt() : int.parse(idRaw.toString());
       final qty = (qtyRaw is num) ? qtyRaw.toInt() : int.parse(qtyRaw.toString());
       final utc = parseDbUtc(tsRaw.toString());
-      final item = itemRaw?.toString() ?? '';
+      final item = itemRaw.toString();
 
       return _TxRow(id, utc, item, qty);
     }).toList();

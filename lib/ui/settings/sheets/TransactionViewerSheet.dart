@@ -817,7 +817,7 @@ async {
                               tx: tx,
                             );
 
-                            if (updated == true) {
+                            if (updated == _TransactionEditorResult.updated) {
                               await runQuery();
                               ss(() {
                                 selectedIndex = null;
