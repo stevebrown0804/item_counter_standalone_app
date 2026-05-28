@@ -297,8 +297,6 @@ class _MainScreenState extends State<_MainScreen> with WidgetsBindingObserver {
               overrideLocalTimestamp: result.localTimestampOverride,
             );
 
-            await _store.refreshFromDatabase();
-
             if (!mounted) return;
 
             final message = result.summary;
