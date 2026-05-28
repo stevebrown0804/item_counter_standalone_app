@@ -1,3 +1,5 @@
+// store.dart
+
 part of 'main.dart';
 
 class _Store extends ChangeNotifier {
@@ -76,7 +78,6 @@ class _Store extends ChangeNotifier {
     _redoTokens.add(token);
 
     await refreshFromDatabase();
-    notifyListeners();
   }
 
   Future<void> redoLastOperation() async {
@@ -89,7 +90,6 @@ class _Store extends ChangeNotifier {
     _undoTokens.add(token);
 
     await refreshFromDatabase();
-    notifyListeners();
   }
 
   Future<void> refreshFromDatabase() async {
@@ -132,9 +132,8 @@ class _Store extends ChangeNotifier {
     final token = await _db.insertBatchWithUndoToken(entries, utcIso);
     _breakRedoChain();
     _undoTokens.add(token);
-    notifyListeners();
 
     await refreshFromDatabase();
-    notifyListeners();
   }
+
 }
