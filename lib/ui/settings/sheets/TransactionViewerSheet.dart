@@ -2,6 +2,10 @@
 
 part of '../../../main.dart';
 
+enum _TransactionDeleteAction {
+  confirm,
+}
+
 Future<DateTime?> _pickLocalDateTime(
     BuildContext context, {
       required tz.Location loc,
@@ -730,7 +734,7 @@ async {
                             final tx = items[idx];
 
                             //Ask for confirmation in a modal dialog
-                            final confirmed = await showDialog<bool>(
+                            final action = await showDialog<_TransactionDeleteAction>(
                               context: ctx,
                               builder: (dialogCtx) {
                                 return AlertDialog(
@@ -741,12 +745,12 @@ async {
                                   actions: [
                                     TextButton(
                                       onPressed: () =>
-                                          Navigator.of(dialogCtx).pop(false),
+                                          Navigator.of(dialogCtx).pop(),
                                       child: const Text('Cancel'),
                                     ),
                                     TextButton(
                                       onPressed: () =>
-                                          Navigator.of(dialogCtx).pop(true),
+                                          Navigator.of(dialogCtx).pop(_TransactionDeleteAction.confirm),
                                       child: const Text('Confirm'),
                                     ),
                                   ],
@@ -754,7 +758,7 @@ async {
                               },
                             );
                             // Cancel (or dismiss) → do nothing; stay on the sheet
-                            if (confirmed != true) {
+                            if (action != _TransactionDeleteAction.confirm) {
                               return;
                             }
                             // Delete the transaction from the database

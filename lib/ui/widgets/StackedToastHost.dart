@@ -49,7 +49,12 @@ class _StackedToastController extends ChangeNotifier {
           return;
         }
 
-        _entries.removeWhere((toast) => toast.id == entry.id);
+        final index = _entries.indexWhere((toast) => toast.id == entry.id);
+        if (index < 0) {
+          return;
+        }
+
+        _entries.removeAt(index);
         notifyListeners();
       }),
     );

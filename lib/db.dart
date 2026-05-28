@@ -281,25 +281,11 @@ LIMIT 1
   }
 
   Future<void> setSkipDeleteSecondConfirm(bool skip) async {
-    final db = await open();
     final value = skip ? '1' : '0';
-
-    final updated = await db.update(
-      'settings',
-      {'value': value},
-      where: 'key = ?',
-      whereArgs: ['skip_delete_transactions_second_dialog_confirmation'],
+    await upsertSettingString(
+      'skip_delete_transactions_second_dialog_confirmation',
+      value,
     );
-
-    if (updated == 0) {
-      await db.insert(
-        'settings',
-        {
-          'key': 'skip_delete_transactions_second_dialog_confirmation',
-          'value': value,
-        },
-      );
-    }
   }
 
   Future<bool> readReturnHomeAfterSettingsInteraction() async {
@@ -320,33 +306,19 @@ LIMIT 1
   }
 
   Future<void> setReturnHomeAfterSettingsInteraction(bool returnHome) async {
-    final db = await open();
     final value = returnHome ? '1' : '0';
-
-    final updated = await db.update(
-      'settings',
-      {'value': value},
-      where: 'key = ?',
-      whereArgs: ['settings.return_home_after_interaction'],
+    await upsertSettingString(
+      'settings.return_home_after_interaction',
+      value,
     );
-
-    if (updated == 0) {
-      await db.insert(
-        'settings',
-        {
-          'key': 'settings.return_home_after_interaction',
-          'value': value,
-        },
-      );
-    }
   }
 
   Future<int> deleteTransactionsOlderThanDays(int days) async {
-    final db = await open();
     if (days <= 0) {
-      return 0;
+      throw ArgumentError('days must be > 0');
     }
 
+    final db = await open();
     final tzName = await _activeTzNameOrUtcFromDb(db);
     final loc = _AppDateLogic.locationOrUtc(tzName);
     final today = _AppDateLogic.todayDateOnly(tzName);
@@ -366,11 +338,11 @@ LIMIT 1
   }
 
   Future<int> countTransactionsOlderThanDays(int days) async {
-    final db = await open();
     if (days <= 0) {
-      return 0;
+      throw ArgumentError('days must be > 0');
     }
 
+    final db = await open();
     final tzName = await _activeTzNameOrUtcFromDb(db);
     final loc = _AppDateLogic.locationOrUtc(tzName);
     final today = _AppDateLogic.todayDateOnly(tzName);
@@ -389,14 +361,20 @@ LIMIT 1
     );
 
     if (rows.isEmpty) {
-      return 0;
+      throw StateError('COUNT query returned no rows while counting old transactions.');
     }
 
     final value = rows.first['cnt'];
     if (value is num) {
       return value.toInt();
     }
-    return int.tryParse(value.toString()) ?? 0;
+
+    final parsed = int.tryParse(value.toString());
+    if (parsed == null) {
+      throw StateError('Old-transaction count was not numeric: $value');
+    }
+
+    return parsed;
   }
 
   Future<int> deleteOldTransactionsWithPolicy(int days) async {
@@ -404,7 +382,6 @@ LIMIT 1
       throw ArgumentError('days must be > 0');
     }
 
-    await readSkipDeleteSecondConfirm();
     return deleteTransactionsOlderThanDays(days);
   }
 
@@ -482,22 +459,10 @@ ORDER BY display_order, p.id
         ? rawId.toInt()
         : int.parse(rawId.toString());
 
-    final updated = await db.update(
-      'settings',
-      {'value': id.toString()},
-      where: 'key = ?',
-      whereArgs: ['time_zone_id'],
+    await upsertSettingString(
+      'time_zone_id',
+      id.toString(),
     );
-
-    if (updated == 0) {
-      await db.insert(
-        'settings',
-        {
-          'key': 'time_zone_id',
-          'value': id.toString(),
-        },
-      );
-    }
   }
 
   Future<_Tz?> readActiveTz() async {

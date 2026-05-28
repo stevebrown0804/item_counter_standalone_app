@@ -2,6 +2,18 @@
 
 part of '../../main.dart';
 
+enum _DeleteOutdatedTransactionsInitialAction {
+  proceed,
+}
+
+class _DeleteOutdatedTransactionsFinalSelection {
+  const _DeleteOutdatedTransactionsFinalSelection({
+    required this.skipNextConfirmation,
+  });
+
+  final bool skipNextConfirmation;
+}
+
 class _DeleteOutdatedTransactions extends StatelessWidget {
   const _DeleteOutdatedTransactions({
     required this.onResolvePendingAveragingWindow,
@@ -35,7 +47,8 @@ class _DeleteOutdatedTransactions extends StatelessWidget {
     final count = await db.countTransactionsOlderThanDays(days);
 
     if (!context.mounted) return;
-    await showDialog<void>(
+
+    final action = await showDialog<_DeleteOutdatedTransactionsInitialAction>(
       context: context,
       builder: (ctx) =>
           AlertDialog(
@@ -54,16 +67,29 @@ class _DeleteOutdatedTransactions extends StatelessWidget {
                   backgroundColor: Colors.red,
                   foregroundColor: Colors.white,
                 ),
-                onPressed: () async {
+                onPressed: () {
                   FocusManager.instance.primaryFocus?.unfocus();
-                  Navigator.of(ctx).pop();
-                  await _handleDeleteOldTx(context, days);
+                  Navigator.of(ctx).pop(
+                    _DeleteOutdatedTransactionsInitialAction.proceed,
+                  );
                 },
                 child: const Text('Proceed'),
               ),
             ],
           ),
     );
+
+    if (action == null) {
+      return;
+    }
+
+    if (action == _DeleteOutdatedTransactionsInitialAction.proceed) {
+      if (!context.mounted) return;
+      await _handleDeleteOldTx(context, days);
+      return;
+    }
+
+    throw StateError('Unexpected delete-transactions initial action: $action');
   }
 
   Future<void> _handleDeleteOldTx(BuildContext context, int days) async {
@@ -82,7 +108,7 @@ class _DeleteOutdatedTransactions extends StatelessWidget {
     bool skipNext = false;
 
     if (!context.mounted) return;
-    await showDialog<void>(
+    final selection = await showDialog<_DeleteOutdatedTransactionsFinalSelection>(
       context: context,
       builder: (ctx) {
         return StatefulBuilder(
@@ -116,19 +142,13 @@ class _DeleteOutdatedTransactions extends StatelessWidget {
                               foregroundColor: Colors.white,
                               backgroundColor: Colors.transparent,
                             ),
-                            onPressed: () async {
+                            onPressed: () {
                               FocusManager.instance.primaryFocus?.unfocus();
-
-                              if (skipNext) {
-                                await db.setSkipDeleteSecondConfirm(true);
-                                onSkipSecondConfirmationSaved();
-                              }
-
-                              final deleted =
-                              await db.deleteOldTransactionsWithPolicy(days);
-                              if (!context.mounted) return;
-                              Navigator.of(ctx).pop();
-                              await onInteractionComplete('Deleted $deleted transactions older than $days days.');
+                              Navigator.of(ctx).pop(
+                                _DeleteOutdatedTransactionsFinalSelection(
+                                  skipNextConfirmation: skipNext,
+                                ),
+                              );
                             },
                             child: const Text('Proceed'),
                           ),
@@ -154,6 +174,19 @@ class _DeleteOutdatedTransactions extends StatelessWidget {
         );
       },
     );
+
+    if (selection == null) {
+      return;
+    }
+
+    if (selection.skipNextConfirmation) {
+      await db.setSkipDeleteSecondConfirm(true);
+      onSkipSecondConfirmationSaved();
+    }
+
+    final deleted = await db.deleteOldTransactionsWithPolicy(days);
+    if (!context.mounted) return;
+    await onInteractionComplete('Deleted $deleted transactions older than $days days.');
   }
 
   @override

@@ -57,6 +57,10 @@ class _Store extends ChangeNotifier {
   }
 
   void clearUndoRedo() {
+    if (_undoTokens.isEmpty && _redoTokens.isEmpty) {
+      return;
+    }
+
     _undoTokens.clear();
     _redoTokens.clear();
     notifyListeners();
