@@ -181,10 +181,8 @@ class _LogItemsSheetState extends State<_LogItemsSheet> {
       final q = _qty[i];
       if (q > 0) {
         final p = items[i];
-        final id = p.id as int;
-        final name = p.name as String;
-        map[id] = q;
-        parts.add('$name x $q');
+        map[p.id] = q;
+        parts.add('${p.name} x $q');
       }
     }
     if (map.isEmpty) {
@@ -281,7 +279,7 @@ class _LogItemsSheetState extends State<_LogItemsSheet> {
                     children: [
                       Expanded(
                         child: Text(
-                          (p.name as String),
+                          p.name,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),

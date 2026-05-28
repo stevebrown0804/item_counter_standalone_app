@@ -73,9 +73,13 @@ class _Db {
   }
 
   Future<void> saveDailyAverageSettings(_DailyAverageSettings settings) async {
+    if (settings.numberOfDaysAgo <= 0) {
+      throw ArgumentError('numberOfDaysAgo must be > 0');
+    }
+
     return _timed('saveDailyAverageSettings()', () async {
       final db = await open();
-      final days = settings.numberOfDaysAgo <= 0 ? 1 : settings.numberOfDaysAgo;
+      final days = settings.numberOfDaysAgo;
 
       await db.transaction((txn) async {
         Future<void> writeSetting(String key, String value) async {
@@ -635,13 +639,16 @@ ORDER BY display_order, p.id
   }
 
   Future<List<_TxRow>> queryTransactionsLastNDays(int days) async {
+    if (days <= 0) {
+      throw ArgumentError('days must be > 0');
+    }
+
     final db = await open();
-    final safeDays = days <= 0 ? 1 : days;
     final tzName = await _activeTzNameOrUtcFromDb(db);
     final loc = _AppDateLogic.locationOrUtc(tzName);
 
     final endLocal = tz.TZDateTime.now(loc);
-    final startLocal = endLocal.subtract(Duration(days: safeDays));
+    final startLocal = endLocal.subtract(Duration(days: days));
 
     return _queryTransactionsUtcRangeDb(
       db,
