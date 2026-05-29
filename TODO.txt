@@ -8,6 +8,13 @@ TODO re: Database importing:
     * Whatever directory the "import DB" file picker starts in, we should also communicate that directory that is (to reduce guesswork about where best to place a DB file).
         *FOR THE TIME BEING: We could just communciate this via the readme or something.  That'll get the job done, I think.
 
+TODO: Fix hard-coded stuff:
+File	                                    Control	                    Width source
+ui/settings/sheets/EditCountableItems.dart	display-string text box	    displayStringColumnWidth = 200.0
+ui/settings/sheets/EditCountableItems.dart	display-order dropdown	    displayOrderColumnWidth = 76.0
+ui/sheets/AddItemsSheet.dart	            per-item quantity text box	width: 48
+    *Per ChatGPT: "...I would generally prefer LayoutBuilder first, and use GlobalKey + RenderBox only when the actual child size matters rather than the parent’s available width."
+
 
 ---------------------------------------
 Polishing
@@ -27,6 +34,10 @@ TODO: (Background) With the "Averaging window" textboxes, we're using TextPainte
     (Actual TODO): Answer the question, "Is the font being used by TextPainter to make those measurements the same font that's actually used to render the elements and their contents?  "Not using the right font" seems like the kind of bonehead mistake ChatGPT might make."
 
 *Edit countable items sheet
+TODO: The home screen's become a bit overcrowded lately; it could use some 'section headers,' and I think it would be easier to add this in the 'edit countable items' marking rows as 'section heading' or some such (perhaps via a checkbox on each row)
+    * if visible rows are identified as such:
+        * display the row, bolded and with no average column
+        * Indents all rows beneath that row (up to but not including the next header rows) slightly
 
 *Time-zone editor sheet
 
