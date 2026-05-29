@@ -6,7 +6,7 @@ class _Store extends ChangeNotifier {
   _Store(this._db);
 
   static const double _singleDayDisplayThreshold = 1.0;
-  static const double _integerDayDisplayThreshold = 7.0;
+  static const double _integerDayDisplayThreshold = 30.0;
 
   final _Db _db;
   final List<_AvgRow> _rows = [];
