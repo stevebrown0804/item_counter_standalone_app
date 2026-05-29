@@ -58,20 +58,22 @@ class _NewDbWizardScreenState extends State<_NewDbWizardScreen> {
     unawaited(_loadWizardState());
   }
 
-  Future<int> _countTimeZoneAliasRows() async {
+  Future<int?> _readNewestTimeZoneAliasIdOrNull() async {
     final rows = await _db.rawQuery(
       '''
-SELECT COUNT(*) AS row_count
+SELECT id
 FROM time_zone_aliases
+ORDER BY id DESC
+LIMIT 1
 ''',
     );
 
-    if (rows.isEmpty || rows.first['row_count'] == null) {
-      throw StateError('Unable to count time-zone alias rows.');
+    if (rows.isEmpty || rows.first['id'] == null) {
+      return null;
     }
 
-    final rawCount = rows.first['row_count'];
-    return rawCount is num ? rawCount.toInt() : int.parse(rawCount.toString());
+    final rawId = rows.first['id'];
+    return rawId is num ? rawId.toInt() : int.parse(rawId.toString());
   }
 
   Future<void> _loadWizardState() async {
@@ -168,7 +170,7 @@ FROM time_zone_aliases
   }
 
   Future<void> _openTimeZoneEditor() async {
-    final countBefore = await _countTimeZoneAliasRows();
+    final newestIdBefore = await _readNewestTimeZoneAliasIdOrNull();
 
     await showModalBottomSheet<void>(
       context: context,
@@ -188,16 +190,35 @@ FROM time_zone_aliases
       },
     );
 
-    final countAfter = await _countTimeZoneAliasRows();
+    final newestIdAfter = await _readNewestTimeZoneAliasIdOrNull();
+    final addedTimeZone =
+        newestIdAfter != null &&
+            (newestIdBefore == null || newestIdAfter > newestIdBefore);
+
+    if (addedTimeZone) {
+      await _db.upsertSettingString(
+        'time_zone_id',
+        newestIdAfter.toString(),
+      );
+    }
+
     await _refreshTimeZoneOptions();
 
     if (!mounted) {
       return;
     }
 
-    if (countAfter > countBefore) {
+    if (addedTimeZone) {
+      final savedDisplayString = await _db.readActiveTzAliasString();
+
+      if (!mounted) {
+        return;
+      }
+
       setState(() {
         _timeZonesWereAdded = true;
+        _selectedTimeZoneDisplayString = savedDisplayString;
+        _activeTimeZoneWasSelected = true;
       });
     }
   }

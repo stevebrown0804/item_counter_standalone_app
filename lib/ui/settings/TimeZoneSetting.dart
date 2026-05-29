@@ -41,10 +41,25 @@ class _TzRowState extends State<_TzRow> {
       final opts = await _db.listTzAliasStrings();
       final activeDisplayString = await _db.readActiveTzAliasString();
 
+      String? selectedDisplayString;
+      if (opts.contains(activeDisplayString)) {
+        selectedDisplayString = activeDisplayString;
+      } else {
+        for (final option in opts) {
+          final normalized = option.toUpperCase();
+          if (normalized == 'UTC' ||
+              normalized.contains('/UTC') ||
+              normalized.contains('UTC/')) {
+            selectedDisplayString = option;
+            break;
+          }
+        }
+      }
+
       if (!mounted) return;
       setState(() {
         _options = opts;
-        _currentDisplayString = opts.contains(activeDisplayString) ? activeDisplayString : null;
+        _currentDisplayString = selectedDisplayString;
         _loading = false;
       });
     } catch (e) {
