@@ -438,7 +438,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
     }
 
     if (_pinStartDate) {
-      if (startRaw != loaded.startDate) {
+      if (!_storedValueMatchesTextBoxDate(loaded.startDate, startRaw)) {
         return true;
       }
     } else if (_showingDisplayString && _currentAveragingWindowDays != null) {
@@ -452,7 +452,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
       }
     }
 
-    if (_pinEndDate && endRaw != loaded.endDate) {
+    if (_pinEndDate && !_storedValueMatchesTextBoxDate(loaded.endDate, endRaw)) {
       return true;
     }
 
@@ -574,13 +574,17 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
       }
     }
 
-    final currentStartDate = _pinStartDate ? startRaw : '';
-    final currentEndDate = _pinEndDate ? endRaw : '';
+    final startChanged = _pinStartDate
+        ? !_storedValueMatchesTextBoxDate(loaded.startDate, startRaw)
+        : false;
+    final endChanged = _pinEndDate
+        ? !_storedValueMatchesTextBoxDate(loaded.endDate, endRaw)
+        : false;
 
     final hasChanges =
         currentDays != loaded.numberOfDaysAgo ||
-            currentStartDate != loaded.startDate ||
-            currentEndDate != loaded.endDate ||
+            startChanged ||
+            endChanged ||
             _pinStartDate != loaded.pinStartDate ||
             _pinEndDate != loaded.pinEndDate;
 
@@ -1001,6 +1005,35 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
     return _AppDateLogic.parseSlashDate(raw);
   }
 
+  String _dateFieldDisplayTextFromStoredValue(String storedValue) {
+    final parsed = _AppDateLogic.parseStoredDateOrTimestamp(storedValue);
+    if (parsed == null) {
+      return storedValue;
+    }
+
+    return _formatDateForTextBox(parsed);
+  }
+
+  String _storedTimestampFromTextBoxDate(String textBoxDate) {
+    final parsed = _parseTextBoxDate(textBoxDate);
+    if (parsed == null) {
+      throw ArgumentError('invalid text box date: $textBoxDate');
+    }
+
+    return _AppDateLogic.formatDbTimestamp(parsed);
+  }
+
+  bool _storedValueMatchesTextBoxDate(String storedValue, String textBoxDate) {
+    final stored = _AppDateLogic.parseStoredDateOrTimestamp(storedValue);
+    final displayed = _parseTextBoxDate(textBoxDate);
+
+    if (stored == null || displayed == null) {
+      return storedValue == textBoxDate;
+    }
+
+    return _dateOnly(stored) == _dateOnly(displayed);
+  }
+
   String _dateEntryTemplate() {
     return '__/__/____';
   }
@@ -1173,7 +1206,8 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
 
     if (settings.pinStartDate) {
       if (settings.startDate.trim().isNotEmpty) {
-        _summaryStatisticTextInputBox.text = settings.startDate;
+        _summaryStatisticTextInputBox.text =
+            _dateFieldDisplayTextFromStoredValue(settings.startDate);
         _showingDisplayString = false;
       } else {
         final startDate = _startDateFromDaysAgo(settings.numberOfDaysAgo);
@@ -1186,7 +1220,8 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
 
     if (settings.pinEndDate) {
       if (settings.endDate.trim().isNotEmpty) {
-        _endDateTextInputBox.text = settings.endDate;
+        _endDateTextInputBox.text =
+            _dateFieldDisplayTextFromStoredValue(settings.endDate);
       } else {
         _showEndDateEntryTemplate();
       }
@@ -1199,10 +1234,7 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
     _endDateErrorText = null;
   }
 
-  Future<bool> _saveCurrentSettings({
-    required bool showSuccessSnackBar,
-    Future<void> Function(String)? onSuccess,
-  }) async {
+  Future<bool> _saveCurrentSettings({required bool showSuccessSnackBar, Future<void> Function(String)? onSuccess,}) async {
     final startRaw = _summaryStatisticTextInputBox.text.trim();
     final endRaw = _endDateTextInputBox.text.trim();
 
@@ -1269,8 +1301,8 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
 
     final settings = _DailyAverageSettings(
       numberOfDaysAgo: daysToStore,
-      startDate: _pinStartDate ? startRaw : '',
-      endDate: _pinEndDate ? endRaw : '',
+      startDate: _pinStartDate ? _storedTimestampFromTextBoxDate(startRaw) : '',
+      endDate: _pinEndDate ? _storedTimestampFromTextBoxDate(endRaw) : '',
       pinStartDate: _pinStartDate,
       pinEndDate: _pinEndDate,
     );

@@ -198,6 +198,38 @@ class _AppDateLogic {
     );
   }
 
+  static DateTime? parseStoredDateOrTimestamp(String raw) {
+    final trimmed = raw.trim();
+    if (trimmed.isEmpty) {
+      return null;
+    }
+
+    final slashDate = parseSlashDate(trimmed);
+    if (slashDate != null) {
+      return slashDate;
+    }
+
+    final dashTimestampSeconds = parseDashTimestampSeconds(trimmed);
+    if (dashTimestampSeconds != null) {
+      return dashTimestampSeconds;
+    }
+
+    final dashTimestampMinutes = parseDashTimestampMinutes(trimmed);
+    if (dashTimestampMinutes != null) {
+      return dashTimestampMinutes;
+    }
+
+    return parseDashDate(trimmed);
+  }
+
+  static String formatStoredDateOrTimestampForTooltip(DateTime value) {
+    if (value.hour == 0 && value.minute == 0 && value.second == 0) {
+      return formatSlashDate(value);
+    }
+
+    return formatDashTimestampMinutes(value);
+  }
+
   static int positiveElapsedDays({
     required DateTime startDate,
     required DateTime endDate,
@@ -235,18 +267,21 @@ class _AppDateLogic {
     }
 
     final today = todayDateOnly(tzName);
-    final startDate = parseSlashDate(settings.startDate) ??
+    final startDate = parseStoredDateOrTimestamp(settings.startDate) ??
         startDateFromDaysAgo(
           daysAgo: settings.numberOfDaysAgo,
           tzName: tzName,
         );
 
+    final startText = formatStoredDateOrTimestampForTooltip(startDate);
+
     if (!settings.pinEndDate) {
-      return '${formatSlashDate(startDate)} to today';
+      return '$startText to today';
     }
 
-    final endDate = parseSlashDate(settings.endDate) ?? today;
-    return '${formatSlashDate(startDate)} to ${formatSlashDate(endDate)}';
+    final endDate = parseStoredDateOrTimestamp(settings.endDate) ?? today;
+    final endText = formatStoredDateOrTimestampForTooltip(endDate);
+    return '$startText to $endText';
   }
 }
 

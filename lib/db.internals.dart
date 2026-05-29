@@ -57,11 +57,13 @@ CREATE TABLE IF NOT EXISTS logical_batch_items (
 )
 ''');
 
+    final defaultPinnedStartDate = _AppDateLogic.formatDashDate(DateTime.now());
+
     await _ensureSettingDefault(db, 'avg_window_days', '30');
     await _ensureSettingDefault(db, 'daily_average.number_of_days_ago', '30');
-    await _ensureSettingDefault(db, 'daily_average.start_date', '');
+    await _ensureSettingDefault(db, 'daily_average.start_date', defaultPinnedStartDate);
     await _ensureSettingDefault(db, 'daily_average.end_date', '');
-    await _ensureSettingDefault(db, 'daily_average.pin_start_date', '0');
+    await _ensureSettingDefault(db, 'daily_average.pin_start_date', '1');
     await _ensureSettingDefault(db, 'daily_average.pin_end_date', '0');
     await _ensureSettingDefault(db, 'skip_delete_transactions_second_dialog_confirmation', '0');
     await _ensureSettingDefault(db, 'settings.return_home_after_interaction', '0');
@@ -407,13 +409,19 @@ LIMIT 1
     final today = _AppDateLogic.todayDateOnly(tzName);
     final nowLocal = tz.TZDateTime.now(loc);
 
-    DateTime startDate;
+    late final DateTime startDate;
+    late final tz.TZDateTime startLocal;
+
     if (settings.pinStartDate) {
-      startDate = _AppDateLogic.parseSlashDate(settings.startDate) ??
-          _AppDateLogic.startDateFromDaysAgo(
-            daysAgo: settings.numberOfDaysAgo,
-            tzName: tzName,
-          );
+      final storedStart = _AppDateLogic.parseStoredDateOrTimestamp(settings.startDate);
+      if (storedStart == null) {
+        startDate = _AppDateLogic.startDateFromDaysAgo(
+          daysAgo: settings.numberOfDaysAgo,
+          tzName: tzName,
+        );
+      } else {
+        startDate = _AppDateLogic.dateOnly(storedStart);
+      }
     } else {
       startDate = _AppDateLogic.startDateFromDaysAgo(
         daysAgo: settings.numberOfDaysAgo,
@@ -421,9 +429,17 @@ LIMIT 1
       );
     }
 
+    startLocal = tz.TZDateTime(
+      loc,
+      startDate.year,
+      startDate.month,
+      startDate.day,
+    );
+
     DateTime endDate;
     if (settings.pinEndDate) {
-      endDate = _AppDateLogic.parseSlashDate(settings.endDate) ?? today;
+      final storedEnd = _AppDateLogic.parseStoredDateOrTimestamp(settings.endDate);
+      endDate = storedEnd == null ? today : _AppDateLogic.dateOnly(storedEnd);
     } else {
       endDate = today;
     }
@@ -435,13 +451,6 @@ LIMIT 1
     final days = _AppDateLogic.positiveElapsedDays(
       startDate: startDate,
       endDate: endDate,
-    );
-
-    final startLocal = tz.TZDateTime(
-      loc,
-      startDate.year,
-      startDate.month,
-      startDate.day,
     );
 
     late final tz.TZDateTime rangeEndLocalExclusive;
@@ -561,12 +570,6 @@ WHERE key IN (
       conflictAlgorithm: ConflictAlgorithm.ignore,
     );
   }
-
-  String _normalizeDbLikeTimestamp(String s) {
-    return _AppDateLogic.normalizeDbLikeTimestamp(s);
-  }
-
-  String _two(int n) => _AppDateLogic.twoDigits(n);
 
   String _formatDbTimestamp(DateTime dt) {
     return _AppDateLogic.formatDbTimestamp(dt);
