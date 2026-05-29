@@ -360,13 +360,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           onInteractionComplete: _completeSettingsInteraction,
                         ),
                         const Divider(),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
+                        Wrap(
+                          alignment: WrapAlignment.center,
+                          spacing: 12,
+                          runSpacing: 8,
                           children: [
                             _EditCountableItemsRow(
                               onInteractionComplete: _completeSettingsInteraction,
                             ),
-                            const SizedBox(width: 12),
                             _EditTimeZonesRow(
                               onTimeZonesChanged: () async {
                                 await _tzKey.currentState?._loadOptions();
@@ -376,14 +377,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ],
                         ),
                         const Divider(),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
+                        Wrap(
+                          alignment: WrapAlignment.center,
+                          spacing: 12,
+                          runSpacing: 8,
                           children: [
                             _ExportDatabaseRow(
                               onInteractionComplete: _completeSettingsInteraction,
                               onToast: _showSettingsToast,
                             ),
-                            const SizedBox(width: 12),
                             _ImportDatabaseRow(
                               onInteractionComplete: _completeSettingsInteraction,
                               onToast: _showSettingsToast,

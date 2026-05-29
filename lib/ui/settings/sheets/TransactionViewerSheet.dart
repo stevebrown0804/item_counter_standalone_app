@@ -712,8 +712,10 @@ async {
                   const SizedBox(height: 12),
                   Align(
                     alignment: Alignment.center,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
+                    child: Wrap(
+                      alignment: WrapAlignment.center,
+                      spacing: 12,
+                      runSpacing: 8,
                       children: [
                         ElevatedButton.icon(
                           icon: const Icon(Icons.delete),
@@ -772,13 +774,7 @@ async {
                             //Close the "Added: ..." card on the main sheet and persist dismissal
                             final main = _MainScreenState._lastMounted;
                             if (main != null && main.mounted) {
-                              main.setState(() {
-                                main._lastAdded = null;
-                              });
-                              await main._db.upsertSettingString(
-                                'last_added_banner_dismissed',
-                                '1',
-                              );
+                              await main.dismissLastAddedBanner();
                             }
                             //Refresh the list in this sheet and clear the selection
                             await runQuery();
@@ -787,7 +783,6 @@ async {
                             });
                           },
                         ),
-                        const SizedBox(width: 12),
                         ElevatedButton.icon(
                           icon: const Icon(Icons.edit),
                           label: const Text('Edit transaction'),

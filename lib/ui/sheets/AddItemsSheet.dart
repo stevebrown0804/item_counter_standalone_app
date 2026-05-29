@@ -337,13 +337,13 @@ class _LogItemsSheetState extends State<_LogItemsSheet> {
               children: [
                 const Text('Timestamp:'),
                 const SizedBox(width: 12),
-                Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    SizedBox(
-                      width: 220, // width of the text box; buttons center under this  //TMP, I think
-                      child: TextField(
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      // width of the text box; buttons center under this  //TMP, I think
+                      TextField(
                         controller: _timestampCtrl,
                         enabled: _timestampCtrl.text != 'Now',
                         textAlign: TextAlign.center,
@@ -356,23 +356,23 @@ class _LogItemsSheetState extends State<_LogItemsSheet> {
                           ),
                         ),
                       ),
-                    ),
-                    //const SizedBox(height: 8),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        TextButton(
-                          onPressed: _submitting ? null : _pickDate,
-                          child: const Text('Pick date'),
-                        ),
-                        const SizedBox(width: 12),
-                        TextButton(
-                          onPressed: _submitting ? null : _pickTime,
-                          child: const Text('Pick time'),
-                        ),
-                      ],
-                    ),
-                  ],
+                      //const SizedBox(height: 8),
+                      Wrap(
+                        alignment: WrapAlignment.center,
+                        spacing: 12,
+                        children: [
+                          TextButton(
+                            onPressed: _submitting ? null : _pickDate,
+                            child: const Text('Pick date'),
+                          ),
+                          TextButton(
+                            onPressed: _submitting ? null : _pickTime,
+                            child: const Text('Pick time'),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),

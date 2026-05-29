@@ -787,14 +787,15 @@ LIMIT 1
 
   Widget _buildActionButtons() {
     if (_isEditing) {
-      return Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+      return Wrap(
+        alignment: WrapAlignment.center,
+        spacing: _buttonGap,
+        runSpacing: _buttonGap,
         children: [
           FilledButton(
             onPressed: _savingEdit ? null : () async => await _saveEditedAlias(),
             child: const Text('Save'),
           ),
-          const SizedBox(width: _buttonGap),
           FilledButton(
             onPressed: _savingEdit ? null : _cancelEditing,
             child: const Text('Cancel'),
@@ -803,19 +804,19 @@ LIMIT 1
       );
     }
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
+    return Wrap(
+      alignment: WrapAlignment.center,
+      spacing: _buttonGap,
+      runSpacing: _buttonGap,
       children: [
         FilledButton(
           onPressed: () async => await _openAddTimeZoneDialog(),
           child: const Text('Add'),
         ),
-        const SizedBox(width: _buttonGap),
         FilledButton(
           onPressed: _hasSelectedEditableRow ? _beginEditingSelectedRow : null,
           child: const Text('Edit alias'),
         ),
-        const SizedBox(width: _buttonGap),
         FilledButton(
           onPressed: _hasSelectedEditableRow
               ? () async => await _deleteSelectedRow()

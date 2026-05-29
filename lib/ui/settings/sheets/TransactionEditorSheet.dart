@@ -51,6 +51,61 @@ Future<_TransactionEditorResult?> _openTransactionEditorSheet({
     return _AppDateLogic.formatDbTimestamp(parsed);
   }
 
+  Widget buildLabeledEditorRow({
+    required String label,
+    required Widget editor,
+    Widget? trailing,
+  }) {
+    return LayoutBuilder(
+      builder: (rowContext, constraints) {
+        final spacing = Theme.of(rowContext).visualDensity.horizontal.abs() + 8.0;
+        final labelStyle = Theme.of(rowContext).textTheme.bodyMedium;
+        final labelPainter = TextPainter(
+          text: TextSpan(text: label, style: labelStyle),
+          textDirection: TextDirection.ltr,
+          textScaler: MediaQuery.textScalerOf(rowContext),
+        )..layout();
+
+        final labelWidth = labelPainter.width;
+        final availableEditorWidth = constraints.maxWidth - labelWidth - spacing;
+        final shouldWrapTrailing = trailing != null && availableEditorWidth < constraints.maxWidth * 0.55;
+
+        if (shouldWrapTrailing) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text(label),
+                  SizedBox(width: spacing),
+                  Expanded(child: editor),
+                ],
+              ),
+              Align(
+                alignment: Alignment.centerRight,
+                child: trailing,
+              ),
+            ],
+          );
+        }
+
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Text(label),
+            SizedBox(width: spacing),
+            Expanded(child: editor),
+            if (trailing != null) ...[
+              SizedBox(width: spacing),
+              trailing,
+            ],
+          ],
+        );
+      },
+    );
+  }
+
   return showModalBottomSheet<_TransactionEditorResult>(
     context: context,
     isScrollControlled: true,
@@ -79,137 +134,103 @@ Future<_TransactionEditorResult?> _openTransactionEditorSheet({
               ),
               const SizedBox(height: 12),
               // Row 1: Date
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  const SizedBox(
-                    width: 80,
-                    child: Text('Date:'),
+              buildLabeledEditorRow(
+                label: 'Date:',
+                editor: TextField(
+                  controller: dateCtrl,
+                  keyboardType: TextInputType.datetime,
+                  decoration: const InputDecoration(
+                    isDense: true,
+                    border: OutlineInputBorder(),
                   ),
-                  Expanded(
-                    child: TextField(
-                      controller: dateCtrl,
-                      keyboardType: TextInputType.datetime,
-                      decoration: const InputDecoration(
-                        isDense: true,
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  TextButton(
-                    onPressed: () async {
-                      final initial = DateTime(local.year, local.month, local.day);
-                      final picked = await showDatePicker(
-                        context: editCtx,
-                        initialDate: initial,
-                        firstDate: DateTime(2000, 1, 1),
-                        lastDate: DateTime(2100, 12, 31),
-                        helpText: 'Choose date',
-                      );
-                      if (picked != null) {
-                        dateCtrl.text = _AppDateLogic.formatDashDate(picked);
-                      }
-                    },
-                    child: const Text('Choose date'),
-                  ),
-                ],
+                ),
+                trailing: TextButton(
+                  onPressed: () async {
+                    final initial = DateTime(local.year, local.month, local.day);
+                    final picked = await showDatePicker(
+                      context: editCtx,
+                      initialDate: initial,
+                      firstDate: DateTime(2000, 1, 1),
+                      lastDate: DateTime(2100, 12, 31),
+                      helpText: 'Choose date',
+                    );
+                    if (picked != null) {
+                      dateCtrl.text = _AppDateLogic.formatDashDate(picked);
+                    }
+                  },
+                  child: const Text('Choose date'),
+                ),
               ),
               const SizedBox(height: 8),
               // Row 2: Time
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  const SizedBox(
-                    width: 80,
-                    child: Text('Time:'),
+              buildLabeledEditorRow(
+                label: 'Time:',
+                editor: TextField(
+                  controller: timeCtrl,
+                  keyboardType: TextInputType.datetime,
+                  decoration: const InputDecoration(
+                    isDense: true,
+                    border: OutlineInputBorder(),
                   ),
-                  Expanded(
-                    child: TextField(
-                      controller: timeCtrl,
-                      keyboardType: TextInputType.datetime,
-                      decoration: const InputDecoration(
-                        isDense: true,
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  TextButton(
-                    onPressed: () async {
-                      final initialTime = TimeOfDay(
-                        hour: local.hour,
-                        minute: local.minute,
-                      );
-                      final picked = await showTimePicker(
-                        context: editCtx,
-                        initialTime: initialTime,
-                      );
-                      if (picked != null) {
-                        final h = _AppDateLogic.twoDigits(picked.hour);
-                        final m = _AppDateLogic.twoDigits(picked.minute);
-                        // Keep seconds at 00 when choosing a new time.
-                        timeCtrl.text = '$h:$m:00';
-                      }
-                    },
-                    child: const Text('Choose time'),
-                  ),
-                ],
+                ),
+                trailing: TextButton(
+                  onPressed: () async {
+                    final initialTime = TimeOfDay(
+                      hour: local.hour,
+                      minute: local.minute,
+                    );
+                    final picked = await showTimePicker(
+                      context: editCtx,
+                      initialTime: initialTime,
+                    );
+                    if (picked != null) {
+                      final h = _AppDateLogic.twoDigits(picked.hour);
+                      final m = _AppDateLogic.twoDigits(picked.minute);
+                      // Keep seconds at 00 when choosing a new time.
+                      timeCtrl.text = '$h:$m:00';
+                    }
+                  },
+                  child: const Text('Choose time'),
+                ),
               ),
               const SizedBox(height: 8),
               // Row 3: Item
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  const SizedBox(
-                    width: 80,
-                    child: Text('Item:'),
-                  ),
-                  Expanded(
-                    child: DropdownButton<_Item>(
-                      isExpanded: true,
-                      value: selectedItem,
-                      items: items
-                          .map(
-                            (p) => DropdownMenuItem<_Item>(
-                          value: p,
-                          child: Text(p.name),
-                        ),
-                      )
-                          .toList(),
-                      onChanged: (p) {
-                        selectedItem = p;
-                      },
+              buildLabeledEditorRow(
+                label: 'Item:',
+                editor: DropdownButton<_Item>(
+                  isExpanded: true,
+                  value: selectedItem,
+                  items: items
+                      .map(
+                        (p) => DropdownMenuItem<_Item>(
+                      value: p,
+                      child: Text(p.name),
                     ),
-                  ),
-                ],
+                  )
+                      .toList(),
+                  onChanged: (p) {
+                    selectedItem = p;
+                  },
+                ),
               ),
               const SizedBox(height: 8),
               // Row 4: Quantity
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  const SizedBox(
-                    width: 80,
-                    child: Text('Quantity:'),
+              buildLabeledEditorRow(
+                label: 'Quantity:',
+                editor: TextField(
+                  controller: qtyCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    isDense: true,
+                    border: OutlineInputBorder(),
                   ),
-                  SizedBox(
-                    width: 120,
-                    child: TextField(
-                      controller: qtyCtrl,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        isDense: true,
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
               const SizedBox(height: 16),
               // Buttons
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
+              Wrap(
+                alignment: WrapAlignment.end,
+                spacing: 12,
                 children: [
                   TextButton(
                     onPressed: () {
@@ -217,7 +238,6 @@ Future<_TransactionEditorResult?> _openTransactionEditorSheet({
                     },
                     child: const Text('Cancel'),
                   ),
-                  const SizedBox(width: 12),
                   FilledButton(
                     onPressed: () async {
                       final dateText = dateCtrl.text.trim();
