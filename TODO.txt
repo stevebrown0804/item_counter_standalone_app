@@ -2,15 +2,6 @@
 TODO (Waiting for keyboard input to reach the emulator again): Resume working on 'manually entered date string' stuff (if needed).
 
 
-------Bugs and/or code problems, but not hugely pressing ones
-TODO: When someone starts a new DB, the averaging interval is 30 days, despite there not being any transactions 30 days old, at that point.
-    *Let's have the default setting be a pinned date set to the time of first app load
-
-TODO: After successfully completing the 'new database setup' screen, if the user adds a time zone, let's have that one be selected in the 'choose time zone' drop-down on the settings screen;  if they've entered multiple, let's have the 'most recent one they've entered' be the one chosen
-
-TODO: On a new install when there's only a "DB with default values" in place, there's apparently no TZ selected in the drop-down on the settings sheet.  Let's have it show the UTC row as being selected, initially.
-
-
 -------DB importing
 TODO re: Database importing:
     * For the time being, the app's going to enforce "only import (item transactions / settings) if (items / time zones) (respectively) is imported;" we should communicate this somewhere, so as not to overly-aggravate those trying to import one table, then import the 2nd table in a later operation.
@@ -24,51 +15,25 @@ Polishing
 *App-wide
 
 *Main screen
-TODO (MAYBE): That "last added" banner at the top of the screen holds a string of what was last added; we might change the pill names to placeholder populated by the current display string for that pill, as set by the 'edit countable items' interface.  That way, if the user renames the item, that banner would reflect it.
-TODO: Let's change the RHS column header's default point at which it stops showing a decimal place to a duration dictated by the "high probability of the average to [how every many is the current setting] decimal places" no longer changing...at least, not often.
-TODO: This might be a UI minutiae thing, but how about a slider for the number of digits to show in the average?  I like "x.xx", but others might not.
 
 *Settings sheet
-TODO: Add a slider for "interval length to start ignoring decimal part."  slider, maybe: 1 to 60, then [maximum length] (for any number beyond 60).
-    A thought: This seems like a "UI minutiae" thing
-TODO: Use the indicator light for every control/setting on the settings sheet...or at least consider how we MIGHT use it.  eg. with transaction viewer, if someone just views transactions, it seems like the indicator would just stay gray; if they successfully edit a transaction, it might turn green.  If they start to edit one but, I dunno, leave it half done (if that's even a thing), it might turn red.  Not sure that 'leaving transaction edits half-done' is even an option, though.
 
 *Transaction viewer
-TODO: I was on my phone, using the transaction viewer to look up transactions and add the other pills (which I'd just added via the 'edit countable items' interface; I had to set up the transaction viewer (to a certain 2-day range) each time I bought it up, which was pretty darn inconvenient.  Let's give that sheet the capacity to restore the previous filter, and add a 'reset filters' button.  (And we'll decide later if we want to always have the filter be preserved or if we should make that a user option.)
+TODO: I was on my phone, using the transaction viewer to look up transactions and add the other pills (which I'd just added via the 'edit countable items' interface; I had to set up the transaction viewer (to a certain 2-day range) each time I bought it up, which was pretty darn inconvenient.  Let's give that sheet the capacity to restore the previous filter (for the duration of the session), and add a 'reset filters' button.  (And we'll decide later if we want to always have the filter be preserved or if we should make that a user option.)
     *We might also add a UI minutiae setting such as "Preserve transaction viewer's filter between sheet activations" (or probably something less wordy, or at least less programmer'y)
 
 *Averaging Window area of settings sheet
-TODO: The mm and dd fields in the start date text box (and presumably the end date text box as well) have leading 0s again, which I don't really want.
-TODO: The "ENTER A VALID STRING😠" indicator while editing the pinned start date is awfully strict; let's relax it to not announce the result of the string's validity check until the user clicks save or the textbox otherwise loses focus.
-    *If the date string is invalid, Let's (1) announce it in a toast and (2) not save it yet.  (And keep the save button activated.)  Or maybe (1) auto-show a message over the textbox with a 'friendly-ish' message such as "12/0/2026" isn't a valid date", then (2) not save it yet.
-TODO (MAYBE): iirc the end date (eg. "Today") and a 'pinned end date' are stored separately; if they are, let's have toggling the "...and end date" switch alternative between Today and the previously-pinned end date.
 TODO: (Background) With the "Averaging window" textboxes, we're using TextPainter to determine the minimum interior width necessary to display things (assuming the longest possibly averaging window is 99999 days); thing is, it's producing widths wider than necessary.
     (Actual TODO): Answer the question, "Is the font being used by TextPainter to make those measurements the same font that's actually used to render the elements and their contents?  "Not using the right font" seems like the kind of bonehead mistake ChatGPT might make."
 
-
 *Edit countable items sheet
-TODO: Intelligently collapse the display order values
-    For example, if we change a display order n to n+1 or higher, reduce the in-between row's display orders by one.  If we change a display order n to n-1 or lower, increase the in-between row's display orders by one.
-TODO: Add a confirmation to the delete button, eg. a dialog saying "This will delete # transactions, along with the item; proceed?" along with "Abort" and "Proceed" buttons.  If # is 0, we can probably skip this confirmation.
-    Also, add a checkbox to the settings sheet for "Skip confirmation when deleting items" or some-such.
-TODO: Make the rows & the "add row" button the scrollable region, so that the 'submit' button stays in place on-screen
-TODO: Make the textBox and the drop-down box the same vertical height
-TODO: Get rid of that light gray bar separating each row, or perhaps add some space between it and the controls it encloses, then add an exterior border so that we have a box around the scrollable region
-TODO: Answer the question, "Does closing the 'edit countable items' screen via the submit button look weird to you?  It looks slightly chaotic to me, which could probably be smoothed out -- unless it's being caused by something specific to the emulator or something."
 
 *Time-zone editor sheet
-TODO (MAYBE): Add an indicator light to the "Edit TZ" sheet, next to the back button; gray when nothing's been changed, red if something's been changed that needs to be saved, green once everything's that's changed has been saved.
-    * A THOUGHT: We might also add these indicator lights to every other sheet spawnable by the setting screen.🤔 Or at least the ones where an indicator light would be helpful, like the 'edit countable items' sheet. TBD.
 
 *code
 TODO: Try using TextPainter to get the maximum width of things like 2 (or possibly 3- or 4-) digit numbers and using that to determine the width of the input boxes.
 TODO: Man....there are a lot of hard-coded values in this code.  And every one of them makes me think, "How much will this suck for someone with an unusual desktop size/scaling factor/font/etc.?  c'mon now."
     Anyhow, let's work on getting rid of hard-coded constants and replacing them with "formulas based on information from the OS."
-
-
---"Do we still want to do this? TBD" TODOs
-TODO (MAYBE): Make the Transaction Viewer sheet more compact
-    Maybe move the "last # days" radio onto the first row, compress the input boxes vertically, remove space between the "All" row and the "Apply filter" button, etc.
 
 
 --Final step before calling it good on this pass
@@ -81,6 +46,13 @@ TODO (When we're basically done with this pass): Ask ChatGPT to look over the cu
 
 ---------------------------------------------
 Stuff we're probably saving for the next pass
+
+TODO: On the main screen, let's change the RHS column header's default point at which it stops showing a decimal place to a duration dictated by the "high probability of the average to [how every many is the current setting] decimal places" no longer changing...at least, not often.
+
+TODO (MAYBE): Add an indicator light to the "Edit TZ" sheet, next to the back button; gray when nothing's been changed, red if something's been changed that needs to be saved, green once everything's that's changed has been saved.
+    * A THOUGHT: We might also add these indicator lights to every other sheet spawnable by the setting screen.🤔 Or at least the ones where an indicator light would be helpful, like the 'edit countable items' sheet. TBD.
+
+TODO (MAYBE): That "last added" banner at the top of the screen holds a string of what was last added; we might change the pill names to placeholder populated by the current display string for that pill, as set by the 'edit countable items' interface.  That way, if the user renames the item, that banner would reflect it.
 
 TODO: Give the 'export database' process a UI to select where the DB will be exported to.
     *atm it's exported to either Documents or Downloads; I forget which.
@@ -136,6 +108,24 @@ TODO (Note: Still in the 'maybe' pile): Item metadata
 TODO (MAYBE): Rather than allowing end dates in the future, we might add some sort of "give a fixed date range a target date in the future, but have the actual interval be (start date) to (today), then move the interval forward by a day, each day until that target end date."  Maybe.  Either way, I want to avoid allowing the user to pick interval start/end dates in the future.
 
 
+*Edit countable items sheet
+TODO: Intelligently collapse the display order values
+    For example, if we change a display order n to n+1 or higher, reduce the in-between row's display orders by one.  If we change a display order n to n-1 or lower, increase the in-between row's display orders by one.
+TODO: Add a confirmation to the delete button, eg. a dialog saying "This will delete # transactions, along with the item; proceed?" along with "Abort" and "Proceed" buttons.  If # is 0, we can probably skip this confirmation.
+    Also, add a checkbox to the settings sheet for "Skip confirmation when deleting items" or some-such.
+TODO: Answer the question, "Does closing the 'edit countable items' screen via the submit button look weird to you?  It looks slightly chaotic to me, which could probably be smoothed out -- unless it's being caused by something specific to the emulator or something."
+    *2026-05-29: I can't tell, on the emulator; everything's a touch slugging on that thing.  Let's check this out on our phone, at some point.
+
+*Transaction viewer
+TODO (MAYBE): Make the Transaction Viewer sheet more compact
+    Maybe move the "last # days" radio onto the first row, compress the input boxes vertically, remove space between the "All" row and the "Apply filter" button, etc.
+
+*UI Minutiae
+TODO: This might be a UI minutiae thing, but how about a slider for the number of digits to show in the average?  I like "x.xx", but others might not.
+TODO: Add a slider for "interval length to start ignoring decimal part."  slider, maybe: 1 to 60, then [maximum length] (for any number beyond 60).
+    A thought: This seems like a "UI minutiae" thing
+
+
 -----Dated but possibly still relevant (esp. if re-written)
 TODO: UI minutiae
     Add a button to the settings sheet with label "UI minutiae"; it'll bring up a sheet of settings of various minutiae.
@@ -150,7 +140,6 @@ TODO: UI minutiae
         * (tbc as we think of things to add)
 
 
-
 ---------------------------------------
 Polishing (for the next pass)
 
@@ -159,9 +148,16 @@ TODO (Waiting for the UI minutiae interface to be started): Toast shape, duratio
     * Those probably belong in the UI minutiae interface.
 
 *Settings sheet
+TODO: Use the indicator light for every control/setting on the settings sheet...or at least consider how we MIGHT use it.
+    eg. with transaction viewer, if someone just views transactions, it seems like the indicator would just stay gray; if they successfully edit a transaction, it might turn green.  If they start to edit one but, I dunno, leave it half done (if that's even a thing), it might turn red.  Not sure that 'leaving transaction edits half-done' is even an option, though.
 TODO (MAYBE): Let the user long-tap & drag them to rearrange the rows of the settings sheet
     *(5/5/2026): I still like the idea of UI customization, but I'm wondering if we should have a "UI editing mode" that shows controls on the sides of rows that can be long-tapped to do this kind of rearranging; they would then disappear when we end 'UI editing mode.'
 
+*Averaging Window area of settings sheet
+TODO: The mm and dd fields in the start date text box (and presumably the end date text box as well) have leading 0s again, which I don't really want.
+TODO: The "ENTER A VALID STRING😠" indicator while editing the pinned start date (via keyboard) is awfully strict; let's relax it to not announce the result of the string's validity check until the user clicks save or the textbox otherwise loses focus.
+    *If the date string is invalid, Let's (1) announce it in a toast and (2) not save it yet.  (And keep the save button activated.)  Or maybe (1) auto-show a message over the textbox with a 'friendly-ish' message such as "12/0/2026" isn't a valid date", then (2) not save it yet.
+TODO (MAYBE): iirc the end date (eg. "Today") and a 'pinned end date' are stored separately; if they are, let's have toggling the "...and end date" switch alternative between Today and the previously-pinned end date.
 
 
 ---------------------------------------------------------------------------------------------------
