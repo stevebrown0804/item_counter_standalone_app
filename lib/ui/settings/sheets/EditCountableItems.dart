@@ -353,20 +353,19 @@ class _EditCountableItemsSheetState extends State<_EditCountableItemsSheet> {
     const displayOrderColumnWidth = 76.0;
     const showItemColumnWidth = 65.0;
     const deleteColumnWidth = 32.0;
-    const editableFieldHeight = 56.0;
+    const editableFieldHeight = 42.0;
     const screenPadding = 12.0;
     const submitButtonTopGap = 20.0;
     const addRowButtonTopGap = 12.0;
     const headerBottomGap = 10.0;
     const rowVerticalGap = 8.0;
     const fieldHorizontalPadding = 12.0;
-    const fieldVerticalPadding = 14.0;
     const dropdownHorizontalPadding = 12.0;
+    const fieldBorderRadius = 4.0;
 
     final bodyMedium = Theme.of(context).textTheme.bodyMedium;
     final duplicateDisplayOrders = _duplicateDisplayOrders;
-    final colorScheme = Theme.of(context).colorScheme;
-    final outlineColor = colorScheme.outline;
+    final outlineColor = Theme.of(context).colorScheme.outline;
     final errorStyle = bodyMedium?.copyWith(color: Colors.red) ??
         const TextStyle(color: Colors.red);
 
@@ -407,17 +406,14 @@ class _EditCountableItemsSheetState extends State<_EditCountableItemsSheet> {
     final bottomObstructionPadding =
     keyboardPadding > 0 ? keyboardPadding : bottomSystemPadding;
 
-    const fieldDecoration = InputDecoration(
-      isDense: true,
-      border: OutlineInputBorder(),
-      enabledBorder: OutlineInputBorder(),
-      focusedBorder: OutlineInputBorder(),
-      contentPadding: EdgeInsets.symmetric(
-        horizontal: fieldHorizontalPadding,
-        vertical: fieldVerticalPadding,
-      ),
-      constraints: BoxConstraints.tightFor(height: editableFieldHeight),
-    );
+    BoxDecoration fieldBoxDecoration() {
+      return BoxDecoration(
+        border: Border.all(
+          color: outlineColor,
+        ),
+        borderRadius: BorderRadius.circular(fieldBorderRadius),
+      );
+    }
 
     Widget headerText(String text, double width, TextAlign textAlign) {
       return SizedBox(
@@ -430,19 +426,43 @@ class _EditCountableItemsSheetState extends State<_EditCountableItemsSheet> {
       );
     }
 
+    Widget displayStringField(_EditableCountableItemRow row) {
+      return Container(
+        width: displayStringColumnWidth,
+        height: editableFieldHeight,
+        decoration: fieldBoxDecoration(),
+        padding: const EdgeInsets.symmetric(
+          horizontal: fieldHorizontalPadding,
+        ),
+        alignment: Alignment.center,
+        child: TextField(
+          key: ValueKey('display_string_${row.id ?? row.displayOrder}_${identityHashCode(row)}'),
+          controller: row.displayStringController,
+          style: bodyMedium,
+          maxLines: 1,
+          decoration: const InputDecoration(
+            isCollapsed: true,
+            border: InputBorder.none,
+            enabledBorder: InputBorder.none,
+            focusedBorder: InputBorder.none,
+            contentPadding: EdgeInsets.zero,
+          ),
+          onChanged: (_) {
+            setState(() {});
+          },
+        ),
+      );
+    }
+
     Widget displayOrderDropdown(_EditableCountableItemRow row, bool isDuplicate) {
       return Container(
         width: displayOrderColumnWidth,
         height: editableFieldHeight,
-        decoration: BoxDecoration(
-          border: Border.all(
-            color: outlineColor,
-          ),
-          borderRadius: BorderRadius.circular(4),
-        ),
+        decoration: fieldBoxDecoration(),
         padding: const EdgeInsets.symmetric(
           horizontal: dropdownHorizontalPadding,
         ),
+        alignment: Alignment.center,
         child: DropdownButtonHideUnderline(
           child: DropdownButton<int>(
             key: ValueKey('display_order_${row.id ?? row.displayOrder}_${identityHashCode(row)}'),
@@ -525,20 +545,7 @@ class _EditCountableItemsSheetState extends State<_EditCountableItemsSheet> {
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          SizedBox(
-                            width: displayStringColumnWidth,
-                            height: editableFieldHeight,
-                            child: TextField(
-                              key: ValueKey('display_string_${row.id ?? row.displayOrder}_${identityHashCode(row)}'),
-                              controller: row.displayStringController,
-                              style: bodyMedium,
-                              textAlignVertical: TextAlignVertical.center,
-                              decoration: fieldDecoration,
-                              onChanged: (_) {
-                                setState(() {});
-                              },
-                            ),
-                          ),
+                          displayStringField(row),
                           displayOrderDropdown(row, isDuplicate),
                           SizedBox(
                             width: showItemColumnWidth,
