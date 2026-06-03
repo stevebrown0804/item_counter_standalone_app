@@ -12,6 +12,10 @@ An item counter.  I use it to (1) count my daily pill intake and (2) get a daily
 </div>
 
 ---
+A couple notes about the DB export/import process:
+* atm the DB export process is hard-coded to save the DB to the Download folder on your phone.  (I'll allow picking a location eventually...but probably not until I take pass #3 at the app.)
+* There are some dependancies with the import process (ie. 'item_transactions' requires that the 'items' table be imported, and 'settings' requires the 'time_zones' table be imported); while you *can* import 'one then the other,' I'm sure it would be less tedious to import both (or all four tables) at once.
+---
 
 Phase 2, where I make the app more accessible to others
 
