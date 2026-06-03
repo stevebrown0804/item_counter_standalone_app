@@ -2,28 +2,14 @@
 
 An item counter.  I use it to (1) count my daily pill intake and (2) get a daily average of the # of pills taken.
 
+(Note: These screenshots are from phase 1 of the app; I'll u/l some more recent screenshots once I'm done with phase 2.  See TODO.txt for particulars!)
+
 <div>
 <img src="images/MainSheet.png" width="15%" />
 <img src="images/AddPillsBottomSheet.png" width="15%" />
 <img src="images/SettingsSheet.png" width="15%" />
 <img src="images/TransactionViewerSheet.png" width="15%" />
 </div>
-
----
-
-Phase 1, where I built it for my own personal use (on an Android phone)
-
-If you're interested in using the app, you'll probably want to do the following:
-* Build a debug version (to an emulator is fine, although you'll probably want to deploy a debug version to the device that you'll use the app on, if only to create the directory structure)
-* Take a copy of the DB file from /data/data/com.example.item_counter_standalone_app
-* Add your preferred time zone(s) (and aliases to those time zones) to the time_zone_aliases table
-* Add whatever it is you want to count to the items table.  (with display_order == 1 being the top of the list; values should probably be unique (although that's not enforced by the DB atm); with show_item: show_item == 1 => show; == 0 => don't show.)
-* Copy the DB back to your phone (to the same directory where you originally got the DB file)
-* Create a release .apk file and deploy it to your phone
-  * That is, from the project root:
-  * `flutter build apk --release`
-  *  `adb install [relative path of the .apk file]`
-    * eg. `adb install build/app/outputs/flutter-apk/app-release.apk`
 
 ---
 
@@ -39,10 +25,9 @@ Phase 2, where I make the app more accessible to others
 * 2026-05-09 Let's see, what did we do since the last bullet point...🤔 pretty sure we kept working on the "Averaging Window" area of the settings sheet, consolidated the date range computation logic, polished the Transaction Viewer sheet a bit....and possibly other stuff that's not coming to mind.
 * 2026-05-15 Added a DB migration, which gets checked (to see if it needs to be done) on app-start and on DB import.
 * 2026-05-23 Added a Time Zone editor UI; this app's nearly ready for normal (non-DB'y) people to use! fun.
+* 2026-06-03 The 'new DB wizard' now works; so I'd say that the days of having to do any (DB-internal) manual configuration are behind us.  You're still gonna want to know (1) what you want to count and (2) the IANA name for your local time zone...or you can just leave it set to UTZ (aka GMT, I think) if you don't care about time zones.
 
-
-atm I have one more 'big' TODO left (and some smaller TODOs, plus polishing) before I think I'll consider this a proper alpha release (and try out having github host an .apk file and all that):
-* Create a wizard for when the app is first started, to have the user add countable items and (optionally) time zones.
+There's still a small handful of TODOs and polishing steps that are left before I'll try making a 'release' out of this, but we're getting closer every day.  (Or "every so often," as I've only been working on this project maybe 1-2 days a week, lately.)
   
 ---
 
@@ -53,10 +38,31 @@ A) I was using a spreadsheet to take daily averages of the # of pills I took eac
 
 And here's that app!
 
-btw I use those daily averages to project when my current supply of pills will run out, to make sure I take enough pills with me when I travel, etc.
+btw I use the daily averages:
+* to project when my current supply of pills will run out
+* to make sure I take enough pills with me when I travel
+* etc.
 
 Q) Who are you?  
 A) Just some hobbyist, by which I mean I've never programmed for a paycheck.
 
 Q) What do you do for a living, then?  
 A) Lately? I work on open-source software with my trusty tip cup by my side.  https://ko-fi.com/stevebrown0804
+
+--- 
+
+### Archive
+
+[From Fall '25] Phase 1, where I built it for my own personal use (on an Android phone)
+
+If you're interested in using the app, you'll probably want to do the following:
+* Build a debug version (to an emulator is fine, although you'll probably want to deploy a debug version to the device that you'll use the app on, if only to create the directory structure)
+* Take a copy of the DB file from /data/data/com.example.item_counter_standalone_app
+* Add your preferred time zone(s) (and aliases to those time zones) to the time_zone_aliases table
+* Add whatever it is you want to count to the items table.  (with display_order == 1 being the top of the list; values should probably be unique (although that's not enforced by the DB atm); with show_item: show_item == 1 => show; == 0 => don't show.)
+* Copy the DB back to your phone (to the same directory where you originally got the DB file)
+* Create a release .apk file and deploy it to your phone
+  * That is, from the project root:
+  * `flutter build apk --release`
+  *  `adb install [relative path of the .apk file]`
+    * eg. `adb install build/app/outputs/flutter-apk/app-release.apk`
