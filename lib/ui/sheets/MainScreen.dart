@@ -294,7 +294,9 @@ class _MainScreenState extends State<_MainScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _openAddItemsSheet() async {
-    final items = _store.items.where((item) => item.showItem).toList();
+    final items = _store.items
+        .where((item) => item.showItem && !item.isHeader)
+        .toList();
     if (items.isEmpty) return;
 
     await showModalBottomSheet<void>(
