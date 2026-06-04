@@ -383,7 +383,7 @@ LIMIT 1
       if (range.averageDenominatorDays <= 0) {
         final rows = await db.rawQuery(
           '''
-SELECT id, display_string
+SELECT id, display_string, is_header
 FROM items
 WHERE COALESCE(show_item, 1) != 0
 ORDER BY CAST(display_order AS INTEGER), id
@@ -391,7 +391,13 @@ ORDER BY CAST(display_order AS INTEGER), id
         );
 
         return rows.map((row) {
-          return _AvgRow(row['display_string']?.toString() ?? '', 0.0);
+          final name = row['display_string']?.toString() ?? '';
+          final isHeaderRaw = row['is_header'];
+          final isHeader = (isHeaderRaw is num)
+              ? isHeaderRaw.toInt() != 0
+              : isHeaderRaw?.toString() == '1';
+
+          return _AvgRow(name, 0.0, isHeader);
         }).toList();
       }
 
@@ -400,6 +406,7 @@ ORDER BY CAST(display_order AS INTEGER), id
 SELECT p.id,
        p.display_string AS item_name,
        CAST(p.display_order AS INTEGER) AS display_order,
+       p.is_header AS is_header,
        1.0 * COALESCE(SUM(CASE
            WHEN t.timestamp_utc >= ?1
             AND t.timestamp_utc < ?2
@@ -408,7 +415,7 @@ SELECT p.id,
 FROM items p
 LEFT JOIN item_transactions t ON t.item_id = p.id
 WHERE COALESCE(p.show_item, 1) != 0
-GROUP BY p.id, p.display_string, display_order
+GROUP BY p.id, p.display_string, display_order, p.is_header
 ORDER BY display_order, p.id
 ''',
         [range.startUtc, range.endUtc, range.averageDenominatorDays],
@@ -417,10 +424,15 @@ ORDER BY display_order, p.id
       return rows.map((row) {
         final name = row['item_name']?.toString() ?? '';
         final rawAvg = row['daily_avg'];
+        final isHeaderRaw = row['is_header'];
         final avg = (rawAvg is num)
             ? rawAvg.toDouble()
             : double.tryParse(rawAvg?.toString() ?? '0') ?? 0.0;
-        return _AvgRow(name, avg);
+        final isHeader = (isHeaderRaw is num)
+            ? isHeaderRaw.toInt() != 0
+            : isHeaderRaw?.toString() == '1';
+
+        return _AvgRow(name, avg, isHeader);
       }).toList();
     });
   }

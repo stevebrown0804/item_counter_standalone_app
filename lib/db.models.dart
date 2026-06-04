@@ -304,8 +304,9 @@ class _Item {
 class _AvgRow {
   final String itemName;
   final double avg;
+  final bool isHeader;
 
-  _AvgRow(this.itemName, this.avg);
+  _AvgRow(this.itemName, this.avg, this.isHeader);
 }
 
 class _DailyAverageSettings {

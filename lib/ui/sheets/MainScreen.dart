@@ -355,6 +355,8 @@ class _MainScreenState extends State<_MainScreen> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     _measureHomeToastLowerEdgeAfterLayout();
 
+    const sectionChildIndentFraction = 0.04;
+
     final averageWindowTooltip = _store.averageWindowTooltip;
     final rhsHeaderText = _store.averageWindowHeaderText;
     final hasVisibleItems = _store.items.any((item) => item.showItem);
@@ -372,6 +374,8 @@ class _MainScreenState extends State<_MainScreen> with WidgetsBindingObserver {
         : AnimatedBuilder(
       animation: _store,
       builder: (context, _) {
+        final hasSectionHeaders = _store.rows.any((row) => row.isHeader);
+
         return Column(
           children: [
             const SizedBox.shrink(),
@@ -476,56 +480,73 @@ class _MainScreenState extends State<_MainScreen> with WidgetsBindingObserver {
             ),
             const Divider(height: 1),
             Expanded(
-              child: ListView.builder(
-                itemCount: _store.rows.length,
-                itemExtent: 28.0,
-                itemBuilder: (context, i) {
-                  final r = _store.rows[i];
-                  return Stack(
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                r.itemName,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  height: 1.0,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final childIndent =
+                      constraints.maxWidth * sectionChildIndentFraction;
+
+                  return ListView.builder(
+                    itemCount: _store.rows.length,
+                    itemExtent: 28.0,
+                    itemBuilder: (context, i) {
+                      final r = _store.rows[i];
+                      final shouldIndent =
+                          hasSectionHeaders && !r.isHeader;
+
+                      return Stack(
+                        children: [
+                          Padding(
+                            padding: EdgeInsets.only(
+                              left: 12 + (shouldIndent ? childIndent : 0),
+                              right: 12,
+                              top: 6,
+                              bottom: 6,
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    r.itemName,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      height: 1.0,
+                                      fontWeight: r.isHeader
+                                          ? FontWeight.bold
+                                          : FontWeight.normal,
+                                    ),
+                                  ),
+                                ),
+                                if (!r.isHeader) ...[
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    r.avg.toStringAsFixed(2),
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      height: 1.0,
+                                    ),
+                                    textAlign: TextAlign.right,
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                          Positioned.fill(
+                            child: Align(
+                              alignment: Alignment.bottomCenter,
+                              child: Container(
+                                height: 1,
+                                color: Colors.grey.shade300,
+                                margin: const EdgeInsets.symmetric(
+                                  horizontal: 8,
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 8),
-                            Text(
-                              r.avg.toStringAsFixed(2),
-                              style: const TextStyle(
-                                fontSize: 14,
-                                height: 1.0,
-                              ),
-                              textAlign: TextAlign.right,
-                            ),
-                          ],
-                        ),
-                      ),
-                      Positioned.fill(
-                        child: Align(
-                          alignment: Alignment.bottomCenter,
-                          child: Container(
-                            height: 1,
-                            color: Colors.grey.shade300,
-                            margin: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                            ),
                           ),
-                        ),
-                      ),
-                    ],
+                        ],
+                      );
+                    },
                   );
                 },
               ),
