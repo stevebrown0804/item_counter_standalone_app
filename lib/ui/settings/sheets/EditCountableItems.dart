@@ -349,10 +349,11 @@ class _EditCountableItemsSheetState extends State<_EditCountableItemsSheet> {
 
   @override
   Widget build(BuildContext context) {
-    const displayStringColumnWidth = 200.0;
-    const displayOrderColumnWidth = 76.0;
-    const showItemColumnWidth = 65.0;
-    const deleteColumnWidth = 32.0;
+    const displayStringColumnFraction = 0.44;
+    const displayOrderColumnFraction = 0.18;
+    const showItemColumnFraction = 0.15;
+    const sectionHeaderColumnFraction = 0.17;
+    const deleteColumnFraction = 0.06;
     const editableFieldHeight = 42.0;
     const screenPadding = 12.0;
     const submitButtonTopGap = 20.0;
@@ -406,105 +407,6 @@ class _EditCountableItemsSheetState extends State<_EditCountableItemsSheet> {
     final bottomObstructionPadding =
     keyboardPadding > 0 ? keyboardPadding : bottomSystemPadding;
 
-    BoxDecoration fieldBoxDecoration() {
-      return BoxDecoration(
-        border: Border.all(
-          color: outlineColor,
-        ),
-        borderRadius: BorderRadius.circular(fieldBorderRadius),
-      );
-    }
-
-    Widget headerText(String text, double width, TextAlign textAlign) {
-      return SizedBox(
-        width: width,
-        child: Text(
-          text,
-          textAlign: textAlign,
-          style: bodyMedium?.copyWith(fontWeight: FontWeight.bold),
-        ),
-      );
-    }
-
-    Widget displayStringField(_EditableCountableItemRow row) {
-      return Container(
-        width: displayStringColumnWidth,
-        height: editableFieldHeight,
-        decoration: fieldBoxDecoration(),
-        padding: const EdgeInsets.symmetric(
-          horizontal: fieldHorizontalPadding,
-        ),
-        alignment: Alignment.center,
-        child: TextField(
-          key: ValueKey('display_string_${row.id ?? row.displayOrder}_${identityHashCode(row)}'),
-          controller: row.displayStringController,
-          style: bodyMedium,
-          maxLines: 1,
-          decoration: const InputDecoration(
-            isCollapsed: true,
-            border: InputBorder.none,
-            enabledBorder: InputBorder.none,
-            focusedBorder: InputBorder.none,
-            contentPadding: EdgeInsets.zero,
-          ),
-          onChanged: (_) {
-            setState(() {});
-          },
-        ),
-      );
-    }
-
-    Widget displayOrderDropdown(_EditableCountableItemRow row, bool isDuplicate) {
-      return Container(
-        width: displayOrderColumnWidth,
-        height: editableFieldHeight,
-        decoration: fieldBoxDecoration(),
-        padding: const EdgeInsets.symmetric(
-          horizontal: dropdownHorizontalPadding,
-        ),
-        alignment: Alignment.center,
-        child: DropdownButtonHideUnderline(
-          child: DropdownButton<int>(
-            key: ValueKey('display_order_${row.id ?? row.displayOrder}_${identityHashCode(row)}'),
-            value: row.displayOrder,
-            isExpanded: true,
-            style: isDuplicate ? errorStyle : bodyMedium,
-            items: displayOrderOptions.map((value) {
-              final itemIsDuplicate =
-              duplicateDisplayOrders.contains(value);
-
-              return DropdownMenuItem<int>(
-                value: value,
-                child: Text(
-                  value.toString(),
-                  style: itemIsDuplicate ? errorStyle : bodyMedium,
-                ),
-              );
-            }).toList(),
-            selectedItemBuilder: (context) {
-              return displayOrderOptions.map((value) {
-                final itemIsDuplicate =
-                duplicateDisplayOrders.contains(value);
-
-                return Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    value.toString(),
-                    style: itemIsDuplicate ? errorStyle : bodyMedium,
-                  ),
-                );
-              }).toList();
-            },
-            onChanged: (value) {
-              setState(() {
-                row.displayOrder = value;
-              });
-            },
-          ),
-        ),
-      );
-    }
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Edit countable items'),
@@ -513,93 +415,238 @@ class _EditCountableItemsSheetState extends State<_EditCountableItemsSheet> {
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.only(
-          left: screenPadding,
-          right: screenPadding,
-          top: screenPadding,
-          bottom: screenPadding + bottomObstructionPadding,
-        ),
-        child: Column(
-          children: [
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Column(
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      headerText('Display string', displayStringColumnWidth, TextAlign.left),
-                      headerText('Display\norder', displayOrderColumnWidth, TextAlign.center),
-                      headerText('Show?', showItemColumnWidth, TextAlign.center),
-                      const SizedBox(width: deleteColumnWidth),
-                    ],
-                  ),
-                  const SizedBox(height: headerBottomGap),
-                  ..._rows.map((row) {
-                    final isDuplicate = row.displayOrder != null &&
-                        duplicateDisplayOrders.contains(row.displayOrder);
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final availableRowWidth =
+              constraints.maxWidth - screenPadding - screenPadding;
 
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: rowVerticalGap),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          displayStringField(row),
-                          displayOrderDropdown(row, isDuplicate),
-                          SizedBox(
-                            width: showItemColumnWidth,
-                            height: editableFieldHeight,
-                            child: Center(
-                              child: Switch(
-                                key: ValueKey('show_item_${row.id ?? row.displayOrder}_${identityHashCode(row)}'),
-                                value: row.showItem,
-                                onChanged: (value) {
-                                  setState(() {
-                                    row.showItem = value;
-                                  });
-                                },
-                              ),
-                            ),
-                          ),
-                          SizedBox(
-                            width: deleteColumnWidth,
-                            height: editableFieldHeight,
-                            child: Center(
-                              child: GestureDetector(
-                                onTap: _saving ? null : () => _handleDeleteRow(row),
-                                child: Text(
-                                  '[x]',
-                                  textAlign: TextAlign.center,
-                                  style: bodyMedium?.copyWith(color: Colors.red) ??
-                                      const TextStyle(color: Colors.red),
+          if (availableRowWidth <= 0) {
+            throw StateError(
+              'Edit countable items did not receive a positive layout width.',
+            );
+          }
+
+          final displayStringColumnWidth =
+              availableRowWidth * displayStringColumnFraction;
+          final displayOrderColumnWidth =
+              availableRowWidth * displayOrderColumnFraction;
+          final showItemColumnWidth =
+              availableRowWidth * showItemColumnFraction;
+          final sectionHeaderColumnWidth =
+              availableRowWidth * sectionHeaderColumnFraction;
+          final deleteColumnWidth =
+              availableRowWidth * deleteColumnFraction;
+
+          BoxDecoration fieldBoxDecoration() {
+            return BoxDecoration(
+              border: Border.all(
+                color: outlineColor,
+              ),
+              borderRadius: BorderRadius.circular(fieldBorderRadius),
+            );
+          }
+
+          Widget headerText(String text, double width, TextAlign textAlign) {
+            return SizedBox(
+              width: width,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: textAlign == TextAlign.left
+                    ? Alignment.centerLeft
+                    : Alignment.center,
+                child: Text(
+                  text,
+                  textAlign: textAlign,
+                  style: bodyMedium?.copyWith(fontWeight: FontWeight.bold),
+                ),
+              ),
+            );
+          }
+
+          Widget displayStringField(_EditableCountableItemRow row) {
+            return Container(
+              width: displayStringColumnWidth,
+              height: editableFieldHeight,
+              decoration: fieldBoxDecoration(),
+              padding: const EdgeInsets.symmetric(
+                horizontal: fieldHorizontalPadding,
+              ),
+              alignment: Alignment.center,
+              child: TextField(
+                key: ValueKey('display_string_${row.id ?? row.displayOrder}_${identityHashCode(row)}'),
+                controller: row.displayStringController,
+                style: bodyMedium,
+                maxLines: 1,
+                decoration: const InputDecoration(
+                  isCollapsed: true,
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  contentPadding: EdgeInsets.zero,
+                ),
+                onChanged: (_) {
+                  setState(() {});
+                },
+              ),
+            );
+          }
+
+          Widget displayOrderDropdown(
+              _EditableCountableItemRow row,
+              bool isDuplicate,
+              ) {
+            return Container(
+              width: displayOrderColumnWidth,
+              height: editableFieldHeight,
+              decoration: fieldBoxDecoration(),
+              padding: const EdgeInsets.symmetric(
+                horizontal: dropdownHorizontalPadding,
+              ),
+              alignment: Alignment.center,
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<int>(
+                  key: ValueKey('display_order_${row.id ?? row.displayOrder}_${identityHashCode(row)}'),
+                  value: row.displayOrder,
+                  isExpanded: true,
+                  style: isDuplicate ? errorStyle : bodyMedium,
+                  items: displayOrderOptions.map((value) {
+                    final itemIsDuplicate =
+                    duplicateDisplayOrders.contains(value);
+
+                    return DropdownMenuItem<int>(
+                      value: value,
+                      child: Text(
+                        value.toString(),
+                        style: itemIsDuplicate ? errorStyle : bodyMedium,
+                      ),
+                    );
+                  }).toList(),
+                  selectedItemBuilder: (context) {
+                    return displayOrderOptions.map((value) {
+                      final itemIsDuplicate =
+                      duplicateDisplayOrders.contains(value);
+
+                      return Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          value.toString(),
+                          style: itemIsDuplicate ? errorStyle : bodyMedium,
+                        ),
+                      );
+                    }).toList();
+                  },
+                  onChanged: (value) {
+                    setState(() {
+                      row.displayOrder = value;
+                    });
+                  },
+                ),
+              ),
+            );
+          }
+
+          Widget placeholderSectionHeaderCheckbox(_EditableCountableItemRow row) {
+            return SizedBox(
+              width: sectionHeaderColumnWidth,
+              height: editableFieldHeight,
+              child: Center(
+                child: Checkbox(
+                  key: ValueKey('section_header_${row.id ?? row.displayOrder}_${identityHashCode(row)}'),
+                  value: false,
+                  onChanged: null,
+                ),
+              ),
+            );
+          }
+
+          return SingleChildScrollView(
+            padding: EdgeInsets.only(
+              left: screenPadding,
+              right: screenPadding,
+              top: screenPadding,
+              bottom: screenPadding + bottomObstructionPadding,
+            ),
+            child: Column(
+              children: [
+                Column(
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        headerText('Display string', displayStringColumnWidth, TextAlign.left),
+                        headerText('Display\norder', displayOrderColumnWidth, TextAlign.center),
+                        headerText('Show?', showItemColumnWidth, TextAlign.center),
+                        headerText('Header', sectionHeaderColumnWidth, TextAlign.center),
+                        SizedBox(width: deleteColumnWidth),
+                      ],
+                    ),
+                    const SizedBox(height: headerBottomGap),
+                    ..._rows.map((row) {
+                      final isDuplicate = row.displayOrder != null &&
+                          duplicateDisplayOrders.contains(row.displayOrder);
+
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: rowVerticalGap),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            displayStringField(row),
+                            displayOrderDropdown(row, isDuplicate),
+                            SizedBox(
+                              width: showItemColumnWidth,
+                              height: editableFieldHeight,
+                              child: Center(
+                                child: Switch(
+                                  key: ValueKey('show_item_${row.id ?? row.displayOrder}_${identityHashCode(row)}'),
+                                  value: row.showItem,
+                                  onChanged: (value) {
+                                    setState(() {
+                                      row.showItem = value;
+                                    });
+                                  },
                                 ),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }),
-                ],
-              ),
+                            placeholderSectionHeaderCheckbox(row),
+                            SizedBox(
+                              width: deleteColumnWidth,
+                              height: editableFieldHeight,
+                              child: Center(
+                                child: GestureDetector(
+                                  onTap: _saving ? null : () => _handleDeleteRow(row),
+                                  child: Text(
+                                    '[x]',
+                                    textAlign: TextAlign.center,
+                                    style: bodyMedium?.copyWith(color: Colors.red) ??
+                                        const TextStyle(color: Colors.red),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+                  ],
+                ),
+                const SizedBox(height: addRowButtonTopGap),
+                FilledButton.icon(
+                  onPressed: _saving ? null : _addRow,
+                  icon: const Icon(Icons.add),
+                  label: const Text('Add row'),
+                ),
+                const SizedBox(height: submitButtonTopGap),
+                Align(
+                  alignment: Alignment.center,
+                  child: FilledButton(
+                    onPressed: _canSubmit && !_saving ? _handleSubmit : null,
+                    child: const Text('Submit'),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: addRowButtonTopGap),
-            FilledButton.icon(
-              onPressed: _saving ? null : _addRow,
-              icon: const Icon(Icons.add),
-              label: const Text('Add row'),
-            ),
-            const SizedBox(height: submitButtonTopGap),
-            Align(
-              alignment: Alignment.center,
-              child: FilledButton(
-                onPressed: _canSubmit && !_saving ? _handleSubmit : null,
-                child: const Text('Submit'),
-              ),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
