@@ -558,11 +558,11 @@ class _MainScreenState extends State<_MainScreen> with WidgetsBindingObserver {
       },
     );
 
-    final Widget? floatingButtons;
+    final Widget? bottomButtons;
     if (_loading) {
-      floatingButtons = null;
+      bottomButtons = null;
     } else if (hasVisibleItems) {
-      floatingButtons = Row(
+      bottomButtons = Row(
         key: _floatingButtonRegionKey,
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -623,12 +623,25 @@ class _MainScreenState extends State<_MainScreen> with WidgetsBindingObserver {
         ],
       );
     } else {
-      floatingButtons = FloatingActionButton.extended(
+      bottomButtons = FloatingActionButton.extended(
         key: _floatingButtonRegionKey,
         heroTag: 'new_db_wizard_fab',
         onPressed: _openNewDbWizardScreen,
         icon: const Icon(Icons.add),
         label: const Text('Add items to count'),
+      );
+    }
+
+    final Widget? bottomNavigationBar;
+    if (bottomButtons == null) {
+      bottomNavigationBar = null;
+    } else {
+      bottomNavigationBar = SafeArea(
+        top: false,
+        child: Center(
+          heightFactor: 1,
+          child: bottomButtons,
+        ),
       );
     }
 
@@ -681,8 +694,7 @@ class _MainScreenState extends State<_MainScreen> with WidgetsBindingObserver {
           ),
         ],
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      floatingActionButton: floatingButtons,
+      bottomNavigationBar: bottomNavigationBar,
     );
   }
 }
