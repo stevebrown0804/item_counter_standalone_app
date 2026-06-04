@@ -235,6 +235,46 @@ class _EditCountableItemsSheetState extends State<_EditCountableItemsSheet> {
     });
   }
 
+  void _setDisplayOrderAndCollapse(
+      _EditableCountableItemRow movedRow,
+      int? requestedDisplayOrder,
+      ) {
+    if (requestedDisplayOrder == null) {
+      return;
+    }
+
+    final oldDisplayOrder = movedRow.displayOrder;
+    if (oldDisplayOrder == null) {
+      movedRow.displayOrder = requestedDisplayOrder;
+      return;
+    }
+
+    final newDisplayOrder = requestedDisplayOrder.clamp(1, _rows.length);
+    if (oldDisplayOrder == newDisplayOrder) {
+      return;
+    }
+
+    for (final row in _rows) {
+      if (identical(row, movedRow) || row.displayOrder == null) {
+        continue;
+      }
+
+      final rowDisplayOrder = row.displayOrder!;
+
+      if (oldDisplayOrder < newDisplayOrder &&
+          rowDisplayOrder > oldDisplayOrder &&
+          rowDisplayOrder <= newDisplayOrder) {
+        row.displayOrder = rowDisplayOrder - 1;
+      } else if (oldDisplayOrder > newDisplayOrder &&
+          rowDisplayOrder >= newDisplayOrder &&
+          rowDisplayOrder < oldDisplayOrder) {
+        row.displayOrder = rowDisplayOrder + 1;
+      }
+    }
+
+    movedRow.displayOrder = newDisplayOrder;
+  }
+
   List<int> get _displayOrderOptions {
     return List<int>.generate(_rows.length, (i) => i + 1);
   }
@@ -549,7 +589,7 @@ class _EditCountableItemsSheetState extends State<_EditCountableItemsSheet> {
                   },
                   onChanged: (value) {
                     setState(() {
-                      row.displayOrder = value;
+                      _setDisplayOrderAndCollapse(row, value);
                     });
                   },
                 ),
