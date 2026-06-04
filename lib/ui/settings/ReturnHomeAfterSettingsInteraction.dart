@@ -99,13 +99,11 @@ class _ReturnHomeAfterSettingsInteractionRowState
 
       widget.onToast('Failed to save return-home setting: $e');
     } finally {
-      if (!mounted) {
-        return;
+      if (mounted) {
+        setState(() {
+          _saving = false;
+        });
       }
-
-      setState(() {
-        _saving = false;
-      });
     }
   }
 

@@ -668,13 +668,11 @@ ORDER BY iana_tz_name, alias, id
         SnackBar(content: Text('Failed to save time-zone alias: $e')),
       );
     } finally {
-      if (!mounted) {
-        return;
+      if (mounted) {
+        setState(() {
+          _savingEdit = false;
+        });
       }
-
-      setState(() {
-        _savingEdit = false;
-      });
     }
   }
 
@@ -917,4 +915,3 @@ LIMIT 1
     );
   }
 }
-

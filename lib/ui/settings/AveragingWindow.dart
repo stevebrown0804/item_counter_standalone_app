@@ -892,6 +892,10 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
       //Error -> keep the default bounds
     }
 
+    if (!mounted) {
+      return;
+    }
+
     final picked = await showDatePicker(
       context: context,
       initialDate: initialDate,
@@ -971,6 +975,10 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
         _showAveragingWindowMessage('Failed to read oldest transaction date: $e');
       }
       //Error -> keep the default bounds
+    }
+
+    if (!mounted) {
+      return;
     }
 
     final picked = await showDatePicker(
@@ -1187,18 +1195,6 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
     }
 
     _showStartDateEntryTemplate();
-  }
-
-  void _applyDaysAgoToStartTextBox(int daysAgo) {
-    final clampedDaysAgo = daysAgo > 99999 ? 99999 : daysAgo;
-
-    if (_currentAveragingWindowDays != null && clampedDaysAgo == _currentAveragingWindowDays!) {
-      _showCurrentDisplayString();
-      return;
-    }
-
-    _summaryStatisticTextInputBox.text = clampedDaysAgo.toString();
-    _showingDisplayString = false;
   }
 
   void _applyLoadedSettingsToUi(_DailyAverageSettings settings) {
