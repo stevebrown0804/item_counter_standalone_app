@@ -2,7 +2,7 @@
 
 An item counter.  I use it to (1) count my daily pill intake and (2) get a daily average of the # of pills taken.
 
-(Note: These screenshots are from phase 1 of the app; I'll u/l some more recent screenshots once I'm done with phase 2.  See TODO.txt for particulars!)
+(Note: These screenshots are from phase 1 of the app; I'll u/l some more recent screenshots eventually.)
 
 <div>
 <img src="images/MainSheet.png" width="15%" />
