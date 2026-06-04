@@ -5,10 +5,6 @@ TODO (Waiting for keyboard input to reach the emulator again): Resume working on
 ---------------------------------------
 Polishing
 
----------------------------------------
---Final step before calling it good on this pass
-TODO: `flutter analyze` and address whatever warnings/errors/informational things that it brings up.
-
 
 
 ------------------------------------------------
