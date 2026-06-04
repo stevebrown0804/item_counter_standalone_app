@@ -5,11 +5,13 @@ part of '../../main.dart';
 class _TzRow extends StatefulWidget {
   const _TzRow({
     super.key,
+    required this.db,
     required this.onDirtyChanged,
     required this.onSaved,
     required this.onInteractionComplete,
   });
 
+  final _Db db;
   final void Function(bool) onDirtyChanged;
   final VoidCallback onSaved;
   final Future<void> Function(String) onInteractionComplete;
@@ -19,7 +21,7 @@ class _TzRow extends StatefulWidget {
 }
 
 class _TzRowState extends State<_TzRow> {
-  final _db = _Db();
+  _Db get _db => widget.db;
   List<String> _options = const [];
   String? _currentDisplayString;
   bool _loading = true;
@@ -175,3 +177,4 @@ class _TzRowState extends State<_TzRow> {
     );
   }
 }
+

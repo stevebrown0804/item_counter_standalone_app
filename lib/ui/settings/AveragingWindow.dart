@@ -252,6 +252,7 @@ class _MaskedDateTextInputFormatter extends TextInputFormatter {
 class _SummaryStatisticRow extends StatefulWidget {
   const _SummaryStatisticRow({
     super.key,
+    required this.db,
     required this.onDirtyChanged,
     required this.onBlockedChanged,
     required this.onSaved,
@@ -259,6 +260,7 @@ class _SummaryStatisticRow extends StatefulWidget {
     required this.onInteractionComplete,
   });
 
+  final _Db db;
   final void Function(bool) onDirtyChanged;
   final void Function(bool) onBlockedChanged;
   final VoidCallback onSaved;
@@ -275,7 +277,7 @@ enum _AveragingWindowPendingChangeAction {
 }
 
 class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
-  final _db = _Db();
+  _Db get _db => widget.db;
   final TextEditingController _summaryStatisticTextInputBox = TextEditingController();
   final FocusNode _summaryStatisticFocusNode = FocusNode();
   final TextEditingController _endDateTextInputBox = TextEditingController();
@@ -1716,3 +1718,4 @@ class _SummaryStatisticRowState extends State<_SummaryStatisticRow> {
     );
   }
 }
+

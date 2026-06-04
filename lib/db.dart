@@ -5,6 +5,11 @@ class _Db {
   static Database? _sharedDb;
   static Future<Database>? _sharedOpenFuture;
 
+  static const String _skipDeleteSecondConfirmSettingKey =
+      'skip_delete_transactions_second_dialog_confirmation';
+  static const String _returnHomeAfterSettingsInteractionSettingKey =
+      'settings.return_home_after_interaction';
+
   Future<T> _timed<T>(String label, Future<T> Function() action) async {
     final sw = Stopwatch()..start();
     debugPrint('[DB] START $label');
@@ -184,6 +189,23 @@ ORDER BY CAST(display_order AS INTEGER), id
     );
   }
 
+  Future<bool> _readBoolSetting(
+    String key, {
+    required bool defaultValue,
+  }) async {
+    final raw = await tryReadSettingString(key);
+    if (raw == null) {
+      return defaultValue;
+    }
+
+    final normalized = raw.trim().toLowerCase();
+    return normalized == '1' || normalized == 'true';
+  }
+
+  Future<void> _writeBoolSetting(String key, bool value) async {
+    await upsertSettingString(key, value ? '1' : '0');
+  }
+
   Future<int> readAveragingWindowDays() async {
     return _timed('readAveragingWindowDays()', () async {
       final db = await open();
@@ -254,52 +276,27 @@ ORDER BY CAST(display_order AS INTEGER), id
   }
 
   Future<bool> readSkipDeleteSecondConfirm() async {
-    final db = await open();
-    final rows = await db.rawQuery(
-      '''
-SELECT value
-FROM settings
-WHERE key = 'skip_delete_transactions_second_dialog_confirmation'
-LIMIT 1
-''',
+    return _readBoolSetting(
+      _skipDeleteSecondConfirmSettingKey,
+      defaultValue: false,
     );
-    if (rows.isEmpty) {
-      return false;
-    }
-    final raw = rows.first['value']?.toString().trim() ?? '0';
-    return raw == '1' || raw.toLowerCase() == 'true';
   }
 
   Future<void> setSkipDeleteSecondConfirm(bool skip) async {
-    final value = skip ? '1' : '0';
-    await upsertSettingString(
-      'skip_delete_transactions_second_dialog_confirmation',
-      value,
-    );
+    await _writeBoolSetting(_skipDeleteSecondConfirmSettingKey, skip);
   }
 
   Future<bool> readReturnHomeAfterSettingsInteraction() async {
-    final db = await open();
-    final rows = await db.rawQuery(
-      '''
-SELECT value
-FROM settings
-WHERE key = 'settings.return_home_after_interaction'
-LIMIT 1
-''',
+    return _readBoolSetting(
+      _returnHomeAfterSettingsInteractionSettingKey,
+      defaultValue: false,
     );
-    if (rows.isEmpty) {
-      return false;
-    }
-    final raw = rows.first['value']?.toString().trim() ?? '0';
-    return raw == '1' || raw.toLowerCase() == 'true';
   }
 
   Future<void> setReturnHomeAfterSettingsInteraction(bool returnHome) async {
-    final value = returnHome ? '1' : '0';
-    await upsertSettingString(
-      'settings.return_home_after_interaction',
-      value,
+    await _writeBoolSetting(
+      _returnHomeAfterSettingsInteractionSettingKey,
+      returnHome,
     );
   }
 
@@ -309,17 +306,7 @@ LIMIT 1
     }
 
     final db = await open();
-    final tzName = await _activeTzNameOrUtcFromDb(db);
-    final loc = _AppDateLogic.locationOrUtc(tzName);
-    final today = _AppDateLogic.todayDateOnly(tzName);
-    final cutoffDate = today.subtract(Duration(days: days));
-    final cutoffLocal = tz.TZDateTime(
-      loc,
-      cutoffDate.year,
-      cutoffDate.month,
-      cutoffDate.day,
-    );
-    final cutoffUtc = _formatDbTimestamp(cutoffLocal.toUtc());
+    final cutoffUtc = await _transactionCutoffUtcForOlderThanDays(db, days);
 
     return db.rawDelete(
       'DELETE FROM item_transactions WHERE timestamp_utc < ?1',
@@ -333,17 +320,7 @@ LIMIT 1
     }
 
     final db = await open();
-    final tzName = await _activeTzNameOrUtcFromDb(db);
-    final loc = _AppDateLogic.locationOrUtc(tzName);
-    final today = _AppDateLogic.todayDateOnly(tzName);
-    final cutoffDate = today.subtract(Duration(days: days));
-    final cutoffLocal = tz.TZDateTime(
-      loc,
-      cutoffDate.year,
-      cutoffDate.month,
-      cutoffDate.day,
-    );
-    final cutoffUtc = _formatDbTimestamp(cutoffLocal.toUtc());
+    final cutoffUtc = await _transactionCutoffUtcForOlderThanDays(db, days);
 
     final rows = await db.rawQuery(
       'SELECT COUNT(*) AS cnt FROM item_transactions WHERE timestamp_utc < ?1',
@@ -611,28 +588,12 @@ ORDER BY display_order, p.id
 
   Future<List<_TxRow>> queryTransactionsToday() async {
     final db = await open();
-    final tzName = await _activeTzNameOrUtcFromDb(db);
-    final loc = _AppDateLogic.locationOrUtc(tzName);
-    final today = _AppDateLogic.todayDateOnly(tzName);
-    final tomorrow = today.add(const Duration(days: 1));
-
-    final startLocal = tz.TZDateTime(
-      loc,
-      today.year,
-      today.month,
-      today.day,
-    );
-    final endLocal = tz.TZDateTime(
-      loc,
-      tomorrow.year,
-      tomorrow.month,
-      tomorrow.day,
-    );
+    final range = await _transactionUtcRangeForToday(db);
 
     return _queryTransactionsUtcRangeDb(
       db,
-      startUtc: _formatDbTimestamp(startLocal.toUtc()),
-      endUtc: _formatDbTimestamp(endLocal.toUtc()),
+      startUtc: range.startUtc,
+      endUtc: range.endUtc,
     );
   }
 
@@ -642,16 +603,12 @@ ORDER BY display_order, p.id
     }
 
     final db = await open();
-    final tzName = await _activeTzNameOrUtcFromDb(db);
-    final loc = _AppDateLogic.locationOrUtc(tzName);
-
-    final endLocal = tz.TZDateTime.now(loc);
-    final startLocal = endLocal.subtract(Duration(days: days));
+    final range = await _transactionUtcRangeForLastNDays(db, days);
 
     return _queryTransactionsUtcRangeDb(
       db,
-      startUtc: _formatDbTimestamp(startLocal.toUtc()),
-      endUtc: _formatDbTimestamp(endLocal.toUtc()),
+      startUtc: range.startUtc,
+      endUtc: range.endUtc,
     );
   }
 
@@ -1120,3 +1077,4 @@ ORDER BY
     return db.rawQuery(sql, arguments);
   }
 }
+

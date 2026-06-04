@@ -1,5 +1,94 @@
 part of 'main.dart';
 
+class _SettingDefault {
+  const _SettingDefault({
+    required this.key,
+    required this.newDatabaseValue,
+    required this.postOpenValue,
+  });
+
+  final String key;
+  final String Function() newDatabaseValue;
+  final String postOpenValue;
+
+  String value({required bool useNewDatabaseValue}) {
+    return useNewDatabaseValue ? newDatabaseValue() : postOpenValue;
+  }
+}
+
+final List<_SettingDefault> _settingDefaults = <_SettingDefault>[
+  _SettingDefault(
+    key: 'avg_window_days',
+    newDatabaseValue: () => '30',
+    postOpenValue: '30',
+  ),
+  _SettingDefault(
+    key: 'daily_average.number_of_days_ago',
+    newDatabaseValue: () => '30',
+    postOpenValue: '30',
+  ),
+  _SettingDefault(
+    key: 'daily_average.start_date',
+    newDatabaseValue: () => _AppDateLogic.formatDashDate(DateTime.now()),
+    postOpenValue: '',
+  ),
+  _SettingDefault(
+    key: 'daily_average.end_date',
+    newDatabaseValue: () => '',
+    postOpenValue: '',
+  ),
+  _SettingDefault(
+    key: 'daily_average.pin_start_date',
+    newDatabaseValue: () => '1',
+    postOpenValue: '0',
+  ),
+  _SettingDefault(
+    key: 'daily_average.pin_end_date',
+    newDatabaseValue: () => '0',
+    postOpenValue: '0',
+  ),
+  _SettingDefault(
+    key: _Db._skipDeleteSecondConfirmSettingKey,
+    newDatabaseValue: () => '0',
+    postOpenValue: '0',
+  ),
+  _SettingDefault(
+    key: _Db._returnHomeAfterSettingsInteractionSettingKey,
+    newDatabaseValue: () => '0',
+    postOpenValue: '0',
+  ),
+  _SettingDefault(
+    key: 'time_zone_id',
+    newDatabaseValue: () => '0',
+    postOpenValue: '0',
+  ),
+  _SettingDefault(
+    key: 'appbar_title',
+    newDatabaseValue: () => 'Item Counter',
+    postOpenValue: 'Item Counter',
+  ),
+  _SettingDefault(
+    key: 'lhs_column_header',
+    newDatabaseValue: () => 'Item',
+    postOpenValue: 'Item',
+  ),
+  _SettingDefault(
+    key: 'rhs_column_header',
+    newDatabaseValue: () => 'Avg. {days} day(s)',
+    postOpenValue: 'Avg. {days} day(s)',
+  ),
+  _SettingDefault(
+    key: 'last_added_banner_text',
+    newDatabaseValue: () => '',
+    postOpenValue: '',
+  ),
+  _SettingDefault(
+    key: 'last_added_banner_dismissed',
+    newDatabaseValue: () => '0',
+    postOpenValue: '0',
+  ),
+];
+
 extension _DbInternals on _Db {
   Future<void> _ensureSchema(Database db) async {
     await db.execute('''
@@ -58,22 +147,10 @@ CREATE TABLE IF NOT EXISTS logical_batch_items (
 )
 ''');
 
-    final defaultPinnedStartDate = _AppDateLogic.formatDashDate(DateTime.now());
-
-    await _ensureSettingDefault(db, 'avg_window_days', '30');
-    await _ensureSettingDefault(db, 'daily_average.number_of_days_ago', '30');
-    await _ensureSettingDefault(db, 'daily_average.start_date', defaultPinnedStartDate);
-    await _ensureSettingDefault(db, 'daily_average.end_date', '');
-    await _ensureSettingDefault(db, 'daily_average.pin_start_date', '1');
-    await _ensureSettingDefault(db, 'daily_average.pin_end_date', '0');
-    await _ensureSettingDefault(db, 'skip_delete_transactions_second_dialog_confirmation', '0');
-    await _ensureSettingDefault(db, 'settings.return_home_after_interaction', '0');
-    await _ensureSettingDefault(db, 'time_zone_id', '0');
-    await _ensureSettingDefault(db, 'appbar_title', 'Item Counter');
-    await _ensureSettingDefault(db, 'lhs_column_header', 'Item');
-    await _ensureSettingDefault(db, 'rhs_column_header', 'Avg. {days} day(s)');
-    await _ensureSettingDefault(db, 'last_added_banner_text', '');
-    await _ensureSettingDefault(db, 'last_added_banner_dismissed', '0');
+    await _ensureSettingDefaults(
+      db,
+      useNewDatabaseValues: true,
+    );
 
     await db.rawInsert(
       'INSERT OR IGNORE INTO time_zone_aliases (alias, iana_tz_name) VALUES (?, ?)',
@@ -140,18 +217,11 @@ LIMIT 1
       }
     }
 
-    await _ensureSettingDefault(db, 'daily_average.start_date', '');
-    await _ensureSettingDefault(db, 'daily_average.end_date', '');
-    await _ensureSettingDefault(db, 'daily_average.pin_start_date', '0');
-    await _ensureSettingDefault(db, 'daily_average.pin_end_date', '0');
-    await _ensureSettingDefault(db, 'skip_delete_transactions_second_dialog_confirmation', '0');
-    await _ensureSettingDefault(db, 'settings.return_home_after_interaction', '0');
-    await _ensureSettingDefault(db, 'time_zone_id', '0');
-    await _ensureSettingDefault(db, 'appbar_title', 'Item Counter');
-    await _ensureSettingDefault(db, 'lhs_column_header', 'Item');
-    await _ensureSettingDefault(db, 'rhs_column_header', 'Avg. {days} day(s)');
-    await _ensureSettingDefault(db, 'last_added_banner_text', '');
-    await _ensureSettingDefault(db, 'last_added_banner_dismissed', '0');
+    await _ensureSettingDefaults(
+      db,
+      useNewDatabaseValues: false,
+      skipKeys: {'avg_window_days', 'daily_average.number_of_days_ago'},
+    );
 
     await db.rawInsert(
       'INSERT OR IGNORE INTO time_zone_aliases (alias, iana_tz_name) VALUES (?, ?)',
@@ -405,6 +475,85 @@ LIMIT 1
   }
 
   //end DB migration functions
+
+  Future<void> _ensureSettingDefaults(
+    Database db, {
+    required bool useNewDatabaseValues,
+    Set<String> skipKeys = const <String>{},
+  }) async {
+    for (final settingDefault in _settingDefaults) {
+      if (skipKeys.contains(settingDefault.key)) {
+        continue;
+      }
+
+      await _ensureSettingDefault(
+        db,
+        settingDefault.key,
+        settingDefault.value(useNewDatabaseValue: useNewDatabaseValues),
+      );
+    }
+  }
+
+  Future<String> _transactionCutoffUtcForOlderThanDays(
+    Database db,
+    int days,
+  ) async {
+    final tzName = await _activeTzNameOrUtcFromDb(db);
+    final loc = _AppDateLogic.locationOrUtc(tzName);
+    final today = _AppDateLogic.todayDateOnly(tzName);
+    final cutoffDate = today.subtract(Duration(days: days));
+    final cutoffLocal = tz.TZDateTime(
+      loc,
+      cutoffDate.year,
+      cutoffDate.month,
+      cutoffDate.day,
+    );
+
+    return _formatDbTimestamp(cutoffLocal.toUtc());
+  }
+
+  Future<({String startUtc, String endUtc})> _transactionUtcRangeForToday(
+    Database db,
+  ) async {
+    final tzName = await _activeTzNameOrUtcFromDb(db);
+    final loc = _AppDateLogic.locationOrUtc(tzName);
+    final today = _AppDateLogic.todayDateOnly(tzName);
+    final tomorrow = today.add(const Duration(days: 1));
+
+    final startLocal = tz.TZDateTime(
+      loc,
+      today.year,
+      today.month,
+      today.day,
+    );
+    final endLocal = tz.TZDateTime(
+      loc,
+      tomorrow.year,
+      tomorrow.month,
+      tomorrow.day,
+    );
+
+    return (
+      startUtc: _formatDbTimestamp(startLocal.toUtc()),
+      endUtc: _formatDbTimestamp(endLocal.toUtc()),
+    );
+  }
+
+  Future<({String startUtc, String endUtc})> _transactionUtcRangeForLastNDays(
+    Database db,
+    int days,
+  ) async {
+    final tzName = await _activeTzNameOrUtcFromDb(db);
+    final loc = _AppDateLogic.locationOrUtc(tzName);
+
+    final endLocal = tz.TZDateTime.now(loc);
+    final startLocal = endLocal.subtract(Duration(days: days));
+
+    return (
+      startUtc: _formatDbTimestamp(startLocal.toUtc()),
+      endUtc: _formatDbTimestamp(endLocal.toUtc()),
+    );
+  }
 
   Future<int> _computeEffectiveAveragingWindowDaysFromDb(Database db) async {
     final range = await _computeEffectiveAveragingWindowRangeFromDb(db);
@@ -1081,3 +1230,4 @@ VALUES (?1, ?2, ?3)
     return rows.any((row) => row['name']?.toString() == 'is_header');
   }
 }
+

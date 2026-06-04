@@ -21,6 +21,7 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
+  final _db = _Db();
   final GlobalKey<_SummaryStatisticRowState> _avgKey = GlobalKey<
       _SummaryStatisticRowState>();
   final GlobalKey<_TzRowState> _tzKey = GlobalKey<_TzRowState>();
@@ -332,11 +333,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       children: [
                         const Divider(),
                         _ViewTransactionsRow(
+                          db: _db,
                           onBackPressed: _returnHomeAfterNestedSettingsSheetClosed,
                         ),
                         const Divider(),
                         _SummaryStatisticRow(
                           key: _avgKey,
+                          db: _db,
                           onDirtyChanged: (v) => _setDirty(
                             _SettingsRowId.averagingWindow,
                             v,
@@ -352,6 +355,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         const Divider(),
                         _TzRow(
                           key: _tzKey,
+                          db: _db,
                           onDirtyChanged: (v) => _setDirty(
                             _SettingsRowId.timeZone,
                             v,
@@ -366,9 +370,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           runSpacing: 8,
                           children: [
                             _EditCountableItemsRow(
+                              db: _db,
                               onInteractionComplete: _completeSettingsInteraction,
                             ),
                             _EditTimeZonesRow(
+                              db: _db,
                               onTimeZonesChanged: () async {
                                 await _tzKey.currentState?._loadOptions();
                               },
@@ -387,6 +393,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               onToast: _showSettingsToast,
                             ),
                             _ImportDatabaseRow(
+                              db: _db,
                               onInteractionComplete: _completeSettingsInteraction,
                               onToast: _showSettingsToast,
                             ),
@@ -401,6 +408,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     child: Column(
                       children: [
                         _ReturnHomeAfterSettingsInteractionRow(
+                          db: _db,
                           onChanged: (value) {
                             if (_returnHomeAfterSettingsInteraction == value) {
                               return;
@@ -430,6 +438,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ),
                         ),
                         _DeleteOutdatedTransactions(
+                          db: _db,
                           onResolvePendingAveragingWindow: _resolveAveragingWindowBeforeDeletingTransactions,
                           onSkipSecondConfirmationSaved: () {
                             _skipKey.currentState?.applySavedValueFromExternalWrite(true);
@@ -441,6 +450,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         const Divider(),
                         _SkipSecondConfirmationSetting(
                           key: _skipKey,
+                          db: _db,
                           onDirtyChanged: (v) => _setDirty(
                             _SettingsRowId.skipSecondConfirmation,
                             v,
@@ -462,3 +472,4 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 }
+

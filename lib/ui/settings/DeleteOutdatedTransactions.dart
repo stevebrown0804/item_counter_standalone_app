@@ -16,11 +16,13 @@ class _DeleteOutdatedTransactionsFinalSelection {
 
 class _DeleteOutdatedTransactions extends StatelessWidget {
   const _DeleteOutdatedTransactions({
+    required this.db,
     required this.onResolvePendingAveragingWindow,
     required this.onSkipSecondConfirmationSaved,
     required this.onInteractionComplete,
   });
 
+  final _Db db;
   final Future<bool> Function() onResolvePendingAveragingWindow;
   final VoidCallback onSkipSecondConfirmationSaved;
   final Future<void> Function(String) onInteractionComplete;
@@ -40,8 +42,6 @@ class _DeleteOutdatedTransactions extends StatelessWidget {
 
   Future<void> _showDeleteOldTxDialog(BuildContext context) async {
     FocusManager.instance.primaryFocus?.unfocus();
-
-    final db = _Db();
 
     final days = await db.readAveragingWindowDays();
     final count = await db.countTransactionsOlderThanDays(days);
@@ -95,7 +95,6 @@ class _DeleteOutdatedTransactions extends StatelessWidget {
   Future<void> _handleDeleteOldTx(BuildContext context, int days) async {
     FocusManager.instance.primaryFocus?.unfocus();
 
-    final db = _Db();
     final skip = await db.readSkipDeleteSecondConfirm();
 
     if (skip) {
@@ -211,3 +210,4 @@ class _DeleteOutdatedTransactions extends StatelessWidget {
     );
   }
 }
+

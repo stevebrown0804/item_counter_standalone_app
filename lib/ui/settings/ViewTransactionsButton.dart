@@ -4,9 +4,11 @@ part of '../../main.dart';
 
 class _ViewTransactionsRow extends StatelessWidget {
   const _ViewTransactionsRow({
+    required this.db,
     required this.onBackPressed,
   });
 
+  final _Db db;
   final Future<void> Function() onBackPressed;
 
   Future<void> _openTransactionViewer(BuildContext context) async {
@@ -17,7 +19,7 @@ class _ViewTransactionsRow extends StatelessWidget {
 
     await doTransactionViewerSheet(
       context: context,
-      db: main._db,
+      db: db,
       store: main._store,
       onBackPressed: onBackPressed,
     );
@@ -37,3 +39,4 @@ class _ViewTransactionsRow extends StatelessWidget {
     );
   }
 }
+

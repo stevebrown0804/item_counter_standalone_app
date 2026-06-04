@@ -18,10 +18,12 @@ class _ImportTableSelection {
 
 class _ImportDatabaseRow extends StatelessWidget {
   const _ImportDatabaseRow({
+    required this.db,
     required this.onInteractionComplete,
     required this.onToast,
   });
 
+  final _Db db;
   final Future<void> Function(String) onInteractionComplete;
   final void Function(String) onToast;
 
@@ -214,7 +216,6 @@ class _ImportDatabaseRow extends StatelessWidget {
         throw StateError('Selected file has no readable path.');
       }
 
-      final db = _Db();
       await db.validateImportDatabaseSchema(path);
 
       if (!context.mounted) return;
@@ -300,3 +301,4 @@ class _ImportDatabaseRow extends StatelessWidget {
     );
   }
 }
+

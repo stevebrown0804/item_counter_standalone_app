@@ -4,11 +4,13 @@ part of '../../main.dart';
 
 class _ReturnHomeAfterSettingsInteractionRow extends StatefulWidget {
   const _ReturnHomeAfterSettingsInteractionRow({
+    required this.db,
     required this.onChanged,
     required this.onSaved,
     required this.onToast,
   });
 
+  final _Db db;
   final void Function(bool) onChanged;
   final VoidCallback onSaved;
   final void Function(String) onToast;
@@ -20,7 +22,7 @@ class _ReturnHomeAfterSettingsInteractionRow extends StatefulWidget {
 
 class _ReturnHomeAfterSettingsInteractionRowState
     extends State<_ReturnHomeAfterSettingsInteractionRow> {
-  final _db = _Db();
+  _Db get _db => widget.db;
 
   bool _value = false;
   bool _loading = true;
@@ -126,3 +128,4 @@ class _ReturnHomeAfterSettingsInteractionRowState
     );
   }
 }
+

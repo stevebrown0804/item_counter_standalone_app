@@ -2,8 +2,9 @@
 
 part of '../../../main.dart';
 
-Future<void> doEditCountableItemsSheet({
+Future<void> _doEditCountableItemsSheet({
   required BuildContext context,
+  required _Db db,
   required Future<void> Function(String) onInteractionComplete,
 }) async {
   await showModalBottomSheet(
@@ -15,6 +16,7 @@ Future<void> doEditCountableItemsSheet({
     ),
     builder: (ctx) {
       return _EditCountableItemsSheet(
+        db: db,
         onInteractionComplete: onInteractionComplete,
       );
     },
@@ -81,9 +83,11 @@ class _SubmittedCountableItemRow {
 
 class _EditCountableItemsSheet extends StatefulWidget {
   const _EditCountableItemsSheet({
+    required this.db,
     required this.onInteractionComplete,
   });
 
+  final _Db db;
   final Future<void> Function(String) onInteractionComplete;
 
   @override
@@ -91,7 +95,7 @@ class _EditCountableItemsSheet extends StatefulWidget {
 }
 
 class _EditCountableItemsSheetState extends State<_EditCountableItemsSheet> {
-  final _db = _Db();
+  _Db get _db => widget.db;
 
   bool _loading = true;
   bool _saving = false;
@@ -710,14 +714,17 @@ class _EditCountableItemsSheetState extends State<_EditCountableItemsSheet> {
 
 class _EditCountableItemsRow extends StatelessWidget {
   const _EditCountableItemsRow({
+    required this.db,
     required this.onInteractionComplete,
   });
 
+  final _Db db;
   final Future<void> Function(String) onInteractionComplete;
 
   Future<void> _openEditCountableItemsSheet(BuildContext context) async {
-    await doEditCountableItemsSheet(
+    await _doEditCountableItemsSheet(
       context: context,
+      db: db,
       onInteractionComplete: onInteractionComplete,
     );
   }
@@ -735,3 +742,4 @@ class _EditCountableItemsRow extends StatelessWidget {
     );
   }
 }
+

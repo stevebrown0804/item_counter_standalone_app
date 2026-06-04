@@ -4,10 +4,12 @@ part of '../../main.dart';
 
 class _EditTimeZonesRow extends StatelessWidget {
   const _EditTimeZonesRow({
+    required this.db,
     required this.onTimeZonesChanged,
     required this.onInteractionComplete,
   });
 
+  final _Db db;
   final Future<void> Function() onTimeZonesChanged;
   final Future<void> Function(String) onInteractionComplete;
 
@@ -21,6 +23,7 @@ class _EditTimeZonesRow extends StatelessWidget {
       ),
       builder: (ctx) {
         return _EditTimeZonesSheet(
+          db: db,
           onTimeZonesChanged: onTimeZonesChanged,
         );
       },
@@ -44,11 +47,13 @@ class _EditTimeZonesRow extends StatelessWidget {
 
 class _EditTimeZonesSheet extends StatefulWidget {
   const _EditTimeZonesSheet({
+    required this.db,
     required this.onTimeZonesChanged,
     this.showBackButton = true,
     this.showBottomCloseButtons = false,
   });
 
+  final _Db db;
   final Future<void> Function() onTimeZonesChanged;
   final bool showBackButton;
   final bool showBottomCloseButtons;
@@ -258,7 +263,7 @@ class _EditTimeZonesSheetState extends State<_EditTimeZonesSheet> {
   static const double _tableToButtonGap = 12.0;
   static const double _buttonGap = 12.0;
 
-  final _db = _Db();
+  _Db get _db => widget.db;
   final TextEditingController _aliasEditController = TextEditingController();
   final FocusNode _aliasEditFocusNode = FocusNode();
 
@@ -912,3 +917,4 @@ LIMIT 1
     );
   }
 }
+

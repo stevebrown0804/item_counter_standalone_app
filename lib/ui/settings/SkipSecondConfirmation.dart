@@ -5,11 +5,13 @@ part of '../../main.dart';
 class _SkipSecondConfirmationSetting extends StatefulWidget {
   const _SkipSecondConfirmationSetting({
     super.key,
+    required this.db,
     required this.onDirtyChanged,
     required this.onSaved,
     required this.onInteractionComplete,
   });
 
+  final _Db db;
   final void Function(bool) onDirtyChanged;
   final VoidCallback onSaved;
   final Future<void> Function(String) onInteractionComplete;
@@ -21,7 +23,7 @@ class _SkipSecondConfirmationSetting extends StatefulWidget {
 
 class _SkipSecondConfirmationSettingState
     extends State<_SkipSecondConfirmationSetting> {
-  final _db = _Db();
+  _Db get _db => widget.db;
   bool? _current;
   bool _saving = false;
 
@@ -117,3 +119,4 @@ class _SkipSecondConfirmationSettingState
     );
   }
 }
+
