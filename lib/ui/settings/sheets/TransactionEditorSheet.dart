@@ -114,6 +114,9 @@ Future<_TransactionEditorResult?> _openTransactionEditorSheet({
       borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
     ),
     builder: (editCtx) {
+      final editNavigator = Navigator.of(editCtx);
+      final editMessenger = ScaffoldMessenger.of(editCtx);
+
       return Padding(
         padding: EdgeInsets.only(
           left: 16,
@@ -234,7 +237,7 @@ Future<_TransactionEditorResult?> _openTransactionEditorSheet({
                 children: [
                   TextButton(
                     onPressed: () {
-                      Navigator.of(editCtx).pop();
+                      editNavigator.pop();
                     },
                     child: const Text('Cancel'),
                   ),
@@ -249,7 +252,7 @@ Future<_TransactionEditorResult?> _openTransactionEditorSheet({
                           timeText.isEmpty ||
                           item == null ||
                           qtyText.isEmpty) {
-                        ScaffoldMessenger.of(editCtx).showSnackBar(
+                        editMessenger.showSnackBar(
                           const SnackBar(
                             content: Text(
                               'Some fields are missing.',
@@ -261,7 +264,7 @@ Future<_TransactionEditorResult?> _openTransactionEditorSheet({
 
                       final qty = int.tryParse(qtyText);
                       if (qty == null || qty <= 0) {
-                        ScaffoldMessenger.of(editCtx).showSnackBar(
+                        editMessenger.showSnackBar(
                           const SnackBar(
                             content: Text(
                               'Quantity must be a positive integer.',
@@ -275,7 +278,7 @@ Future<_TransactionEditorResult?> _openTransactionEditorSheet({
                       final normalizedLocalTs =
                       normalizeLocalDateTime(dateText, timeText);
                       if (normalizedLocalTs == null) {
-                        ScaffoldMessenger.of(editCtx).showSnackBar(
+                        editMessenger.showSnackBar(
                           const SnackBar(
                             content: Text(
                               'Invalid date or time. Use "YYYY-MM-DD" for the date and "HH:MM" or "HH:MM:SS" for the time.',
@@ -289,7 +292,7 @@ Future<_TransactionEditorResult?> _openTransactionEditorSheet({
                       try {
                         utcTs = await db.localToUtcDbTimestamp(normalizedLocalTs);
                       } catch (e) {
-                        ScaffoldMessenger.of(editCtx).showSnackBar(
+                        editMessenger.showSnackBar(
                           SnackBar(
                             content: Text(
                               'Failed to interpret date/time: $e',
@@ -319,9 +322,9 @@ Future<_TransactionEditorResult?> _openTransactionEditorSheet({
                           await main.dismissLastAddedBanner();
                         }
 
-                        Navigator.of(editCtx).pop(_TransactionEditorResult.updated);
+                        editNavigator.pop(_TransactionEditorResult.updated);
                       } catch (e) {
-                        ScaffoldMessenger.of(editCtx).showSnackBar(
+                        editMessenger.showSnackBar(
                           SnackBar(
                             content: Text(
                               'Failed to update transaction: $e',
