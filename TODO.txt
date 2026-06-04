@@ -2,25 +2,11 @@
 TODO (Waiting for keyboard input to reach the emulator again): Resume working on 'manually entered date string' stuff (if needed).
 
 
--------code
-TODO: Fix hard-coded stuff:
-File	                                    Control	                    Width source
-ui/sheets/AddItemsSheet.dart	            per-item quantity text box	width: 48
-    *Per ChatGPT: "...I would generally prefer LayoutBuilder first, and use GlobalKey + RenderBox only when the actual child size matters rather than the parent’s available width."
-    Related TODOs:
-        TODO: Try using TextPainter to get the maximum width of things like 2 (or possibly 3- or 4-) digit numbers and using that to determine the width of the input boxes.
-        TODO: Man....there are a lot of hard-coded values in this code.  And every one of them makes me think, "How much will this suck for someone with an unusual desktop size/scaling factor/font/etc.?  c'mon now."
-            Anyhow, let's work on getting rid of hard-coded constants; we'll replace them with "formulas based on information from the OS."
-
 ---------------------------------------
 Polishing
 
 *Transaction viewer
 TODO: I was on my phone, using the transaction viewer to look up transactions and add the other pills (which I'd just added via the 'edit countable items' interface; I had to set up the transaction viewer (to a certain 2-day range) each time I bought it up, which was pretty darn inconvenient.  Let's give that sheet the capacity to restore the previous filter (for the duration of the session), and add a 'reset filters' button.  (And we'll decide later if we want to always have the filter be preserved or if we should make that a user option.)
-
-*Averaging Window area of settings sheet
-TODO: (Background) With the "Averaging window" textboxes, we're using TextPainter to determine the minimum interior width necessary to display things (assuming the longest possibly averaging window is 99999 days); thing is, it's producing widths wider than necessary.
-    (Actual TODO): Answer the question, "Is the font being used by TextPainter to make those measurements the same font that's actually used to render the elements and their contents?  "Not using the right font" seems like the kind of bonehead mistake ChatGPT might make."
 
 
 ---------------------------------------
@@ -46,6 +32,7 @@ TODO: Add a "use timezones" switch to the Settings sheet; default value: On
     * On -- use the existing timezone functionality
     * Off -- hide the timezone-related stuff, I guess; just use UTC, but keep the specifics "as hidden as we can manage, without it becoming ridiculous"
 
+-------code
 
 -------DB importing
 
@@ -100,8 +87,6 @@ TODO (Note: Still in the 'maybe' pile): Item metadata
 TODO (MAYBE): Rather than allowing end dates in the future, we might add some sort of "give a fixed date range a target date in the future, but have the actual interval be (start date) to (today), then move the interval forward by a day, each day until that target end date."  Maybe.  Either way, I want to avoid allowing the user to pick interval start/end dates in the future.
 
 *Edit countable items sheet
-TODO: Intelligently collapse the display order values
-    For example, if we change a display order n to n+1 or higher, reduce the in-between row's display orders by one.  If we change a display order n to n-1 or lower, increase the in-between row's display orders by one.
 TODO: Add a confirmation to the delete button, eg. a dialog saying "This will delete # transactions, along with the item; proceed?" along with "Abort" and "Proceed" buttons.  If # is 0, we can probably skip this confirmation.
     Also, add a checkbox to the settings sheet for "Skip confirmation when deleting items" or some-such.
 TODO: Answer the question, "Does closing the 'edit countable items' screen via the submit button look weird to you?  It looks slightly chaotic to me, which could probably be smoothed out -- unless it's being caused by something specific to the emulator or something."
@@ -142,12 +127,15 @@ TODO: UI minutiae
 ---------------------------------------
 Polishing (for the next pass)
 
+
+
 *App-wide
 TODO (Waiting for the UI minutiae interface to be started): Toast shape, duration and max. # of toasts displayed at once are configurable, so we should let the user configure them.
     * Those probably belong in the UI minutiae interface.
 
 *Main screen
 TODO: Give the user control over the amount of indentation down with rows beneath a section header
+TODO (After defining a UI element to let the user control indentation): Constrain that indentation, probably to 'something that doesn't push every row entirely off the screen,' but anything short of that seems 'fine, I guess.'
 
 *Settings sheet
 TODO: Use the indicator light for every control/setting on the settings sheet...or at least consider how we MIGHT use it.
@@ -156,6 +144,8 @@ TODO (MAYBE): Let the user long-tap & drag them to rearrange the rows of the set
     *(5/5/2026): I still like the idea of UI customization, but I'm wondering if we should have a "UI editing mode" that shows controls on the sides of rows that can be long-tapped to do this kind of rearranging; they would then disappear when we end 'UI editing mode.'
 
 *Averaging Window area of settings sheet
+TODO: (Background) With the "Averaging window" textboxes, we're using TextPainter to determine the minimum interior width necessary to display things (assuming the longest possibly averaging window is 99999 days); thing is, it's producing widths wider than necessary.
+    (Actual TODO): Answer the question, "Is the font being used by TextPainter to make those measurements the same font that's actually used to render the elements and their contents?  "Not using the right font" seems like the kind of bonehead mistake ChatGPT might make."
 TODO: The mm and dd fields in the start date text box (and presumably the end date text box as well) have leading 0s again, which I don't really want.
 TODO: The "ENTER A VALID STRING😠" indicator while editing the pinned start date (via keyboard) is awfully strict; let's relax it to not announce the result of the string's validity check until the user clicks save or the textbox otherwise loses focus.
     *If the date string is invalid, Let's (1) announce it in a toast and (2) not save it yet.  (And keep the save button activated.)  Or maybe (1) auto-show a message over the textbox with a 'friendly-ish' message such as "12/0/2026" isn't a valid date", then (2) not save it yet.
