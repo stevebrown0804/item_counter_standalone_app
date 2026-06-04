@@ -2,52 +2,31 @@
 TODO (Waiting for keyboard input to reach the emulator again): Resume working on 'manually entered date string' stuff (if needed).
 
 
--------DB importing
-TODO re: Database importing:
-    * For the time being, the app's going to enforce "only import (item transactions / settings) if (items / time zones) (respectively) is imported;" we should communicate this somewhere, so as not to overly-aggravate those trying to import one table, then import the 2nd table in a later operation.
-    * Whatever directory the "import DB" file picker starts in, we should also communicate that directory that is (to reduce guesswork about where best to place a DB file).
-        *FOR THE TIME BEING: We could just communciate this via the readme or something.  That'll get the job done, I think.
-
+-------code
 TODO: Fix hard-coded stuff:
 File	                                    Control	                    Width source
-ui/settings/sheets/EditCountableItems.dart	display-string text box	    displayStringColumnWidth = 200.0
-ui/settings/sheets/EditCountableItems.dart	display-order dropdown	    displayOrderColumnWidth = 76.0
 ui/sheets/AddItemsSheet.dart	            per-item quantity text box	width: 48
     *Per ChatGPT: "...I would generally prefer LayoutBuilder first, and use GlobalKey + RenderBox only when the actual child size matters rather than the parent’s available width."
-
+    Related TODOs:
+        TODO: Try using TextPainter to get the maximum width of things like 2 (or possibly 3- or 4-) digit numbers and using that to determine the width of the input boxes.
+        TODO: Man....there are a lot of hard-coded values in this code.  And every one of them makes me think, "How much will this suck for someone with an unusual desktop size/scaling factor/font/etc.?  c'mon now."
+            Anyhow, let's work on getting rid of hard-coded constants; we'll replace them with "formulas based on information from the OS."
 
 ---------------------------------------
 Polishing
 
-*App-wide
-
-*Main screen
-
-*Settings sheet
-
 *Transaction viewer
 TODO: I was on my phone, using the transaction viewer to look up transactions and add the other pills (which I'd just added via the 'edit countable items' interface; I had to set up the transaction viewer (to a certain 2-day range) each time I bought it up, which was pretty darn inconvenient.  Let's give that sheet the capacity to restore the previous filter (for the duration of the session), and add a 'reset filters' button.  (And we'll decide later if we want to always have the filter be preserved or if we should make that a user option.)
-    *We might also add a UI minutiae setting such as "Preserve transaction viewer's filter between sheet activations" (or probably something less wordy, or at least less programmer'y)
 
 *Averaging Window area of settings sheet
 TODO: (Background) With the "Averaging window" textboxes, we're using TextPainter to determine the minimum interior width necessary to display things (assuming the longest possibly averaging window is 99999 days); thing is, it's producing widths wider than necessary.
     (Actual TODO): Answer the question, "Is the font being used by TextPainter to make those measurements the same font that's actually used to render the elements and their contents?  "Not using the right font" seems like the kind of bonehead mistake ChatGPT might make."
 
-*Edit countable items sheet
-TODO: The home screen's become a bit overcrowded lately; it could use some 'section headers,' and I think it would be easier to add this in the 'edit countable items' marking rows as 'section heading' or some such (perhaps via a checkbox on each row)
-    * if visible rows are identified as such:
-        * display the row, bolded and with no average column
-        * Indents all rows beneath that row (up to but not including the next header rows) slightly
 
-*Time-zone editor sheet
-
-*code
-TODO: Try using TextPainter to get the maximum width of things like 2 (or possibly 3- or 4-) digit numbers and using that to determine the width of the input boxes.
-TODO: Man....there are a lot of hard-coded values in this code.  And every one of them makes me think, "How much will this suck for someone with an unusual desktop size/scaling factor/font/etc.?  c'mon now."
-    Anyhow, let's work on getting rid of hard-coded constants and replacing them with "formulas based on information from the OS."
-
-
+---------------------------------------
 --Final step before calling it good on this pass
+TODO: See if we need to generate one more DB migration
+
 TODO: `flutter analyze` and address whatever warnings/errors/informational things that it brings up.
 
 TODO (When we're basically done with this pass): Ask ChatGPT to look over the current project files and identify remaining refactor candidates where logic is duplicated or should probably be centralized. Keep the answer short and prioritize only refactors likely to prevent bugs or reduce future code-edit friction.
@@ -55,9 +34,22 @@ TODO (When we're basically done with this pass): Ask ChatGPT to look over the cu
 
 
 
----------------------------------------------
-Stuff we're probably saving for the next pass
+------------------------------------------------
+Stuff we're planning on saving for the next pass
 
+-------High-ish priority stuff (but not so high-priority that it can't wait until the next pass)
+TODO: The 'add a new time zone' sheet presents the IANA time zones...which might not be all that intuitive of a list. (eg. it doesn't list anything in the pacific time zone in the US, if you enter 'pacific.'  Let's do "something" about that.
+
+TODO: Answer the question, "With the start date and end date, we're assuming mm/dd/yyyy, as far as I can tell.  Does Android change that, in other regions (where yyyy/mm/dd, etc. are common)?  Do we need to adapt (ie. by adding some i18n to the project)? TBD"
+
+TODO: Add a "use timezones" switch to the Settings sheet; default value: On
+    * On -- use the existing timezone functionality
+    * Off -- hide the timezone-related stuff, I guess; just use UTC, but keep the specifics "as hidden as we can manage, without it becoming ridiculous"
+
+
+-------DB importing
+
+-------(atm unclassified)
 TODO: On the main screen, let's change the RHS column header's default point at which it stops showing a decimal place to a duration dictated by the "high probability of the average to [how every many is the current setting] decimal places" no longer changing...at least, not often.
 
 TODO (MAYBE): Add an indicator light to the "Edit TZ" sheet, next to the back button; gray when nothing's been changed, red if something's been changed that needs to be saved, green once everything's that's changed has been saved.
@@ -67,13 +59,10 @@ TODO (MAYBE): That "last added" banner at the top of the screen holds a string o
 
 TODO: Give the 'export database' process a UI to select where the DB will be exported to.
     *atm it's exported to either Documents or Downloads; I forget which.
+        *follow-up: Download; no 's' at the end of that, according to (Android Studio's) Device Explorer
 
-TODO: With a newly installed DB, I think we're planning to pin the averaging duration's state date to the first timestamp generated by the app; assuming no DB is imported and the averaging window setting aren't changed at all during the first 30 days, then it feels like we should have the app say something to the user when the average window hits 30 days like "The averaging window has grown to 30 days; would oyu like to leave it here, or let it continue to grow?"
+TODO (POSSIBLY OUTDATED): With a newly installed DB, I think we're planning to pin the averaging duration's state date to the first timestamp generated by the app; assuming no DB is imported and the averaging window setting aren't changed at all during the first 30 days, then it feels like we should have the app say something to the user when the average window hits 30 days like "The averaging window has grown to 30 days; would oyu like to leave it here, or let it continue to grow?"
     * Any change to the averaging window settings will disable this, and it'll only be a one time thing, though; this is just for a user who doesn't realize that the averaging window's start date started out pinned, and want to leave the interval at a 'normal-sounding' 30 days.  (And the app can probably point them to the 'averaging window' settings to change the averaging window manually, as well.)
-
-TODO: The 'add a new time zone' sheet presents the IANA time zones...which might not be all that intuitive of a list. (eg. it doesn't list anything in the pacific time zone in the US, if you enter 'pacific.'  Let's do "something" about that.
-
-TODO: Answer the question, "With the start date and end date, we're assuming mm/dd/yyyy, as far as I can tell.  Does Android change that, in other regions (where yyyy/mm/dd, etc. are common)?  Do we need to adapt (ie. by adding some i18n to the project)? TBD"
 
 TODO: Add a drop-down or something in the settings sheet to select the summary statistic
     Possible default: With the 'monthly average' statistic selected and the drop-down disabled.
@@ -98,16 +87,8 @@ TODO (After 'pinning dates' and 'summary statistic selection drop-down'):
         More precise description you can use in a setting name/tooltip:
             “For each pill, sum all quantities from max(today − (N−1) days, first transaction date) through today (inclusive), then divide by the number of calendar days in that range, counting days with zero intake.”"
 
-TODO: Answer the question, "Do we want a 'Use default path' switch beneath the Export Database button?  If it's disabled we can let the user choose the path to which to save the DB file."
-    * (Or we might reword the switch and have its default state be off; we'll see.)
-    * btw This introduces the possibility of the DB export process being canceled; we should consider that when thinking about the "Settings sheet interactions...." switch's behavior (when set to 'on').
-
 TODO: Answer the question, "When it comes to the end date, do we want to allow (and parse) arithmetic formulas involving the word 'today,' such as "today - 1" (for 'yesterday')?  It seems "possibly" useful to someone...maybe.
-    * A THOUGHT: Maybe this is the sort of thing we should let someone who WANTS that feature, to implement it.
-
-TODO: Add a "use timezones" switch to the Settings sheet; default value: On
-    * On -- use the existing timezone functionality
-    * Off -- hide the timezone-related stuff, I guess; just use UTC, but keep the specifics "as hidden as we can manage, without it becoming ridiculous"
+    * A THOUGHT: Maybe this is the sort of thing we should wait until someone actually WANTS that feature, then let ~them~ implement it.
 
 TODO (Note: Still in the 'maybe' pile): Item metadata
     * Create a table to hold key/value pairs
@@ -117,7 +98,6 @@ TODO (Note: Still in the 'maybe' pile): Item metadata
     * Add this table as an option for importing
 
 TODO (MAYBE): Rather than allowing end dates in the future, we might add some sort of "give a fixed date range a target date in the future, but have the actual interval be (start date) to (today), then move the interval forward by a day, each day until that target end date."  Maybe.  Either way, I want to avoid allowing the user to pick interval start/end dates in the future.
-
 
 *Edit countable items sheet
 TODO: Intelligently collapse the display order values
@@ -135,6 +115,14 @@ TODO (MAYBE): Make the Transaction Viewer sheet more compact
 TODO: This might be a UI minutiae thing, but how about a slider for the number of digits to show in the average?  I like "x.xx", but others might not.
 TODO: Add a slider for "interval length to start ignoring decimal part."  slider, maybe: 1 to 60, then [maximum length] (for any number beyond 60).
     A thought: This seems like a "UI minutiae" thing
+TODO (Assumes we've added 'filter saving' to the transaction viewer): Add a UI minutiae setting (under 'Transaction viewer,' if we're classifying settings) such as "Preserve transaction viewer's filter between sheet activations" (or probably something less wordy, or at least less programmer'y)
+TODO: Answer the question, "Do we want a 'Use default path' switch beneath the Export Database button?  If it's disabled we can let the user choose the path to which to save the DB file."
+    * (Or we might reword the switch and have its default state be off; we'll see.)
+    * btw This introduces the possibility of the DB export process being canceled; we should consider that when thinking about the "Settings sheet interactions...." switch's behavior (when set to 'on').
+
+*Time-zone editor sheet
+
+*code
 
 
 -----Dated but possibly still relevant (esp. if re-written)
@@ -158,6 +146,9 @@ Polishing (for the next pass)
 TODO (Waiting for the UI minutiae interface to be started): Toast shape, duration and max. # of toasts displayed at once are configurable, so we should let the user configure them.
     * Those probably belong in the UI minutiae interface.
 
+*Main screen
+TODO: Give the user control over the amount of indentation down with rows beneath a section header
+
 *Settings sheet
 TODO: Use the indicator light for every control/setting on the settings sheet...or at least consider how we MIGHT use it.
     eg. with transaction viewer, if someone just views transactions, it seems like the indicator would just stay gray; if they successfully edit a transaction, it might turn green.  If they start to edit one but, I dunno, leave it half done (if that's even a thing), it might turn red.  Not sure that 'leaving transaction edits half-done' is even an option, though.
@@ -169,6 +160,8 @@ TODO: The mm and dd fields in the start date text box (and presumably the end da
 TODO: The "ENTER A VALID STRING😠" indicator while editing the pinned start date (via keyboard) is awfully strict; let's relax it to not announce the result of the string's validity check until the user clicks save or the textbox otherwise loses focus.
     *If the date string is invalid, Let's (1) announce it in a toast and (2) not save it yet.  (And keep the save button activated.)  Or maybe (1) auto-show a message over the textbox with a 'friendly-ish' message such as "12/0/2026" isn't a valid date", then (2) not save it yet.
 TODO (MAYBE): iirc the end date (eg. "Today") and a 'pinned end date' are stored separately; if they are, let's have toggling the "...and end date" switch alternative between Today and the previously-pinned end date.
+
+*Edit countable items sheet
 
 
 ---------------------------------------------------------------------------------------------------
