@@ -278,6 +278,7 @@ class _LogItemsSheetState extends State<_LogItemsSheet> {
                   return Row(
                     children: [
                       Expanded(
+                        flex: 7,
                         child: Text(
                           p.name,
                           maxLines: 1,
@@ -293,8 +294,8 @@ class _LogItemsSheetState extends State<_LogItemsSheet> {
                           });
                         },
                       ),
-                      SizedBox(
-                        width: 48,
+                      Expanded(
+                        flex: 2,
                         child: TextField(
                           key: ValueKey('qty_$i'),
                           textAlign: TextAlign.center,
