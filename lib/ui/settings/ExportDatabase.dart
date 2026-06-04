@@ -18,6 +18,7 @@ class _ExportDatabaseRow extends StatelessWidget {
       final active = s?._store.activeTz;
       final tzName = active?.tzName ?? 'Etc/UTC';
       final alias = active?.alias ?? 'UTC';
+      final safeAlias = alias.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
 
       //Construct the timestamp to affix to the filename, padding timestamp pieces to 2 digits
       final now = tz.TZDateTime.now(_AppDateLogic.locationOrUtc(tzName));
@@ -25,7 +26,7 @@ class _ExportDatabaseRow extends StatelessWidget {
 
       //Build the DB export filename from the kDbFileName defined in main.dart
       final fileName = '${kDbFileName.replaceAll(
-          RegExp(r'\.db$'), '')}-${ts}_($alias).db';
+          RegExp(r'\.db$'), '')}-${ts}_($safeAlias).db';
 
       //Export and announce
       final dbDir = await getDatabasesPath();
