@@ -1,3 +1,5 @@
+// ui/settings/sheets/EditCountableItems.dart
+
 part of '../../../main.dart';
 
 Future<void> doEditCountableItemsSheet({
@@ -25,12 +27,14 @@ class _EditableCountableItemRow {
     required String displayString,
     required this.displayOrder,
     required this.showItem,
+    required this.isHeader,
   }) : displayStringController = TextEditingController(text: displayString);
 
   final int? id;
   final TextEditingController displayStringController;
   int? displayOrder;
   bool showItem;
+  bool isHeader;
 
   factory _EditableCountableItemRow.fromItem(_Item item) {
     return _EditableCountableItemRow(
@@ -38,6 +42,7 @@ class _EditableCountableItemRow {
       displayString: item.name,
       displayOrder: item.displayOrder,
       showItem: item.showItem,
+      isHeader: item.isHeader,
     );
   }
 
@@ -49,6 +54,7 @@ class _EditableCountableItemRow {
       displayString: '',
       displayOrder: defaultDisplayOrder,
       showItem: true,
+      isHeader: false,
     );
   }
 
@@ -63,12 +69,14 @@ class _SubmittedCountableItemRow {
     required this.displayString,
     required this.displayOrder,
     required this.showItem,
+    required this.isHeader,
   });
 
   final int? id;
   final String displayString;
   final int displayOrder;
   final bool showItem;
+  final bool isHeader;
 }
 
 class _EditCountableItemsSheet extends StatefulWidget {
@@ -238,6 +246,7 @@ class _EditCountableItemsSheetState extends State<_EditCountableItemsSheet> {
     String displayString,
     int? displayOrder,
     bool showItem,
+    bool isHeader,
     })>[];
 
     for (var i = 0; i < _rows.length; i++) {
@@ -253,6 +262,7 @@ class _EditCountableItemsSheetState extends State<_EditCountableItemsSheet> {
       displayString: displayString,
       displayOrder: row.displayOrder,
       showItem: row.showItem,
+      isHeader: row.isHeader,
       ));
     }
 
@@ -277,6 +287,7 @@ class _EditCountableItemsSheetState extends State<_EditCountableItemsSheet> {
           displayString: row.displayString,
           displayOrder: i + 1,
           showItem: row.showItem,
+          isHeader: row.isHeader,
         );
       },
     );
@@ -297,7 +308,8 @@ class _EditCountableItemsSheetState extends State<_EditCountableItemsSheet> {
       if (a.id != b.id ||
           a.displayString != b.displayString ||
           a.displayOrder != b.displayOrder ||
-          a.showItem != b.showItem) {
+          a.showItem != b.showItem ||
+          a.isHeader != b.isHeader) {
         return false;
       }
     }
@@ -545,15 +557,19 @@ class _EditCountableItemsSheetState extends State<_EditCountableItemsSheet> {
             );
           }
 
-          Widget placeholderSectionHeaderCheckbox(_EditableCountableItemRow row) {
+          Widget sectionHeaderCheckbox(_EditableCountableItemRow row) {
             return SizedBox(
               width: sectionHeaderColumnWidth,
               height: editableFieldHeight,
               child: Center(
                 child: Checkbox(
                   key: ValueKey('section_header_${row.id ?? row.displayOrder}_${identityHashCode(row)}'),
-                  value: false,
-                  onChanged: null,
+                  value: row.isHeader,
+                  onChanged: (value) {
+                    setState(() {
+                      row.isHeader = value ?? false;
+                    });
+                  },
                 ),
               ),
             );
@@ -607,7 +623,7 @@ class _EditCountableItemsSheetState extends State<_EditCountableItemsSheet> {
                                 ),
                               ),
                             ),
-                            placeholderSectionHeaderCheckbox(row),
+                            sectionHeaderCheckbox(row),
                             SizedBox(
                               width: deleteColumnWidth,
                               height: editableFieldHeight,

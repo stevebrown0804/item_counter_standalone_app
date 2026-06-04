@@ -290,8 +290,15 @@ class _Item {
   final String name;
   final int? displayOrder;
   final bool showItem;
+  final bool isHeader;
 
-  _Item(this.id, this.name, this.displayOrder, this.showItem);
+  _Item(
+      this.id,
+      this.name,
+      this.displayOrder,
+      this.showItem,
+      this.isHeader,
+      );
 }
 
 class _AvgRow {

@@ -7,7 +7,8 @@ CREATE TABLE IF NOT EXISTS items (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
     display_string  TEXT UNIQUE NOT NULL,
     display_order   INTEGER UNIQUE,
-    show_item       INTEGER NOT NULL DEFAULT (1)
+    show_item       INTEGER NOT NULL DEFAULT (1),
+    is_header       INTEGER NOT NULL DEFAULT (0)
 )
 ''');
 
@@ -174,6 +175,8 @@ LIMIT 1
       return;
     }
 
+    final itemsTableHasIsHeader = await _itemsTableHasIsHeaderColumn(db);
+
     await _assertItemsDisplayOrderCanBecomeUnique(db);
 
     await db.execute('PRAGMA foreign_keys = OFF');
@@ -183,11 +186,19 @@ LIMIT 1
         await _dropLegacyDerivedViewsForSchemaMigration(txn);
         await _dropSchemaMigrationBackupTables(txn);
 
-        await txn.execute('''
+        if (itemsTableHasIsHeader) {
+          await txn.execute('''
 CREATE TABLE items__schema_migration_backup AS
-SELECT id, display_string, display_order, show_item
+SELECT id, display_string, display_order, show_item, is_header
 FROM items
 ''');
+        } else {
+          await txn.execute('''
+CREATE TABLE items__schema_migration_backup AS
+SELECT id, display_string, display_order, show_item, 0 AS is_header
+FROM items
+''');
+        }
 
         await txn.execute('''
 CREATE TABLE item_transactions__schema_migration_backup AS
@@ -217,7 +228,8 @@ CREATE TABLE items (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
     display_string  TEXT UNIQUE NOT NULL,
     display_order   INTEGER UNIQUE,
-    show_item       INTEGER NOT NULL DEFAULT (1)
+    show_item       INTEGER NOT NULL DEFAULT (1),
+    is_header       INTEGER NOT NULL DEFAULT (0)
 )
 ''');
 
@@ -252,8 +264,8 @@ CREATE TABLE logical_batch_items (
 ''');
 
         await txn.execute('''
-INSERT INTO items (id, display_string, display_order, show_item)
-SELECT id, display_string, display_order, show_item
+INSERT INTO items (id, display_string, display_order, show_item, is_header)
+SELECT id, display_string, display_order, show_item, is_header
 FROM items__schema_migration_backup
 ORDER BY id
 ''');
@@ -300,7 +312,8 @@ CREATE TABLE items (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
     display_string  TEXT UNIQUE NOT NULL,
     display_order   INTEGER UNIQUE,
-    show_item       INTEGER NOT NULL DEFAULT (1)
+    show_item       INTEGER NOT NULL DEFAULT (1),
+    is_header       INTEGER NOT NULL DEFAULT (0)
 )
 ''',
       'item_transactions': '''
@@ -1061,5 +1074,10 @@ VALUES (?1, ?2, ?3)
     if (updated != 1) {
       throw StateError('Failed to mark batch $batchId as redone');
     }
+  }
+
+  Future<bool> _itemsTableHasIsHeaderColumn(Database db) async {
+    final rows = await db.rawQuery('PRAGMA table_info(items)');
+    return rows.any((row) => row['name']?.toString() == 'is_header');
   }
 }

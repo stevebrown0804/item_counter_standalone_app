@@ -117,7 +117,7 @@ class _Db {
       final db = await open();
       final rows = await db.rawQuery(
         '''
-SELECT id, display_string, display_order, show_item
+SELECT id, display_string, display_order, show_item, is_header
 FROM items
 ORDER BY CAST(display_order AS INTEGER), id
 ''',
@@ -128,6 +128,7 @@ ORDER BY CAST(display_order AS INTEGER), id
         final nameRaw = row['display_string'];
         final displayOrderRaw = row['display_order'];
         final showItemRaw = row['show_item'];
+        final isHeaderRaw = row['is_header'];
 
         final id = (idRaw is num) ? idRaw.toInt() : int.parse(idRaw.toString());
         final name = nameRaw?.toString() ?? '';
@@ -139,8 +140,11 @@ ORDER BY CAST(display_order AS INTEGER), id
         final showItem = (showItemRaw is num)
             ? showItemRaw.toInt() != 0
             : showItemRaw?.toString() == '1';
+        final isHeader = (isHeaderRaw is num)
+            ? isHeaderRaw.toInt() != 0
+            : isHeaderRaw?.toString() == '1';
 
-        return _Item(id, name, displayOrder, showItem);
+        return _Item(id, name, displayOrder, showItem, isHeader);
       }).toList();
     });
   }
@@ -1071,6 +1075,7 @@ ORDER BY
             'display_string': row.displayString,
             'display_order': row.displayOrder,
             'show_item': row.showItem ? 1 : 0,
+            'is_header': row.isHeader ? 1 : 0,
           },
           where: 'id = ?',
           whereArgs: [row.id],
@@ -1088,6 +1093,7 @@ ORDER BY
             'display_string': row.displayString,
             'display_order': row.displayOrder,
             'show_item': row.showItem ? 1 : 0,
+            'is_header': row.isHeader ? 1 : 0,
           },
         );
       }
