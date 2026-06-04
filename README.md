@@ -35,7 +35,7 @@ Phase 2, where I make the app more accessible to others
 * 2026-05-30 The 'new DB wizard' now works; so I'd say that the days of having to do any (DB-internal) manual configuration are behind us.  You're still gonna want to know (1) what you want to count and (2) the IANA name for your local time zone...or you can just leave it set to UTZ (aka GMT, I think) if you don't care about time zones.
 * 2026-06-03 Added the option to create heading rows on the main screen (under 'edit countable items'); TODO someday: Give the user a slider (or something) to control the indentation! It's currently set at 3.5%
 
-There's still a small handful of TODOs and polishing steps that are left before I'll try making a 'release' out of this, but we're getting closer every day.  (Or "every so often," as I've only been working on this project maybe 1-2 days a week, lately.)
+[Exciting update] I think we're done with this pass.🥳 
   
 ---
 
