@@ -355,7 +355,7 @@ class _MainScreenState extends State<_MainScreen> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     _measureHomeToastLowerEdgeAfterLayout();
 
-    const sectionChildIndentFraction = 0.04;
+    const sectionChildIndentFraction = 0.03;  //Adjust non-header row indentation here
 
     final averageWindowTooltip = _store.averageWindowTooltip;
     final rhsHeaderText = _store.averageWindowHeaderText;
