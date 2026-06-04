@@ -392,6 +392,24 @@ async {
             onPressed: null,
           );
 
+          final resetFiltersButton = OutlinedButton.icon(
+            icon: const Icon(Icons.restart_alt),
+            label: const Text('Reset filters'),
+            onPressed: () async {
+              FocusManager.instance.primaryFocus?.unfocus();
+              ss(() {
+                mode = _TxMode.today;
+                lastDaysCtrl.clear();
+                startLocal = null;
+                endLocal = null;
+                filterNeedsApply = false;
+                selectedIndex = null;
+              });
+              await runQuery();
+              ss(() {});
+            },
+          );
+
           return SafeArea(
             child: Padding(
               padding: EdgeInsets.only(
@@ -596,7 +614,15 @@ async {
                   radioRow(_TxMode.all, const Text('All')),
                   Align(
                     alignment: Alignment.center,
-                    child: Wrap(alignment: WrapAlignment.center, spacing: 12, runSpacing: 8, children: [applyFilterButton, OutlinedButton.icon(icon: const Icon(Icons.restart_alt), label: const Text('Reset filters'), onPressed: () async { FocusManager.instance.primaryFocus?.unfocus(); ss(() { mode = _TxMode.today; lastDaysCtrl.clear(); startLocal = null; endLocal = null; filterNeedsApply = false; selectedIndex = null; }); await runQuery(); ss(() {}); },)]),
+                    child: Wrap(
+                      alignment: WrapAlignment.center,
+                      spacing: 12,
+                      runSpacing: 8,
+                      children: [
+                        applyFilterButton,
+                        resetFiltersButton,
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 8),
                   const Divider(height: 1),
@@ -826,3 +852,4 @@ async {
     },
   );
 }
+
