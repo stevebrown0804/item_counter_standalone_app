@@ -27,6 +27,10 @@ class _Store extends ChangeNotifier {
   _Tz? _activeTz;
   _Tz get activeTz => _activeTz ?? _Tz('UTC', 'Etc/UTC');   //UTC is the fallback
 
+  _TransactionViewerFilterSnapshot? _transactionViewerFilterSnapshot;
+  _TransactionViewerFilterSnapshot? get transactionViewerFilterSnapshot =>
+      _transactionViewerFilterSnapshot;
+
   // Undo/redo uses 'batch tokens,' which are provided by the Rust backend
   final List<String> _undoTokens = [];
   bool get canUndo => _undoTokens.isNotEmpty;
@@ -54,6 +58,16 @@ class _Store extends ChangeNotifier {
 
   String get averageWindowHeaderText {
     return 'Avg. ($averageWindowDisplayText)';
+  }
+
+  void saveTransactionViewerFilterSnapshot(
+      _TransactionViewerFilterSnapshot snapshot,
+      ) {
+    _transactionViewerFilterSnapshot = snapshot;
+  }
+
+  void clearTransactionViewerFilterSnapshot() {
+    _transactionViewerFilterSnapshot = null;
   }
 
   void clearUndoRedo() {

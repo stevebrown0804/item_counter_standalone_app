@@ -6,6 +6,20 @@ enum _TransactionDeleteAction {
   confirm,
 }
 
+class _TransactionViewerFilterSnapshot {
+  const _TransactionViewerFilterSnapshot({
+    required this.mode,
+    required this.lastDaysText,
+    required this.startLocal,
+    required this.endLocal,
+  });
+
+  final _TxMode mode;
+  final String lastDaysText;
+  final DateTime? startLocal;
+  final DateTime? endLocal;
+}
+
 class _TransactionViewerDateBounds {
   _TransactionViewerDateBounds({
     required this.oldestTransactionDateOnly,
@@ -63,8 +77,19 @@ class _TransactionViewerState {
     required this.db,
     required this.store,
     required this.onBackPressed,
+    required _TransactionViewerFilterSnapshot? initialFilters,
   })  : tzName = store.activeTz.tzName,
-        loc = _AppDateLogic.locationOrUtc(store.activeTz.tzName);
+        loc = _AppDateLogic.locationOrUtc(store.activeTz.tzName) {
+    final filters = initialFilters;
+    if (filters == null) {
+      return;
+    }
+
+    mode = filters.mode;
+    lastDaysCtrl.text = filters.lastDaysText;
+    startLocal = filters.startLocal;
+    endLocal = filters.endLocal;
+  }
 
   final _Db db;
   final _Store store;
@@ -198,6 +223,15 @@ class _TransactionViewerState {
     return formatLocalForField(endLocal);
   }
 
+  _TransactionViewerFilterSnapshot buildFilterSnapshot() {
+    return _TransactionViewerFilterSnapshot(
+      mode: mode,
+      lastDaysText: lastDaysCtrl.text,
+      startLocal: startLocal,
+      endLocal: endLocal,
+    );
+  }
+
   Future<void> runQuery() async {
     busy = true;
     error = null;
@@ -222,6 +256,7 @@ class _TransactionViewerState {
       }
 
       filterNeedsApply = false;
+      store.saveTransactionViewerFilterSnapshot(buildFilterSnapshot());
     } catch (ex) {
       error = ex.toString();
     } finally {
@@ -268,12 +303,12 @@ class _TransactionViewerState {
 }
 
 Future<DateTime?> _pickLocalDateTime(
-  BuildContext context, {
-  required tz.Location loc,
-  required DateTime firstDate,
-  required DateTime lastDate,
-  DateTime? initialLocal,
-}) async {
+    BuildContext context, {
+      required tz.Location loc,
+      required DateTime firstDate,
+      required DateTime lastDate,
+      DateTime? initialLocal,
+    }) async {
   final nowLocal = tz.TZDateTime.now(loc);
   final initial = initialLocal ?? nowLocal;
 
@@ -313,6 +348,7 @@ Future<void> doTransactionViewerSheet({
     db: db,
     store: store,
     onBackPressed: onBackPressed,
+    initialFilters: store.transactionViewerFilterSnapshot,
   );
 
   await state.initialize();
@@ -439,11 +475,11 @@ Widget _buildTransactionViewerHeader({
         onPressed: state.busy
             ? null
             : () async {
-                await state.runQuery();
-                setSheetState(() {
-                  state.selectedIndex = null;
-                });
-              },
+          await state.runQuery();
+          setSheetState(() {
+            state.selectedIndex = null;
+          });
+        },
       ),
     ],
   );
@@ -769,8 +805,8 @@ Widget _buildEndDateRow({
                   ),
                   style: state.endLocal == null
                       ? TextStyle(
-                          color: Theme.of(sheetContext).hintColor,
-                        )
+                    color: Theme.of(sheetContext).hintColor,
+                  )
                       : null,
                   decoration: const InputDecoration(
                     isDense: true,
@@ -962,16 +998,16 @@ Widget _buildTransactionListBody({
     child: state.busy
         ? const Center(child: CircularProgressIndicator())
         : ListView.builder(
-            itemCount: state.items.length,
-            itemBuilder: (c, i) {
-              return _buildTransactionListRow(
-                sheetContext: sheetContext,
-                state: state,
-                index: i,
-                setSheetState: setSheetState,
-              );
-            },
-          ),
+      itemCount: state.items.length,
+      itemBuilder: (c, i) {
+        return _buildTransactionListRow(
+          sheetContext: sheetContext,
+          state: state,
+          index: i,
+          setSheetState: setSheetState,
+        );
+      },
+    ),
   );
 }
 
@@ -1069,12 +1105,12 @@ Widget _buildDeleteTransactionButton({
     onPressed: state.selectedIndex == null
         ? null
         : () async {
-            await _deleteSelectedTransaction(
-              sheetContext: sheetContext,
-              state: state,
-              setSheetState: setSheetState,
-            );
-          },
+      await _deleteSelectedTransaction(
+        sheetContext: sheetContext,
+        state: state,
+        setSheetState: setSheetState,
+      );
+    },
   );
 }
 
@@ -1165,12 +1201,12 @@ Widget _buildEditTransactionButton({
     onPressed: state.selectedIndex == null
         ? null
         : () async {
-            await _editSelectedTransaction(
-              sheetContext: sheetContext,
-              state: state,
-              setSheetState: setSheetState,
-            );
-          },
+      await _editSelectedTransaction(
+        sheetContext: sheetContext,
+        state: state,
+        setSheetState: setSheetState,
+      );
+    },
   );
 }
 
@@ -1200,4 +1236,3 @@ Future<void> _editSelectedTransaction({
     });
   }
 }
-
