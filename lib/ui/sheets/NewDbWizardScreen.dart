@@ -155,8 +155,9 @@ LIMIT 1
   }
 
   Future<void> _openCountableItemsEditor() async {
-    await doEditCountableItemsSheet(
+    await _doEditCountableItemsSheet(
       context: context,
+      db: _db,
       onInteractionComplete: (_) async {},
     );
 
@@ -181,6 +182,7 @@ LIMIT 1
       ),
       builder: (ctx) {
         return _EditTimeZonesSheet(
+          db: _db,
           showBackButton: false,
           showBottomCloseButtons: true,
           onTimeZonesChanged: () async {
