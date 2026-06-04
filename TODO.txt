@@ -5,18 +5,9 @@ TODO (Waiting for keyboard input to reach the emulator again): Resume working on
 ---------------------------------------
 Polishing
 
-*Transaction viewer
-TODO: I was on my phone, using the transaction viewer to look up transactions and add the other pills (which I'd just added via the 'edit countable items' interface; I had to set up the transaction viewer (to a certain 2-day range) each time I bought it up, which was pretty darn inconvenient.  Let's give that sheet the capacity to restore the previous filter (for the duration of the session), and add a 'reset filters' button.  (And we'll decide later if we want to always have the filter be preserved or if we should make that a user option.)
-
-
 ---------------------------------------
 --Final step before calling it good on this pass
-TODO: See if we need to generate one more DB migration
-
 TODO: `flutter analyze` and address whatever warnings/errors/informational things that it brings up.
-
-TODO (When we're basically done with this pass): Ask ChatGPT to look over the current project files and identify remaining refactor candidates where logic is duplicated or should probably be centralized. Keep the answer short and prioritize only refactors likely to prevent bugs or reduce future code-edit friction.
-     REMINDER: If that TODO seems weirdly worded, keep in mind that ChatGPT wrote it.🤭
 
 
 
@@ -136,12 +127,15 @@ TODO (Waiting for the UI minutiae interface to be started): Toast shape, duratio
 *Main screen
 TODO: Give the user control over the amount of indentation down with rows beneath a section header
 TODO (After defining a UI element to let the user control indentation): Constrain that indentation, probably to 'something that doesn't push every row entirely off the screen,' but anything short of that seems 'fine, I guess.'
+TODO: Answer the question, "The display strings in the items table apparently has a unique constraint; do we really need this?  I kinda think we don't....and it rules out the possibility of having a header text being used multiple times, which seems like an unnecessary restriction."
 
 *Settings sheet
 TODO: Use the indicator light for every control/setting on the settings sheet...or at least consider how we MIGHT use it.
     eg. with transaction viewer, if someone just views transactions, it seems like the indicator would just stay gray; if they successfully edit a transaction, it might turn green.  If they start to edit one but, I dunno, leave it half done (if that's even a thing), it might turn red.  Not sure that 'leaving transaction edits half-done' is even an option, though.
 TODO (MAYBE): Let the user long-tap & drag them to rearrange the rows of the settings sheet
     *(5/5/2026): I still like the idea of UI customization, but I'm wondering if we should have a "UI editing mode" that shows controls on the sides of rows that can be long-tapped to do this kind of rearranging; they would then disappear when we end 'UI editing mode.'
+
+*Transaction viewer
 
 *Averaging Window area of settings sheet
 TODO: (Background) With the "Averaging window" textboxes, we're using TextPainter to determine the minimum interior width necessary to display things (assuming the longest possibly averaging window is 99999 days); thing is, it's producing widths wider than necessary.
