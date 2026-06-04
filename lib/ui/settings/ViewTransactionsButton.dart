@@ -17,9 +17,9 @@ class _ViewTransactionsRow extends StatelessWidget {
       return;
     }
 
-    await doTransactionViewerSheet(
+    await _doTransactionViewerSheet(
       context: context,
-      db: db,
+      db: main._db,
       store: main._store,
       onBackPressed: onBackPressed,
     );

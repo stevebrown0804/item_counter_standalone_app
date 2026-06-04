@@ -173,6 +173,10 @@ LIMIT 1
   Future<void> _openTimeZoneEditor() async {
     final newestIdBefore = await _readNewestTimeZoneAliasIdOrNull();
 
+    if (!mounted) {
+      return;
+    }
+
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,

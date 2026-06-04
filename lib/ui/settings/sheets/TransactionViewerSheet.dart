@@ -328,6 +328,10 @@ Future<DateTime?> _pickLocalDateTime(
   );
   if (d == null) return null;
 
+  if (!context.mounted) {
+    return null;
+  }
+
   final t = await showTimePicker(
     context: context,
     initialTime: TimeOfDay.fromDateTime(initial),
@@ -338,7 +342,7 @@ Future<DateTime?> _pickLocalDateTime(
   return tz.TZDateTime(loc, d.year, d.month, d.day, t.hour, t.minute);
 }
 
-Future<void> doTransactionViewerSheet({
+Future<void> _doTransactionViewerSheet({
   required BuildContext context,
   required _Db db,
   required _Store store,
@@ -485,61 +489,7 @@ Widget _buildTransactionViewerHeader({
   );
 }
 
-Widget _buildTransactionViewerFilterSection({
-  required BuildContext hostContext,
-  required BuildContext sheetContext,
-  required _TransactionViewerState state,
-  required void Function(VoidCallback f) setSheetState,
-}) {
-  return Column(
-    children: [
-      _buildTransactionViewerRadioRow(
-        state: state,
-        setSheetState: setSheetState,
-        mode: _TxMode.today,
-        trailing: const Text('Today'),
-      ),
-      const Divider(),
-      _buildTransactionViewerRadioRow(
-        state: state,
-        setSheetState: setSheetState,
-        mode: _TxMode.lastNDays,
-        trailing: _buildLastNDaysFilter(
-          sheetContext: sheetContext,
-          state: state,
-          setSheetState: setSheetState,
-        ),
-      ),
-      const Divider(),
-      _buildTransactionViewerRadioRow(
-        state: state,
-        setSheetState: setSheetState,
-        mode: _TxMode.range,
-        trailing: _buildRangeFilter(
-          hostContext: hostContext,
-          sheetContext: sheetContext,
-          state: state,
-          setSheetState: setSheetState,
-        ),
-      ),
-      const Divider(),
-      _buildTransactionViewerRadioRow(
-        state: state,
-        setSheetState: setSheetState,
-        mode: _TxMode.all,
-        trailing: const Text('All'),
-      ),
-      _buildFilterButtons(
-        state: state,
-        setSheetState: setSheetState,
-      ),
-    ],
-  );
-}
-
 Widget _buildTransactionViewerRadioRow({
-  required _TransactionViewerState state,
-  required void Function(VoidCallback f) setSheetState,
   required _TxMode mode,
   required Widget trailing,
 }) {
@@ -548,20 +498,66 @@ Widget _buildTransactionViewerRadioRow({
     children: [
       Radio<_TxMode>(
         value: mode,
-        groupValue: state.mode,
-        onChanged: (v) {
-          if (v == null) {
-            return;
-          }
-
-          setSheetState(() {
-            state.setModeAndMarkFilterNeedsApply(v);
-          });
-        },
       ),
       const SizedBox(width: 4),
       Expanded(child: trailing),
     ],
+  );
+}
+
+Widget _buildTransactionViewerFilterSection({
+  required BuildContext hostContext,
+  required BuildContext sheetContext,
+  required _TransactionViewerState state,
+  required void Function(VoidCallback f) setSheetState,
+}) {
+  return RadioGroup<_TxMode>(
+    groupValue: state.mode,
+    onChanged: (value) {
+      if (value == null) {
+        return;
+      }
+
+      setSheetState(() {
+        state.setModeAndMarkFilterNeedsApply(value);
+      });
+    },
+    child: Column(
+      children: [
+        _buildTransactionViewerRadioRow(
+          mode: _TxMode.today,
+          trailing: const Text('Today'),
+        ),
+        const Divider(),
+        _buildTransactionViewerRadioRow(
+          mode: _TxMode.lastNDays,
+          trailing: _buildLastNDaysFilter(
+            sheetContext: sheetContext,
+            state: state,
+            setSheetState: setSheetState,
+          ),
+        ),
+        const Divider(),
+        _buildTransactionViewerRadioRow(
+          mode: _TxMode.range,
+          trailing: _buildRangeFilter(
+            hostContext: hostContext,
+            sheetContext: sheetContext,
+            state: state,
+            setSheetState: setSheetState,
+          ),
+        ),
+        const Divider(),
+        _buildTransactionViewerRadioRow(
+          mode: _TxMode.all,
+          trailing: const Text('All'),
+        ),
+        _buildFilterButtons(
+          state: state,
+          setSheetState: setSheetState,
+        ),
+      ],
+    ),
   );
 }
 

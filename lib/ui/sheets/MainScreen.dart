@@ -28,7 +28,6 @@ class _MainScreenState extends State<_MainScreen> with WidgetsBindingObserver {
   // UI text loaded from settings table
   String? _appBarTitle;
   String? _lhsColumnHeader;
-  String? _rhsHeaderTemplate;
 
   final _homeToastController = _StackedToastController();
   final GlobalKey _bodyStackKey = GlobalKey();
@@ -47,14 +46,11 @@ class _MainScreenState extends State<_MainScreen> with WidgetsBindingObserver {
       await _db.readSettingString('appbar_title');
       final lhsHeader =
       await _db.readSettingString('lhs_column_header');
-      final rhsTemplate =
-      await _db.readSettingString('rhs_column_header');
 
       if (!mounted) return;
       setState(() {
         _appBarTitle = appBarTitle;
         _lhsColumnHeader = lhsHeader;
-        _rhsHeaderTemplate = rhsTemplate;
       });
     } catch (e) {
       if (!mounted) return;
