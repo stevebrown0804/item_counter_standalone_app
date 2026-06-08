@@ -3,6 +3,8 @@
 android/key.properties
 android/app/*.jks
 
+AGENTS.md
+
 # Miscellaneous
 *.class
 *.log
